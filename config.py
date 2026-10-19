@@ -9,7 +9,11 @@ from pathlib import Path
 from typing import Optional
 
 # Project Paths
-PROJECT_ROOT = Path(__file__).parent.parent
+# NOTE: config.py lives at the project root, so `.parent` IS the project root.
+# The previous `.parent.parent` resolved to the Desktop folder, which made
+# WEB_DIR/DB_PATH point at non-existent siblings and created CUSTOM_IR_DIR
+# outside the project.
+PROJECT_ROOT = Path(__file__).parent
 ENGINE_DIR = PROJECT_ROOT / "engine"
 WEB_DIR = PROJECT_ROOT / "web"
 DOCS_DIR = PROJECT_ROOT / "docs"
@@ -44,7 +48,6 @@ DSP_NUMPY_DTYPE = "float32"
 DSP_CLIP_LIMIT = 1.0
 
 # Cabinet IR Configuration
-IR_MAX_LENGTH = 2048  # Maximum IR length in samples
 IR_NORMALIZATION_GAIN = 0.35
 
 # Web Server Configuration
@@ -69,7 +72,11 @@ ENABLE_PERFORMANCE_MONITORING = os.getenv("ENABLE_PERFORMANCE_MONITORING", "fals
 
 # Custom IR Directory
 CUSTOM_IR_DIR = PROJECT_ROOT / "custom_irs"
-CUSTOM_IR_DIR.mkdir(exist_ok=True)
+
+# Cabinet IR limits (shared by the DSP layer and the upload endpoint)
+IR_MAX_LENGTH = 2048  # Maximum IR length in samples
+IR_UPLOAD_MAX_BYTES = 16 * 1024 * 1024  # Hard cap on uploaded .wav payload
+IR_ALLOWED_SUFFIXES = {".wav"}
 
 
 def get_audio_device_names() -> tuple[Optional[int], Optional[int]]:

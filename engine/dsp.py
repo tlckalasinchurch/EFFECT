@@ -1,5 +1,9 @@
+import os
+
 import numpy as np
 from scipy import signal
+
+import config
 
 class NoiseGate:
     def __init__(self, threshold_db=-60.0, ratio=4.0, attack_ms=2.0, release_ms=50.0, sample_rate=48000):
@@ -199,42 +203,192 @@ class CabinetSimulator:
         self.ir_data = self._generate_synthetic_ir('v30')
         self.zi = np.zeros(len(self.ir_data) - 1)
 
-    def _generate_synthetic_ir(self, cab_type='v30'):
-        # High-quality synthetic speaker IR response (600 samples)
+    # Per-cabinet voicing. Previously `_generate_synthetic_ir` ignored its
+    # `cab_type` argument, so every cabinet produced a byte-identical
+    # response and selecting a cab in the UI changed nothing audible.
+    CAB_PROFILES = {
+        "v30": {
+            "name": "Celestion V30 4x12",
+            "resonance": ((105.0, 0.55), (320.0, 0.35)),
+            "scoop_hz": 800.0, "scoop_db": -5.0,
+            "presence_hz": 3200.0, "presence_db": 3.0,
+            "rolloff_hz": 6200.0, "hf_db": -6.0,
+            "decay": 0.020,
+        },
+        "greenback": {
+            "name": "Marshall 1960A Greenback",
+            "resonance": ((95.0, 0.62), (420.0, 0.30)),
+            "scoop_hz": 900.0, "scoop_db": -3.0,
+            "presence_hz": 2600.0, "presence_db": 4.5,
+            "rolloff_hz": 5600.0, "hf_db": -4.0,
+            "decay": 0.024,
+        },
+        "mesa": {
+            "name": "Mesa Rectifier 4x12 Slant",
+            "resonance": ((90.0, 0.58), (260.0, 0.28)),
+            "scoop_hz": 720.0, "scoop_db": -7.5,
+            "presence_hz": 3400.0, "presence_db": 2.0,
+            "rolloff_hz": 7000.0, "hf_db": -1.5,
+            "decay": 0.017,
+        },
+        "twin": {
+            "name": "Fender Twin 2x12 Jensen",
+            "resonance": ((80.0, 0.60), (240.0, 0.40)),
+            "scoop_hz": 1100.0, "scoop_db": -1.5,
+            "presence_hz": 4200.0, "presence_db": 5.0,
+            "rolloff_hz": 8200.0, "hf_db": 1.0,
+            "decay": 0.022,
+        },
+    }
+
+    DEFAULT_CAB = "v30"
+
+    @classmethod
+    def cab_key_for_name(cls, cab_name: str) -> str:
+        """Map a display name back to its profile key (case-insensitive)."""
+        target = (cab_name or "").strip().lower()
+        for key, profile in cls.CAB_PROFILES.items():
+            if profile["name"].lower() == target:
+                return key
+        return cls.DEFAULT_CAB
+
+    def _generate_synthetic_ir(self, cab_type=None):
+        """
+        Build a deterministic, cab-specific impulse response.
+
+        Shapes a decaying noise burst through the cabinet's magnitude
+        response (body resonances, mid scoop, presence peak, HF roll-off).
+        Generated once at load time, so this is not on the audio hot path.
+        """
+        key = cab_type if cab_type in self.CAB_PROFILES else self.DEFAULT_CAB
+        profile = self.CAB_PROFILES[key]
+
         length = 600
-        t = np.linspace(0, 1.0, length)
-        # Speaker resonance around 100 Hz, mid scoop around 800 Hz, speaker peak around 3-4 kHz, steep roll-off at 5.5 kHz
-        envelope = np.exp(-t * 28.0)
-        ir = (
-            np.sin(2.0 * np.pi * 95.0 * t * (length / self.sample_rate)) * 0.6 +
-            np.sin(2.0 * np.pi * 2200.0 * t * (length / self.sample_rate)) * 0.4 +
-            np.sin(2.0 * np.pi * 3800.0 * t * (length / self.sample_rate)) * 0.7
-        ) * envelope
-        
-        # Normalize IR
-        ir = ir / (np.max(np.abs(ir)) + 1e-6) * 0.35
-        return ir.astype(np.float32)
+        rng = np.random.default_rng(sum(ord(c) for c in key) * 2654435761 % (2**32))
+        noise = rng.standard_normal(length).astype(np.float32)
+        env = np.exp(-np.linspace(0.0, 1.0, length, dtype=np.float32) / profile["decay"] * 3.0)
+        ir = noise * env
+
+        # Frequency-domain voicing.
+        spectrum = np.fft.rfft(ir)
+        freqs = np.maximum(np.fft.rfftfreq(length, d=1.0 / self.sample_rate), 1e-3)
+        gain_db = np.zeros_like(freqs)
+
+        # Speaker body resonances.
+        for res_hz, res_gain in profile["resonance"]:
+            gain_db += res_gain * np.exp(-((np.log2(freqs / res_hz)) ** 2) / 0.28)
+
+        # Mid scoop.
+        gain_db += profile["scoop_db"] * np.exp(
+            -((np.log2(freqs / profile["scoop_hz"])) ** 2) / 0.22
+        )
+
+        # Presence peak.
+        gain_db += profile["presence_db"] * np.exp(
+            -((np.log2(freqs / profile["presence_hz"])) ** 2) / 0.30
+        )
+
+        # HF roll-off above the cone break-up point.
+        gain_db += profile["hf_db"] * np.clip(
+            (np.log2(freqs / profile["rolloff_hz"])) / 0.9, 0.0, None
+        )
+
+        # Gentle overall tilt keeps the low mids from collapsing.
+        gain_db += 0.2 * np.log2(freqs / 1000.0)
+
+        ir = np.fft.irfft(spectrum * (10.0 ** (gain_db / 20.0)), n=length).astype(np.float32)
+
+        peak = float(np.max(np.abs(ir)))
+        if peak > 1e-9:
+            ir = ir / peak * config.IR_NORMALIZATION_GAIN
+        return np.ascontiguousarray(ir, dtype=np.float32)
+
+    def select_cab(self, cab_name: str) -> str:
+        """
+        Install the factory IR matching a display name and set the name.
+
+        Returns the canonical cabinet name; unknown names fall back to default.
+        """
+        key = self.cab_key_for_name(cab_name)
+        ir = self._generate_synthetic_ir(key)
+        self.set_ir_data(ir, self.CAB_PROFILES[key]["name"])
+        return self.ir_name
+
+    @staticmethod
+    def _prepare_ir(data, sr, target_rate, max_length):
+        """
+        Normalise arbitrary WAV samples into a bounded, click-free IR buffer.
+
+        Returns (float32 array, was_truncated).
+        Raises ValueError on unusable input.
+        """
+        data = np.asarray(data)
+        if data.ndim > 1:
+            data = data[:, 0]
+        if data.size == 0:
+            raise ValueError("IR contains no audio samples")
+
+        # Integer PCM -> float in [-1, 1]
+        if np.issubdtype(data.dtype, np.integer):
+            data = data.astype(np.float32) / float(np.iinfo(data.dtype).max)
+        else:
+            data = data.astype(np.float32)
+
+        # Resample to the engine rate if needed.
+        sr = int(sr) if sr else 0
+        target_rate = int(target_rate) if target_rate else 0
+        if sr > 0 and target_rate > 0 and sr != target_rate:
+            num_samples = max(1, int(round(len(data) * target_rate / sr)))
+            data = signal.resample(data, num_samples)
+
+        truncated = False
+        if max_length and len(data) > max_length:
+            data = data[:max_length]
+            truncated = True
+            # Fade the tail so the hard cut cannot produce a click.
+            fade = min(len(data), 64)
+            if fade > 1:
+                ramp = np.linspace(1.0, 0.0, fade, dtype=np.float32)
+                data[-fade:] *= ramp
+
+        peak = float(np.max(np.abs(data)))
+        if peak > 1e-9:
+            data = data / peak * config.IR_NORMALIZATION_GAIN
+        else:
+            raise ValueError("IR is silent (all samples are zero)")
+
+        return np.ascontiguousarray(data, dtype=np.float32), truncated
 
     def load_ir_file(self, path):
+        """Load and normalise an IR from a WAV file on disk."""
         try:
             from scipy.io import wavfile
             sr, data = wavfile.read(path)
-            if data.ndim > 1:
-                data = data[:, 0]
-            if np.issubdtype(data.dtype, np.integer):
-                data = data.astype(np.float32) / np.iinfo(data.dtype).max
-            # Resample if needed
-            if sr != self.sample_rate:
-                num_samples = int(len(data) * self.sample_rate / sr)
-                data = signal.resample(data, num_samples)
-            # Truncate to reasonable length (e.g. 1024 samples)
-            data = data[:1024]
-            self.ir_data = data / (np.max(np.abs(data)) + 1e-6) * 0.35
-            self.zi = np.zeros(len(self.ir_data) - 1)
+            prepared, _ = self._prepare_ir(data, sr, self.sample_rate, config.IR_MAX_LENGTH)
+            self.set_ir_data(prepared, os.path.basename(path))
             return True
         except Exception as e:
-            print("Failed to load IR:", e)
+            print(f"Failed to load IR ({path}): {e}")
             return False
+
+    def set_ir_data(self, ir_data, ir_name):
+        """
+        Install a prepared IR buffer directly (custom uploads / presets).
+
+        Validates before mutating so a rejected buffer cannot leave the
+        cabinet in a half-updated state.
+        """
+        prepared = np.ascontiguousarray(np.asarray(ir_data), dtype=np.float32).ravel()
+        if prepared.size < 2:
+            raise ValueError("IR must contain at least 2 samples")
+        if not np.all(np.isfinite(prepared)):
+            raise ValueError("IR contains NaN or infinite samples")
+
+        # Commit only after every check passes.
+        self.ir_data = prepared
+        self.ir_name = str(ir_name)
+        self.zi = np.zeros(len(self.ir_data) - 1, dtype=np.float32)
+        return True
 
     def process(self, audio):
         if not self.enabled:

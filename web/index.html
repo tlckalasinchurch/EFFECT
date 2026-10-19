@@ -23,25 +23,30 @@
     <div class="performance-bar">
       <span class="perf-title">PERFORMANCE:</span>
       <div class="perf-slots">
-        <button class="perf-slot active" data-preset="preset-5150">
+        <button class="perf-slot active" data-slot="1" data-preset="preset-5150">
           <span class="slot-num">1</span>
           <span class="slot-name">Lead 5150</span>
+          <span class="slot-edit-btn" title="Edit Slot">✎</span>
         </button>
-        <button class="perf-slot" data-preset="preset-plexi">
+        <button class="perf-slot" data-slot="2" data-preset="preset-plexi">
           <span class="slot-num">2</span>
           <span class="slot-name">Plexi Crunch</span>
+          <span class="slot-edit-btn" title="Edit Slot">✎</span>
         </button>
-        <button class="perf-slot" data-preset="preset-twin">
+        <button class="perf-slot" data-slot="3" data-preset="preset-twin">
           <span class="slot-num">3</span>
           <span class="slot-name">Twin Clean</span>
+          <span class="slot-edit-btn" title="Edit Slot">✎</span>
         </button>
-        <button class="perf-slot" data-preset="preset-texas">
+        <button class="perf-slot" data-slot="4" data-preset="preset-texas">
           <span class="slot-num">4</span>
           <span class="slot-name">Texas Solo</span>
+          <span class="slot-edit-btn" title="Edit Slot">✎</span>
         </button>
-        <button class="perf-slot" data-preset="preset-ambient">
+        <button class="perf-slot" data-slot="5" data-preset="preset-ambient">
           <span class="slot-num">5</span>
           <span class="slot-name">Ambient Space</span>
+          <span class="slot-edit-btn" title="Edit Slot">✎</span>
         </button>
       </div>
     </div>
@@ -235,7 +240,7 @@
   <footer class="studio-footer-editor">
 
     <!-- HORIZONTAL MODULAR SIGNAL CHAIN -->
-    <div class="signal-chain-bar">
+    <div class="signal-chain-bar" id="signal-chain">
       <div class="chain-module chain-in">
         <span class="mod-icon">🎸</span>
         <span class="mod-name">INPUT</span>
@@ -244,61 +249,67 @@
       <div class="chain-arrow">➔</div>
 
       <!-- Module 1: Noise Gate -->
-      <div class="chain-module active-edit" id="cmod-gate" data-target="panel-gate">
+      <div class="chain-module active-edit draggable" id="cmod-gate" data-target="panel-gate" data-module="gate" draggable="true">
         <div class="mod-led on" id="cled-gate"></div>
         <span class="mod-icon">🔇</span>
         <span class="mod-title">NOISE GATE</span>
         <button class="mod-power-btn" id="cpow-gate" title="Toggle Gate">⏻</button>
+        <div class="drag-handle" title="Drag to reorder">⋮⋮</div>
       </div>
 
       <div class="chain-arrow">➔</div>
 
       <!-- Module 2: Overdrive / TS9 -->
-      <div class="chain-module" id="cmod-screamer" data-target="panel-screamer">
+      <div class="chain-module draggable" id="cmod-screamer" data-target="panel-screamer" data-module="screamer" draggable="true">
         <div class="mod-led on" id="cled-screamer"></div>
         <span class="mod-icon">🟩</span>
         <span class="mod-title">TS-9 DRIVE</span>
         <button class="mod-power-btn" id="cpow-screamer" title="Toggle Screamer">⏻</button>
+        <div class="drag-handle" title="Drag to reorder">⋮⋮</div>
       </div>
 
       <div class="chain-arrow">➔</div>
 
       <!-- Module 3: Amp Head Stack -->
-      <div class="chain-module" id="cmod-amp" data-target="panel-amp">
+      <div class="chain-module draggable" id="cmod-amp" data-target="panel-amp" data-module="amp" draggable="true">
         <div class="mod-led on" id="cled-amp"></div>
         <span class="mod-icon">📻</span>
         <span class="mod-title" id="cmod-amp-title">AMP (5150)</span>
         <button class="mod-power-btn" id="cpow-amp" title="Toggle Amp">⏻</button>
+        <div class="drag-handle" title="Drag to reorder">⋮⋮</div>
       </div>
 
       <div class="chain-arrow">➔</div>
 
       <!-- Module 4: Cabinet IR -->
-      <div class="chain-module" id="cmod-cab" data-target="panel-cab">
+      <div class="chain-module draggable" id="cmod-cab" data-target="panel-cab" data-module="cab" draggable="true">
         <div class="mod-led on" id="cled-cab"></div>
         <span class="mod-icon">🔊</span>
         <span class="mod-title">CABINET IR</span>
         <button class="mod-power-btn" id="cpow-cab" title="Toggle Cabinet">⏻</button>
+        <div class="drag-handle" title="Drag to reorder">⋮⋮</div>
       </div>
 
       <div class="chain-arrow">➔</div>
 
       <!-- Module 5: Delay -->
-      <div class="chain-module bypassed" id="cmod-delay" data-target="panel-delay">
+      <div class="chain-module bypassed draggable" id="cmod-delay" data-target="panel-delay" data-module="delay" draggable="true">
         <div class="mod-led off" id="cled-delay"></div>
         <span class="mod-icon">⏱️</span>
         <span class="mod-title">DELAY</span>
         <button class="mod-power-btn" id="cpow-delay" title="Toggle Delay">⏻</button>
+        <div class="drag-handle" title="Drag to reorder">⋮⋮</div>
       </div>
 
       <div class="chain-arrow">➔</div>
 
       <!-- Module 6: Reverb -->
-      <div class="chain-module" id="cmod-reverb" data-target="panel-reverb">
+      <div class="chain-module draggable" id="cmod-reverb" data-target="panel-reverb" data-module="reverb" draggable="true">
         <div class="mod-led on" id="cled-reverb"></div>
         <span class="mod-icon">🌌</span>
         <span class="mod-title">REVERB</span>
         <button class="mod-power-btn" id="cpow-reverb" title="Toggle Reverb">⏻</button>
+        <div class="drag-handle" title="Drag to reorder">⋮⋮</div>
       </div>
 
       <div class="chain-arrow">➔</div>
@@ -465,7 +476,17 @@
                 <option value="Mesa Rectifier 4x12 Slant">Mesa Rectifier 4x12 Slant (Heavy Metal)</option>
                 <option value="Marshall 1960A Greenback">Marshall 1960A Greenback (Classic Rock)</option>
                 <option value="Fender Twin 2x12 Jensen">Fender Twin 2x12 Jensen (Sparkling Clean)</option>
+                <option value="custom" disabled>──────────────</option>
+                <option value="custom_upload">📁 Load Custom IR (.wav)</option>
               </select>
+            </div>
+            <div class="cab-drop-zone" id="cab-drop-zone">
+              <div class="drop-zone-content">
+                <span class="drop-icon">📁</span>
+                <span class="drop-text">Drag & Drop .wav IR file here</span>
+                <span class="drop-subtext">or click to browse</span>
+                <input type="file" id="ir-file-input" accept=".wav" style="display: none;">
+              </div>
             </div>
           </div>
         </div>

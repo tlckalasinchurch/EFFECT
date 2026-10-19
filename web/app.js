@@ -30,14 +30,17 @@ function initKnobs() {
     const max = parseFloat(knob.dataset.max || '1');
     const section = knob.dataset.section;
     const param = knob.dataset.param;
+    const defaultVal = parseFloat(knob.dataset.default || knob.dataset.val || '0.5');
 
     updateKnobAngle(knob, startVal, min, max);
 
+    // Mouse drag (vertical)
     knob.addEventListener('mousedown', (e) => {
       isDragging = true;
       startY = e.clientY;
       startVal = parseFloat(knob.dataset.val);
       document.body.style.cursor = 'ns-resize';
+      knob.classList.add('knob-active');
       e.preventDefault();
     });
 
@@ -45,7 +48,7 @@ function initKnobs() {
       if (!isDragging) return;
       const deltaY = startY - e.clientY;
       const range = max - min;
-      const step = range / 180;
+      const step = range / 270; // Smoother: 270 degrees for full range
       let newVal = startVal + deltaY * step;
       newVal = Math.max(min, Math.min(max, newVal));
 
@@ -59,9 +62,86 @@ function initKnobs() {
       if (isDragging) {
         isDragging = false;
         document.body.style.cursor = 'default';
+        knob.classList.remove('knob-active');
       }
     });
+
+    // Scroll wheel support
+    knob.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const currentVal = parseFloat(knob.dataset.val);
+      const range = max - min;
+      const step = range / 50; // Smoother scroll
+      const delta = e.deltaY > 0 ? -step : step;
+      let newVal = currentVal + delta;
+      newVal = Math.max(min, Math.min(max, newVal));
+
+      knob.dataset.val = newVal;
+      updateKnobAngle(knob, newVal, min, max);
+      updateKnobLabel(knob, section, param, newVal);
+      sendParamUpdate(section, param, newVal);
+    }, { passive: false });
+
+    // Double-click reset to default
+    knob.addEventListener('dblclick', () => {
+      knob.dataset.val = defaultVal;
+      updateKnobAngle(knob, defaultVal, min, max);
+      updateKnobLabel(knob, section, param, defaultVal);
+      sendParamUpdate(section, param, defaultVal);
+      
+      // Visual feedback - flash
+      knob.classList.add('knob-flash');
+      setTimeout(() => knob.classList.remove('knob-flash'), 200);
+    });
+
+    // Right-click context menu for presets
+    knob.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      showKnobContext(knob, section, param, min, max);
+    });
   });
+}
+
+function showKnobContext(knob, section, param, min, max) {
+  // Simple preset values: 0%, 25%, 50%, 75%, 100%
+  const presets = [0, 0.25, 0.5, 0.75, 1.0];
+  
+  // Create context menu
+  const menu = document.createElement('div');
+  menu.className = 'knob-context-menu';
+  menu.innerHTML = presets.map((val, i) => 
+    `<div class="context-item" data-val="${val}">${Math.round(val * 100)}%</div>`
+  ).join('');
+  
+  // Position menu
+  const rect = knob.getBoundingClientRect();
+  menu.style.left = rect.left + 'px';
+  menu.style.top = (rect.bottom + 5) + 'px';
+  
+  document.body.appendChild(menu);
+  
+  // Handle clicks
+  menu.querySelectorAll('.context-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const val = parseFloat(item.dataset.val);
+      const newVal = min + val * (max - min);
+      knob.dataset.val = newVal;
+      updateKnobAngle(knob, newVal, min, max);
+      updateKnobLabel(knob, section, param, newVal);
+      sendParamUpdate(section, param, newVal);
+      document.body.removeChild(menu);
+    });
+  });
+  
+  // Close on click outside
+  setTimeout(() => {
+    document.addEventListener('click', function closeMenu(e) {
+      if (!menu.contains(e.target)) {
+        document.body.removeChild(menu);
+        document.removeEventListener('click', closeMenu);
+      }
+    });
+  }, 0);
 }
 
 function updateKnobAngle(knob, val, min, max) {
@@ -122,9 +202,12 @@ function initSignalChain() {
     // Click module card to select and switch parameter strip
     if (modElem) {
       modElem.addEventListener('click', (e) => {
-        if (e.target.closest('.mod-power-btn')) return; // handled by powBtn
+        if (e.target.closest('.mod-power-btn') || e.target.closest('.drag-handle')) return; // handled by other buttons
         selectModulePanel(m.id);
       });
+      
+      // Drag and drop reordering
+      initDragAndDrop(modElem);
     }
 
     // Module power button on chain
@@ -147,10 +230,223 @@ function initSignalChain() {
   const cabSelect = document.getElementById('select-cab-ir');
   if (cabSelect) {
     cabSelect.addEventListener('change', (e) => {
-      sendParamUpdate('cab', 'ir_name', e.target.value);
-      document.getElementById('insp-cab-ir').innerText = e.target.value;
+      if (e.target.value === 'custom_upload') {
+        document.getElementById('ir-file-input').click();
+        e.target.value = cabSelect.dataset.lastValue || 'Celestion V30 4x12';
+      } else {
+        cabSelect.dataset.lastValue = e.target.value;
+        sendParamUpdate('cab', 'ir_name', e.target.value);
+        document.getElementById('insp-cab-ir').innerText = e.target.value;
+      }
     });
   }
+  
+  // Custom IR file input
+  const irFileInput = document.getElementById('ir-file-input');
+  if (irFileInput) {
+    irFileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (file && file.name.endsWith('.wav')) {
+        await uploadCustomIR(file);
+      }
+    });
+  }
+  
+  // Custom IR drag-and-drop zone
+  const cabDropZone = document.getElementById('cab-drop-zone');
+  if (cabDropZone) {
+    cabDropZone.addEventListener('click', () => {
+      document.getElementById('ir-file-input').click();
+    });
+    
+    cabDropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      cabDropZone.classList.add('drag-over');
+    });
+    
+    cabDropZone.addEventListener('dragleave', () => {
+      cabDropZone.classList.remove('drag-over');
+    });
+    
+    cabDropZone.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      cabDropZone.classList.remove('drag-over');
+      
+      const file = e.dataTransfer.files[0];
+      if (file && file.name.endsWith('.wav')) {
+        await uploadCustomIR(file);
+      }
+    });
+  }
+}
+
+async function uploadCustomIR(file) {
+  const cabDropZone = document.getElementById('cab-drop-zone');
+  const dropText = cabDropZone ? cabDropZone.querySelector('.drop-text') : null;
+  const setDropText = (msg) => { if (dropText) dropText.innerText = msg; };
+
+  const formData = new FormData();
+  // Field name MUST match the FastAPI parameter name in server.py.
+  formData.append('ir_file', file);
+
+  if (dropText) setDropText('Uploading...');
+  try {
+    const response = await fetch('/api/cab/load_ir', {
+      method: 'POST',
+      body: formData
+    });
+
+    // Surface the server's validation detail instead of throwing on !ok.
+    let data = null;
+    try { data = await response.json(); } catch (_) { /* non-JSON error body */ }
+
+    if (!response.ok || !data || !data.success) {
+      const detail = (data && (data.detail || data.message)) || `HTTP ${response.status}`;
+      throw new Error(detail);
+    }
+
+    // Add to dropdown
+    const cabSelect = document.getElementById('select-cab-ir');
+    if (cabSelect) {
+      // Replace any stale entry for the same name, then select it.
+      const existing = Array.from(cabSelect.options).find(o => o.value === data.ir_name);
+      if (existing) existing.remove();
+      const option = document.createElement('option');
+      option.value = data.ir_name;
+      option.innerText = `🎵 ${data.ir_name}`;
+      cabSelect.insertBefore(option, cabSelect.firstChild);
+      cabSelect.value = data.ir_name;
+      cabSelect.dataset.lastValue = data.ir_name;
+    }
+
+    // The IR buffer is already installed server-side; only the label needs syncing.
+    sendParamUpdate('cab', 'ir_name', data.ir_name);
+    const insp = document.getElementById('insp-cab-ir');
+    if (insp) insp.innerText = data.ir_name;
+
+    const trimmed = data.truncated ? ` (trimmed to ${data.samples} smp)` : '';
+    setDropText(`Loaded: ${data.ir_name}${trimmed}`);
+    setTimeout(() => setDropText('Drag & Drop .wav IR file here'), 2500);
+  } catch (error) {
+    console.error('Failed to upload IR:', error);
+    setDropText(`Upload failed: ${error.message}`);
+    setTimeout(() => setDropText('Drag & Drop .wav IR file here'), 3500);
+  }
+}
+
+// Shared across every chain module. This MUST live outside the per-element
+// handler: when each module owned its own `draggedElement`, only the module
+// that received `dragstart` had it set, so the drop target's closure always
+// saw null and the reorder silently did nothing.
+let chainDragSource = null;
+
+function initDragAndDrop(draggableElement) {
+  draggableElement.addEventListener('dragstart', (e) => {
+    chainDragSource = draggableElement;
+    draggableElement.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', draggableElement.id);
+  });
+
+  draggableElement.addEventListener('dragend', () => {
+    draggableElement.classList.remove('dragging');
+    document.querySelectorAll('.chain-module').forEach(el => {
+      el.classList.remove('drag-over');
+    });
+    chainDragSource = null;
+  });
+
+  draggableElement.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    if (chainDragSource && chainDragSource !== draggableElement) {
+      e.dataTransfer.dropEffect = 'move';
+      draggableElement.classList.add('drag-over');
+    }
+  });
+
+  draggableElement.addEventListener('dragleave', () => {
+    draggableElement.classList.remove('drag-over');
+  });
+
+  draggableElement.addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    draggableElement.classList.remove('drag-over');
+
+    if (!chainDragSource || chainDragSource === draggableElement) return;
+
+    const signalChain = document.getElementById('signal-chain');
+    const allModules = Array.from(signalChain.querySelectorAll('.chain-module.draggable'));
+    const draggedIndex = allModules.indexOf(chainDragSource);
+    const targetIndex = allModules.indexOf(draggableElement);
+
+    if (draggedIndex < 0 || targetIndex < 0) return;
+
+    if (draggedIndex < targetIndex) {
+      // Move down: place after the target.
+      signalChain.insertBefore(chainDragSource, draggableElement.nextSibling);
+    } else {
+      // Move up: place before the target.
+      signalChain.insertBefore(chainDragSource, draggableElement);
+    }
+
+    saveSignalChainOrder();
+    selectModulePanel(chainDragSource.dataset.module);
+  });
+}
+
+function saveSignalChainOrder() {
+  const signalChain = document.getElementById('signal-chain');
+  const allModules = Array.from(signalChain.querySelectorAll('.chain-module.draggable'));
+  const order = allModules.map(m => m.dataset.module);
+  
+  localStorage.setItem('signalChainOrder', JSON.stringify(order));
+  console.log('Signal chain order saved:', order);
+}
+
+function loadSignalChainOrder() {
+  let order;
+  try {
+    const savedOrder = localStorage.getItem('signalChainOrder');
+    if (!savedOrder) return;
+    order = JSON.parse(savedOrder);
+  } catch (_) {
+    return; // Corrupt storage must not break startup.
+  }
+  if (!Array.isArray(order) || !order.length) return;
+
+  const signalChain = document.getElementById('signal-chain');
+  if (!signalChain) return;
+
+  // The chain interleaves modules with `.chain-arrow` separators. A previous
+  // implementation used appendChild, which moved every module past the arrows
+  // and destroyed the layout. Instead, permute the modules among the existing
+  // module slots so the separators stay put.
+  const slots = Array.from(signalChain.querySelectorAll('.chain-module.draggable'));
+  const byId = new Map(slots.map(el => [el.dataset.module, el]));
+  const defaultOrder = slots.map(el => el.dataset.module);
+
+  // Start from defaults, then apply the saved order for ids that still exist.
+  const resolved = defaultOrder.slice();
+  const seen = new Set();
+  order.forEach(id => {
+    const at = resolved.indexOf(id);
+    if (at !== -1 && !seen.has(id)) {
+      resolved.splice(at, 1);
+      seen.add(id);
+    }
+  });
+  // Append any saved ids that were not in the original default list.
+  order.forEach(id => {
+    if (byId.has(id) && !resolved.includes(id)) resolved.push(id);
+  });
+
+  // Write each resolved module into its corresponding slot position.
+  resolved.forEach((id, i) => {
+    const el = byId.get(id);
+    const slot = slots[i];
+    if (el && slot && el !== slot) signalChain.insertBefore(el, slot);
+  });
 }
 
 function selectModulePanel(modId) {
@@ -215,12 +511,58 @@ function setModuleVisualState(modId, enabled) {
 function initPerformanceBar() {
   const slots = document.querySelectorAll('.perf-slot');
   slots.forEach(slot => {
-    slot.addEventListener('click', () => {
+    // Main slot click
+    slot.addEventListener('click', (e) => {
+      if (e.target.classList.contains('slot-edit-btn')) return; // Let edit button handle it
+      
       slots.forEach(s => s.classList.remove('active'));
       slot.classList.add('active');
       const presetId = slot.dataset.preset;
       loadPresetById(presetId);
     });
+    
+    // Edit button click
+    const editBtn = slot.querySelector('.slot-edit-btn');
+    if (editBtn) {
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        editPerformanceSlot(slot);
+      });
+    }
+  });
+}
+
+function editPerformanceSlot(slot) {
+  const slotNum = slot.dataset.slot;
+  const currentName = slot.querySelector('.slot-name').innerText;
+  const currentPreset = slot.dataset.preset;
+  
+  // Simple prompt for now (could be improved with modal)
+  const newName = prompt(`Edit Performance Slot ${slotNum} Name:`, currentName);
+  if (newName && newName !== currentName) {
+    slot.querySelector('.slot-name').innerText = newName;
+    // Save to localStorage or backend
+    savePerformanceSlotConfig(slotNum, { name: newName, preset: currentPreset });
+  }
+}
+
+function savePerformanceSlotConfig(slotNum, config) {
+  // Save performance slot configuration
+  const perfConfig = JSON.parse(localStorage.getItem('performanceConfig') || '{}');
+  perfConfig[slotNum] = config;
+  localStorage.setItem('performanceConfig', JSON.stringify(perfConfig));
+}
+
+function loadPerformanceSlotConfig() {
+  const perfConfig = JSON.parse(localStorage.getItem('performanceConfig') || '{}');
+  const slots = document.querySelectorAll('.perf-slot');
+  
+  slots.forEach(slot => {
+    const slotNum = slot.dataset.slot;
+    if (perfConfig[slotNum]) {
+      slot.dataset.preset = perfConfig[slotNum].preset;
+      slot.querySelector('.slot-name').innerText = perfConfig[slotNum].name;
+    }
   });
 }
 
@@ -666,7 +1008,9 @@ searchInput.addEventListener('input', (e) => {
 window.addEventListener('DOMContentLoaded', () => {
   initKnobs();
   initSignalChain();
+  loadSignalChainOrder(); // Load saved signal chain order
   initPerformanceBar();
+  loadPerformanceSlotConfig(); // Load saved slot configurations
   loadLibrary();
   selectModulePanel('amp');
 });

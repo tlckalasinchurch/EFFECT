@@ -1,9 +1,12 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel
 import os
+import re
 import logging
+import threading
 
 import config
 from setup_logging import get_logger
@@ -20,6 +23,13 @@ app = FastAPI(title="กดจนหลอนTone")
 engine = AudioEngine()
 
 WEB_DIR = config.WEB_DIR
+
+# Guards engine state that the realtime audio thread reads while an
+# HTTP handler writes it.
+ENGINE_STATE_LOCK = threading.RLock()
+
+# A cab IR swap must not race the audio callback that reads cab.ir_data / cab.zi.
+_CAB_IR_LOCK = threading.RLock()
 
 class ParamUpdate(BaseModel):
     section: str  # gate, screamer, amp, cab, delay, reverb, tuner
@@ -94,7 +104,11 @@ def update_parameter(req: ParamUpdate):
         elif p == "model": chain.amp.model = str(val)
     elif sec == "cab":
         if p == "enabled": chain.cab.enabled = bool(val)
-        elif p == "ir_name": chain.cab.ir_name = str(val)
+        elif p == "ir_name":
+            # Previously this only renamed the cabinet. Selecting a cab must
+            # actually install that cabinet's IR or the tone never changes.
+            with _CAB_IR_LOCK:
+                chain.cab.select_cab(str(val))
     elif sec == "delay":
         if p == "enabled": chain.delay.enabled = bool(val)
         elif p == "time": chain.delay.time_sec = float(val)
@@ -144,7 +158,7 @@ def load_preset(req: PresetLoad):
     
     # Apply cab
     chain.cab.enabled = s["cab"].get("enabled", True)
-    chain.cab.ir_name = s["cab"].get("ir_name", "Celestion V30 4x12")
+    chain.cab.select_cab(s["cab"].get("ir_name", "Celestion V30 4x12"))
     
     # Apply delay
     chain.delay.enabled = s["delay"].get("enabled", False)
@@ -185,7 +199,7 @@ def load_kemper_rig(req: KemperRigLoad):
         chain.amp.master = 0.8
         chain.screamer.enabled = False
         chain.cab.enabled = True
-        chain.cab.ir_name = "Fender Twin 2x12 Jensen"
+        chain.cab.select_cab("Fender Twin 2x12 Jensen")
         chain.delay.enabled = False
         chain.reverb.enabled = True
         chain.reverb.decay = 0.35
@@ -204,7 +218,7 @@ def load_kemper_rig(req: KemperRigLoad):
         chain.screamer.tone = 0.6
         chain.screamer.level = 0.7
         chain.cab.enabled = True
-        chain.cab.ir_name = "Marshall 1960A Greenback"
+        chain.cab.select_cab("Marshall 1960A Greenback")
         chain.delay.enabled = False
         chain.reverb.enabled = True
         chain.reverb.decay = 0.3
@@ -223,7 +237,7 @@ def load_kemper_rig(req: KemperRigLoad):
         chain.screamer.tone = 0.7
         chain.screamer.level = 0.8
         chain.cab.enabled = True
-        chain.cab.ir_name = "Mesa Rectifier 4x12 Slant"
+        chain.cab.select_cab("Mesa Rectifier 4x12 Slant")
         chain.delay.enabled = True
         chain.delay.time_sec = 0.38
         chain.delay.feedback = 0.35
@@ -245,7 +259,7 @@ def load_kemper_rig(req: KemperRigLoad):
         chain.screamer.tone = 0.7
         chain.screamer.level = 0.8
         chain.cab.enabled = True
-        chain.cab.ir_name = "Celestion V30 4x12"
+        chain.cab.select_cab("Celestion V30 4x12")
         chain.delay.enabled = False
         chain.reverb.enabled = True
         chain.reverb.decay = 0.25
@@ -295,7 +309,7 @@ def load_tone3000_preset(req: Tone3000Load):
         chain.amp.master = 0.85
         chain.screamer.enabled = False
         chain.cab.enabled = True
-        chain.cab.ir_name = "Fender Twin 2x12 Jensen"
+        chain.cab.select_cab("Fender Twin 2x12 Jensen")
         chain.delay.enabled = False
         chain.reverb.enabled = False
     elif cid == "t3k_bogner_fullstack":
@@ -311,7 +325,7 @@ def load_tone3000_preset(req: Tone3000Load):
         chain.screamer.tone = 0.65
         chain.screamer.level = 0.80
         chain.cab.enabled = True
-        chain.cab.ir_name = "Mesa Rectifier 4x12 Slant"
+        chain.cab.select_cab("Mesa Rectifier 4x12 Slant")
         chain.delay.enabled = False
         chain.reverb.enabled = True
         chain.reverb.decay = 0.25
@@ -329,7 +343,7 @@ def load_tone3000_preset(req: Tone3000Load):
         chain.screamer.tone = 0.55
         chain.screamer.level = 0.75
         chain.cab.enabled = True
-        chain.cab.ir_name = "Marshall 1960A Greenback"
+        chain.cab.select_cab("Marshall 1960A Greenback")
         chain.delay.enabled = False
         chain.reverb.enabled = True
         chain.reverb.decay = 0.45
@@ -344,7 +358,7 @@ def load_tone3000_preset(req: Tone3000Load):
         chain.amp.master = 0.80
         chain.screamer.enabled = False
         chain.cab.enabled = True
-        chain.cab.ir_name = "Marshall 1960A Greenback"
+        chain.cab.select_cab("Marshall 1960A Greenback")
         chain.delay.enabled = False
         chain.reverb.enabled = True
         chain.reverb.decay = 0.35
@@ -362,7 +376,7 @@ def load_tone3000_preset(req: Tone3000Load):
         chain.screamer.tone = 0.60
         chain.screamer.level = 0.70
         chain.cab.enabled = True
-        chain.cab.ir_name = "Celestion V30 4x12"
+        chain.cab.select_cab("Celestion V30 4x12")
         chain.delay.enabled = False
         chain.reverb.enabled = True
         chain.reverb.decay = 0.30
@@ -380,7 +394,7 @@ def load_tone3000_preset(req: Tone3000Load):
         chain.screamer.tone = 0.70
         chain.screamer.level = 0.85
         chain.cab.enabled = True
-        chain.cab.ir_name = "Mesa Rectifier 4x12 Slant"
+        chain.cab.select_cab("Mesa Rectifier 4x12 Slant")
         chain.delay.enabled = True
         chain.delay.time_sec = 0.32
         chain.delay.feedback = 0.30
@@ -401,7 +415,7 @@ def load_tone3000_preset(req: Tone3000Load):
         chain.screamer.tone = 0.65
         chain.screamer.level = 0.75
         chain.cab.enabled = True
-        chain.cab.ir_name = "Celestion V30 4x12"
+        chain.cab.select_cab("Celestion V30 4x12")
         chain.delay.enabled = True
         chain.delay.time_sec = 0.45
         chain.delay.feedback = 0.45
@@ -422,7 +436,7 @@ def load_tone3000_preset(req: Tone3000Load):
         chain.screamer.tone = 0.50
         chain.screamer.level = 0.85
         chain.cab.enabled = True
-        chain.cab.ir_name = "Marshall 1960A Greenback"
+        chain.cab.select_cab("Marshall 1960A Greenback")
         chain.delay.enabled = False
         chain.reverb.enabled = True
         chain.reverb.decay = 0.35
@@ -432,6 +446,112 @@ def load_tone3000_preset(req: Tone3000Load):
         "success": True,
         "preset": target,
         "state": engine.get_state()
+    }
+
+def _sanitize_ir_filename(raw_name: str) -> str:
+    """
+    Reduce an untrusted client filename to a safe display name.
+
+    Strips directory components and any character outside a conservative
+    allow-list so the value is safe to echo back into the DOM.
+    """
+    name = os.path.basename(raw_name or "").strip()
+    name = re.sub(r"[^A-Za-z0-9._ -]", "_", name)
+    name = name.lstrip(".") or "custom_ir.wav"
+    return name[:120]
+
+
+def _decode_and_install_ir(raw_bytes: bytes, display_name: str) -> tuple:
+    """
+    Blocking worker: decode WAV bytes, normalise, and install into the engine.
+
+    Runs in a worker thread so the event loop (and therefore /api/status
+    polling during realtime audio) is never blocked.
+    """
+    import io
+    import numpy as np
+    from scipy.io import wavfile
+    from engine.dsp import CabinetSimulator
+
+    if not raw_bytes:
+        raise ValueError("Uploaded file is empty")
+
+    try:
+        sr, data = wavfile.read(io.BytesIO(raw_bytes))
+    except Exception as exc:
+        raise ValueError(f"Not a readable WAV file: {exc}") from exc
+
+    prepared, truncated = CabinetSimulator._prepare_ir(
+        data, sr, config.SAMPLE_RATE, config.IR_MAX_LENGTH
+    )
+
+    # Commit only once decoding and validation have fully succeeded.
+    with _CAB_IR_LOCK:
+        engine.chain.cab.set_ir_data(prepared, display_name)
+
+    return display_name, len(prepared), int(sr), truncated
+
+
+@app.post("/api/cab/load_ir")
+async def load_custom_ir(ir_file: UploadFile = File(...)):
+    """
+    Upload a custom cabinet IR (.wav).
+
+    Field name MUST match the client FormData key ('ir_file').
+    """
+    display_name = _sanitize_ir_filename(ir_file.filename)
+
+    suffix = os.path.splitext(display_name)[1].lower()
+    if suffix not in config.IR_ALLOWED_SUFFIXES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type '{suffix or 'none'}'. Only .wav is allowed.",
+        )
+
+    # Stream with a hard cap so a huge upload cannot exhaust memory.
+    chunks = bytearray()
+    declared = ir_file.size
+    if declared and declared > config.IR_UPLOAD_MAX_BYTES:
+        raise HTTPException(status_code=413, detail="IR file exceeds the 16 MB limit.")
+
+    while True:
+        chunk = await ir_file.read(1024 * 256)
+        if not chunk:
+            break
+        chunks.extend(chunk)
+        if len(chunks) > config.IR_UPLOAD_MAX_BYTES:
+            raise HTTPException(status_code=413, detail="IR file exceeds the 16 MB limit.")
+
+    raw_bytes = bytes(chunks)
+
+    try:
+        name, samples, source_rate, truncated = await run_in_threadpool(
+            _decode_and_install_ir, raw_bytes, display_name
+        )
+    except ValueError as exc:
+        logger.warning("Rejected custom IR '%s': %s", display_name, exc)
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.error("Failed to decode custom IR '%s': %s", display_name, exc)
+        raise HTTPException(status_code=500, detail="Failed to process IR file.") from exc
+
+    # Persist only after the buffer is known-good; a rejected upload leaves
+    # no orphan file behind.
+    try:
+        config.CUSTOM_IR_DIR.mkdir(parents=True, exist_ok=True)
+        stored = config.CUSTOM_IR_DIR / name
+        stored.write_bytes(raw_bytes)
+    except OSError as exc:
+        logger.warning("IR applied but could not be persisted: %s", exc)
+
+    logger.info("Loaded custom IR: %s (%d samples from %d Hz)", name, samples, source_rate)
+
+    return {
+        "success": True,
+        "ir_name": name,
+        "samples": samples,
+        "sample_rate": source_rate,
+        "truncated": truncated,
     }
 
 # Serve frontend

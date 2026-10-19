@@ -4,6 +4,11 @@ uvicorn[standard]==0.54.0
 pydantic==2.14.1
 pydantic-core==2.50.1
 
+# Required by FastAPI for UploadFile / File form endpoints (/api/cab/load_ir).
+# Without it the whole app fails to import with
+# "Form data requires python-multipart to be installed".
+python-multipart>=0.0.9
+
 # Audio Processing
 numpy==2.5.4
 scipy==1.18.1

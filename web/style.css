@@ -146,6 +146,25 @@ body.studio-body {
   border-radius: 2px;
 }
 
+.perf-slot .slot-edit-btn {
+  display: none;
+  font-size: 10px;
+  opacity: 0.6;
+  margin-left: 4px;
+  padding: 0 4px;
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+
+.perf-slot:hover .slot-edit-btn {
+  display: inline-block;
+}
+
+.perf-slot .slot-edit-btn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.1);
+}
+
 /* ENGINE CONTROLS */
 .engine-controls {
   display: flex;
@@ -754,6 +773,36 @@ body.studio-body {
   background: rgba(255, 255, 255, 0.1);
 }
 
+.drag-handle {
+  display: none;
+  font-size: 14px;
+  color: var(--text-muted);
+  cursor: grab;
+  padding: 2px 4px;
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+
+.chain-module:hover .drag-handle {
+  display: inline-block;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+  color: var(--kemper-mint);
+}
+
+.chain-module.dragging {
+  opacity: 0.5;
+  transform: scale(1.05);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+}
+
+.chain-module.drag-over {
+  border-color: var(--kemper-mint);
+  background: rgba(120, 184, 156, 0.1);
+}
+
 .chain-in, .chain-out {
   border-style: dashed;
   background: #16181f;
@@ -889,12 +938,60 @@ body.studio-body {
   box-shadow: 0 0 4px rgba(255,255,255,0.8);
   transform-origin: 50% 20px;
   transform: rotate(-135deg);
+  transition: transform 0.1s ease-out;
 }
 
 .knob-pointer.sm {
   height: 12px;
   top: 3px;
   transform-origin: 50% 15px;
+}
+
+/* Knob Active State (Dragging) */
+.knob.knob-active {
+  border-color: var(--kemper-mint);
+  box-shadow: 0 0 15px rgba(120, 184, 156, 0.4), inset 0 1px 2px rgba(255,255,255,0.3);
+}
+
+/* Knob Flash Animation (Double-click reset) */
+.knob.knob-flash {
+  animation: knobFlash 0.2s ease-out;
+}
+
+@keyframes knobFlash {
+  0% {
+    background: radial-gradient(circle, #4ef58d 30%, #151821 80%);
+    border-color: #4ef58d;
+  }
+  100% {
+    background: radial-gradient(circle, #2d3342 30%, #151821 80%);
+    border-color: #4a5568;
+  }
+}
+
+/* Knob Context Menu (Right-click) */
+.knob-context-menu {
+  position: fixed;
+  background: #1e2129;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  padding: 4px 0;
+  min-width: 80px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  z-index: 1000;
+}
+
+.context-item {
+  padding: 6px 12px;
+  font-size: 11px;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.context-item:hover {
+  background: var(--kemper-green);
+  color: #fff;
 }
 
 .cab-select-dropdown {
@@ -905,4 +1002,52 @@ body.studio-body {
   border-radius: 4px;
   font-size: 13px;
   outline: none;
+}
+
+/* Custom IR Drop Zone */
+.cab-drop-zone {
+  flex: 1;
+  min-width: 200px;
+  height: 100px;
+  border: 2px dashed var(--border-subtle);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s;
+  cursor: pointer;
+}
+
+.cab-drop-zone:hover {
+  border-color: var(--kemper-mint);
+  background: rgba(120, 184, 156, 0.05);
+}
+
+.cab-drop-zone.drag-over {
+  border-color: var(--kemper-mint);
+  background: rgba(120, 184, 156, 0.15);
+  transform: scale(1.02);
+}
+
+.drop-zone-content {
+  text-align: center;
+  pointer-events: none;
+}
+
+.drop-icon {
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+
+.drop-text {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+.drop-subtext {
+  font-size: 9px;
+  color: var(--text-muted);
 }

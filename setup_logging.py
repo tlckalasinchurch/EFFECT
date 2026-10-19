@@ -45,11 +45,23 @@ def setup_logging(log_level: str = None, log_to_file: bool = True):
     
     # Remove existing handlers
     root_logger.handlers.clear()
-    
+
+    # The console stream is cp1252 on a default Windows install, so writing a
+    # log record containing Thai text raised UnicodeEncodeError and silently
+    # dropped the record. Force UTF-8 with a lossy fallback before attaching
+    # the stream handler.
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError, OSError):
+            pass
+
     # Console handler
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(numeric_level)
     console_handler.setFormatter(formatter)
+    # Last-resort guard: never let a record kill the emit loop.
+    console_handler.handleError = lambda record: None
     root_logger.addHandler(console_handler)
     
     # File handler (optional)
