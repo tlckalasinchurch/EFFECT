@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>กดจนหลอนTone - Guitar Rig & Amp Workstation</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;500;600;700&family=Kanit:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="studio-body">
+
+  <!-- TOP GLOBAL WORKSTATION BAR -->
+  <header class="studio-header">
+    <div class="logo-area">
+      <div class="logo-icon">⚡</div>
+      <div class="logo-text">
+        <span class="logo-title">กดจนหลอน<span class="highlight">Tone</span></span>
+        <span class="logo-sub">GUITAR RIG &amp; NEURAL AMP WORKSTATION</span>
+      </div>
+    </div>
+
+    <!-- 5-SLOT LIVE PERFORMANCE SWITCHER (KEMPER STYLE) -->
+    <div class="performance-bar">
+      <span class="perf-title">PERFORMANCE:</span>
+      <div class="perf-slots">
+        <button class="perf-slot active" data-preset="preset-5150">
+          <span class="slot-num">1</span>
+          <span class="slot-name">Lead 5150</span>
+        </button>
+        <button class="perf-slot" data-preset="preset-plexi">
+          <span class="slot-num">2</span>
+          <span class="slot-name">Plexi Crunch</span>
+        </button>
+        <button class="perf-slot" data-preset="preset-twin">
+          <span class="slot-num">3</span>
+          <span class="slot-name">Twin Clean</span>
+        </button>
+        <button class="perf-slot" data-preset="preset-texas">
+          <span class="slot-num">4</span>
+          <span class="slot-name">Texas Solo</span>
+        </button>
+        <button class="perf-slot" data-preset="preset-ambient">
+          <span class="slot-num">5</span>
+          <span class="slot-name">Ambient Space</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- AUDIO ENGINE & POWER STATUS -->
+    <div class="engine-controls">
+      <div class="device-pill" id="device-pill" title="Hardware Audio Interface">
+        <span class="status-dot green"></span>
+        <span id="device-label">Line 6 UX1 (WASAPI)</span>
+      </div>
+      <button id="btn-tuner-toggle" class="btn-toggle">TUNER</button>
+      <button id="btn-power" class="btn-power off">POWER</button>
+    </div>
+  </header>
+
+  <!-- METERS STRIP & CHROMATIC TUNER -->
+  <section class="meters-strip">
+    <div class="meter-box">
+      <span class="meter-label">INPUT (UX1)</span>
+      <div class="vu-bar-container">
+        <div id="meter-in" class="vu-bar"></div>
+      </div>
+    </div>
+    
+    <!-- Chromatic Tuner Panel -->
+    <div id="tuner-display" class="tuner-compact hidden">
+      <div class="tuner-note-display" id="tuner-note">--</div>
+      <div class="tuner-gauge">
+        <div class="tuner-cents-bar">
+          <div id="tuner-needle" class="tuner-needle"></div>
+        </div>
+        <div class="tuner-scale">
+          <span>-50</span>
+          <span>-25</span>
+          <span class="center">0</span>
+          <span>+25</span>
+          <span>+50</span>
+        </div>
+      </div>
+      <div class="tuner-tune-status" id="tuner-status">PLAY STRING</div>
+    </div>
+
+    <div class="meter-box">
+      <span class="meter-label">OUTPUT (PHONES)</span>
+      <div class="vu-bar-container">
+        <div id="meter-out" class="vu-bar"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN 4-ZONE STUDIO WORKSPACE -->
+  <main class="studio-main-grid">
+
+    <!-- ZONE 1: LOCATIONS TREE SIDEBAR -->
+    <aside class="zone-locations">
+      <div class="sidebar-header">
+        <span>LOCATIONS</span>
+        <button id="btn-refresh-library" class="btn-icon" title="Refresh">↻</button>
+      </div>
+      <div class="search-box">
+        <input type="text" id="rig-search-input" placeholder="🔍 Search Rigs, Amps, Artists..." />
+      </div>
+      <div class="tree-menu">
+        <div class="tree-item active" data-folder="all">
+          <span class="tree-icon">🌐</span>
+          <span class="tree-label">All Rigs</span>
+          <span class="tree-badge" id="count-all">0</span>
+        </div>
+        <div class="tree-item" data-folder="factory">
+          <span class="tree-icon">⚡</span>
+          <span class="tree-label">Factory Tones</span>
+          <span class="tree-badge" id="count-factory">5</span>
+        </div>
+        <div class="tree-item" data-folder="tone3000">
+          <span class="tree-icon">🔥</span>
+          <span class="tree-label">TONE3000 Neural Rigs</span>
+          <span class="tree-badge" id="count-tone3000">8</span>
+        </div>
+        <div class="tree-item" data-folder="user">
+          <span class="tree-icon">💾</span>
+          <span class="tree-label">User Presets</span>
+          <span class="tree-badge" id="count-user">0</span>
+        </div>
+        <div class="tree-item" data-folder="kemper-root">
+          <span class="tree-icon">🎸</span>
+          <span class="tree-label">Kemper Rig Packs</span>
+          <span class="tree-badge" id="count-kemper">35</span>
+        </div>
+        <!-- Sub-list for Kemper Packs -->
+        <div class="tree-sub-list" id="kemper-sub-packs">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </aside>
+
+    <!-- ZONE 2: RIG DATA GRID (CENTER TABLE) -->
+    <section class="zone-grid">
+      <div class="grid-toolbar">
+        <span class="grid-title" id="grid-current-folder">All Rigs (Loaded)</span>
+        <div class="grid-actions">
+          <button id="btn-save-preset" class="btn-action">💾 Save Tone</button>
+        </div>
+      </div>
+      <div class="table-container">
+        <table class="rig-table" id="rig-data-table">
+          <thead>
+            <tr>
+              <th style="width: 35px;">Fav</th>
+              <th>Rig Name</th>
+              <th>Author / Artist</th>
+              <th style="width: 100px;">Gain</th>
+              <th>Amp Model</th>
+              <th>Cabinet</th>
+              <th>Category</th>
+            </tr>
+          </thead>
+          <tbody id="rig-table-body">
+            <!-- Dynamically populated rows -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ZONE 3: PROPERTIES INSPECTOR (RIGHT PANEL) -->
+    <aside class="zone-inspector">
+      <div class="inspector-header">PROPERTIES INSPECTOR</div>
+      <div class="inspector-body">
+        
+        <div class="inspector-section">
+          <div class="inspector-section-title">RIG DETAILS</div>
+          <div class="prop-row">
+            <span class="prop-label">Rig Name:</span>
+            <span class="prop-val" id="insp-name">5150 High Gain Metal</span>
+          </div>
+          <div class="prop-row">
+            <span class="prop-label">Author:</span>
+            <span class="prop-val" id="insp-author">กดจนหลอนTone Studio</span>
+          </div>
+          <div class="prop-row">
+            <span class="prop-label">Instrument:</span>
+            <span class="prop-val">Electric Guitar (Hi-Z)</span>
+          </div>
+          <div class="prop-row">
+            <span class="prop-label">Category:</span>
+            <span class="prop-val highlight" id="insp-category">High Gain Metal</span>
+          </div>
+        </div>
+
+        <div class="inspector-section">
+          <div class="inspector-section-title">AMPLIFIER STACK</div>
+          <div class="prop-row">
+            <span class="prop-label">Amp Model:</span>
+            <span class="prop-val" id="insp-amp-model">Peavey 5150 Block Letter</span>
+          </div>
+          <div class="prop-row">
+            <span class="prop-label">Tube Voicing:</span>
+            <span class="prop-val">12AX7 Pre / 6L6 Power</span>
+          </div>
+          <div class="prop-row">
+            <span class="prop-label">Cabinet IR:</span>
+            <span class="prop-val" id="insp-cab-ir">Celestion V30 4x12</span>
+          </div>
+        </div>
+
+        <div class="inspector-section">
+          <div class="inspector-section-title">ACTIVE HARDWARE ROUTE</div>
+          <div class="prop-row">
+            <span class="prop-label">Audio I/O:</span>
+            <span class="prop-val">Line 6 UX1 (In: 17 / Out: 15)</span>
+          </div>
+          <div class="prop-row">
+            <span class="prop-label">Sample Rate:</span>
+            <span class="prop-val">48,000 Hz (WASAPI Exclusive)</span>
+          </div>
+          <div class="prop-row">
+            <span class="prop-label">Latency:</span>
+            <span class="prop-val" style="color: #4ef58d;">~10.6 ms (512 samples)</span>
+          </div>
+        </div>
+
+        <div class="inspector-actions">
+          <button id="btn-audition-rig" class="btn-action-primary">🔊 Audition Tone</button>
+        </div>
+
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- ZONE 4 & 5: LOWER HALF SIGNAL CHAIN & DUAL-ROW PARAMETER STRIP -->
+  <footer class="studio-footer-editor">
+
+    <!-- HORIZONTAL MODULAR SIGNAL CHAIN -->
+    <div class="signal-chain-bar">
+      <div class="chain-module chain-in">
+        <span class="mod-icon">🎸</span>
+        <span class="mod-name">INPUT</span>
+      </div>
+
+      <div class="chain-arrow">➔</div>
+
+      <!-- Module 1: Noise Gate -->
+      <div class="chain-module active-edit" id="cmod-gate" data-target="panel-gate">
+        <div class="mod-led on" id="cled-gate"></div>
+        <span class="mod-icon">🔇</span>
+        <span class="mod-title">NOISE GATE</span>
+        <button class="mod-power-btn" id="cpow-gate" title="Toggle Gate">⏻</button>
+      </div>
+
+      <div class="chain-arrow">➔</div>
+
+      <!-- Module 2: Overdrive / TS9 -->
+      <div class="chain-module" id="cmod-screamer" data-target="panel-screamer">
+        <div class="mod-led on" id="cled-screamer"></div>
+        <span class="mod-icon">🟩</span>
+        <span class="mod-title">TS-9 DRIVE</span>
+        <button class="mod-power-btn" id="cpow-screamer" title="Toggle Screamer">⏻</button>
+      </div>
+
+      <div class="chain-arrow">➔</div>
+
+      <!-- Module 3: Amp Head Stack -->
+      <div class="chain-module" id="cmod-amp" data-target="panel-amp">
+        <div class="mod-led on" id="cled-amp"></div>
+        <span class="mod-icon">📻</span>
+        <span class="mod-title" id="cmod-amp-title">AMP (5150)</span>
+        <button class="mod-power-btn" id="cpow-amp" title="Toggle Amp">⏻</button>
+      </div>
+
+      <div class="chain-arrow">➔</div>
+
+      <!-- Module 4: Cabinet IR -->
+      <div class="chain-module" id="cmod-cab" data-target="panel-cab">
+        <div class="mod-led on" id="cled-cab"></div>
+        <span class="mod-icon">🔊</span>
+        <span class="mod-title">CABINET IR</span>
+        <button class="mod-power-btn" id="cpow-cab" title="Toggle Cabinet">⏻</button>
+      </div>
+
+      <div class="chain-arrow">➔</div>
+
+      <!-- Module 5: Delay -->
+      <div class="chain-module bypassed" id="cmod-delay" data-target="panel-delay">
+        <div class="mod-led off" id="cled-delay"></div>
+        <span class="mod-icon">⏱️</span>
+        <span class="mod-title">DELAY</span>
+        <button class="mod-power-btn" id="cpow-delay" title="Toggle Delay">⏻</button>
+      </div>
+
+      <div class="chain-arrow">➔</div>
+
+      <!-- Module 6: Reverb -->
+      <div class="chain-module" id="cmod-reverb" data-target="panel-reverb">
+        <div class="mod-led on" id="cled-reverb"></div>
+        <span class="mod-icon">🌌</span>
+        <span class="mod-title">REVERB</span>
+        <button class="mod-power-btn" id="cpow-reverb" title="Toggle Reverb">⏻</button>
+      </div>
+
+      <div class="chain-arrow">➔</div>
+
+      <div class="chain-module chain-out">
+        <span class="mod-icon">🎧</span>
+        <span class="mod-name">OUTPUT</span>
+      </div>
+    </div>
+
+    <!-- DUAL-ROW DEEP PARAMETER STRIP -->
+    <div class="parameter-strip-container">
+
+      <!-- Panel: AMP HEAD PARAMETERS -->
+      <div class="param-panel active" id="panel-amp">
+        <div class="param-master-col">
+          <button class="big-power-btn on" id="btn-module-power-amp">⏻</button>
+          <span class="panel-badge" id="badge-amp-model">5150 LEAD</span>
+        </div>
+        <div class="param-knobs-area">
+          <!-- Row 1: Core Tone Stack -->
+          <div class="knob-row">
+            <div class="knob-group">
+              <div class="knob" id="knob-amp-gain" data-section="amp" data-param="gain" data-min="0" data-max="1" data-val="0.75">
+                <div class="knob-pointer"></div>
+              </div>
+              <label>GAIN</label>
+              <span class="knob-val" id="val-amp-gain">7.5</span>
+            </div>
+            <div class="knob-group">
+              <div class="knob" id="knob-amp-bass" data-section="amp" data-param="bass" data-min="0" data-max="1" data-val="0.55">
+                <div class="knob-pointer"></div>
+              </div>
+              <label>BASS</label>
+              <span class="knob-val" id="val-amp-bass">5.5</span>
+            </div>
+            <div class="knob-group">
+              <div class="knob" id="knob-amp-mid" data-section="amp" data-param="mid" data-min="0" data-max="1" data-val="0.45">
+                <div class="knob-pointer"></div>
+              </div>
+              <label>MIDDLE</label>
+              <span class="knob-val" id="val-amp-mid">4.5</span>
+            </div>
+            <div class="knob-group">
+              <div class="knob" id="knob-amp-treble" data-section="amp" data-param="treble" data-min="0" data-max="1" data-val="0.65">
+                <div class="knob-pointer"></div>
+              </div>
+              <label>TREBLE</label>
+              <span class="knob-val" id="val-amp-treble">6.5</span>
+            </div>
+            <div class="knob-group">
+              <div class="knob" id="knob-amp-presence" data-section="amp" data-param="presence" data-min="0" data-max="1" data-val="0.65">
+                <div class="knob-pointer"></div>
+              </div>
+              <label>PRESENCE</label>
+              <span class="knob-val" id="val-amp-presence">6.5</span>
+            </div>
+            <div class="knob-group">
+              <div class="knob" id="knob-amp-master" data-section="amp" data-param="master" data-min="0" data-max="1" data-val="0.70">
+                <div class="knob-pointer"></div>
+              </div>
+              <label>MASTER</label>
+              <span class="knob-val" id="val-amp-master">7.0</span>
+            </div>
+          </div>
+          <!-- Row 2: Kemper-Style Tube Dynamics & Physics -->
+          <div class="knob-row secondary-row">
+            <div class="knob-group compact">
+              <div class="knob sm" id="knob-amp-sag" data-section="amp" data-param="presence" data-min="0" data-max="1" data-val="0.5">
+                <div class="knob-pointer sm"></div>
+              </div>
+              <label>SAG</label>
+              <span class="knob-val sm">5.0</span>
+            </div>
+            <div class="knob-group compact">
+              <div class="knob sm" id="knob-amp-bias" data-section="amp" data-param="bass" data-min="0" data-max="1" data-val="0.5">
+                <div class="knob-pointer sm"></div>
+              </div>
+              <label>BIAS</label>
+              <span class="knob-val sm">5.0</span>
+            </div>
+            <div class="knob-group compact">
+              <div class="knob sm" id="knob-amp-clarity" data-section="amp" data-param="treble" data-min="0" data-max="1" data-val="0.6">
+                <div class="knob-pointer sm"></div>
+              </div>
+              <label>CLARITY</label>
+              <span class="knob-val sm">6.0</span>
+            </div>
+            <div class="knob-group compact">
+              <div class="knob sm" id="knob-amp-tube-shape" data-section="amp" data-param="mid" data-min="0" data-max="1" data-val="0.4">
+                <div class="knob-pointer sm"></div>
+              </div>
+              <label>TUBE SHAPE</label>
+              <span class="knob-val sm">4.0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: TS-9 SCREAMER PARAMETERS -->
+      <div class="param-panel" id="panel-screamer">
+        <div class="param-master-col">
+          <button class="big-power-btn on" id="btn-module-power-screamer">⏻</button>
+          <span class="panel-badge">TS-9 OVERDRIVE</span>
+        </div>
+        <div class="param-knobs-area">
+          <div class="knob-row">
+            <div class="knob-group">
+              <div class="knob" id="knob-ts-drive" data-section="screamer" data-param="drive" data-min="0" data-max="1" data-val="0.25">
+                <div class="knob-pointer"></div>
+              </div>
+              <label>DRIVE</label>
+              <span class="knob-val" id="val-ts-drive">2.5</span>
+            </div>
+            <div class="knob-group">
+              <div class="knob" id="knob-ts-tone" data-section="screamer" data-param="tone" data-min="0" data-max="1" data-val="0.70">
+                <div class="knob-pointer"></div>
+              </div>
+              <label>TONE</label>
+              <span class="knob-val" id="val-ts-tone">7.0</span>
+            </div>
+            <div class="knob-group">
+              <div class="knob" id="knob-ts-level" data-section="screamer" data-param="level" data-min="0" data-max="1" data-val="0.80">
+                <div class="knob-pointer"></div>
+              </div>
+              <label>LEVEL</label>
+              <span class="knob-val" id="val-ts-level">8.0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: NOISE GATE PARAMETERS -->
+      <div class="param-panel" id="panel-gate">
+        <div class="param-master-col">
+          <button class="big-power-btn on" id="btn-module-power-gate">⏻</button>
+          <span class="panel-badge">SILENCER GATE</span>
+        </div>
+        <div class="param-knobs-area">
+          <div class="knob-row">
+            <div class="knob-group">
+              <div class="knob" id="knob-gate-thresh" data-section="gate" data-param="threshold" data-min="-80" data-max="-20" data-val="-55">
+                <div class="knob-pointer"></div>
+              </div>
+              <label>THRESHOLD</label>
+              <span class="knob-val" id="val-gate-thresh">-55 dB</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: CABINET IR PARAMETERS -->
+      <div class="param-panel" id="panel-cab">
+        <div class="param-master-col">
+          <button class="big-power-btn on" id="btn-module-power-cab">⏻</button>
+          <span class="panel-badge">CABINET SIM</span>
+        </div>
+        <div class="param-knobs-area">
+          <div class="knob-row" style="align-items: center; gap: 24px;">
+            <div class="cab-select-wrapper">
+              <label style="font-size: 11px; color: #a0aec0; margin-bottom: 6px; display: block;">IMPULSE RESPONSE (IR):</label>
+              <select id="select-cab-ir" class="cab-select-dropdown">
+                <option value="Celestion V30 4x12">Celestion V30 4x12 (Standard High Gain)</option>
+                <option value="Mesa Rectifier 4x12 Slant">Mesa Rectifier 4x12 Slant (Heavy Metal)</option>
+                <option value="Marshall 1960A Greenback">Marshall 1960A Greenback (Classic Rock)</option>
+                <option value="Fender Twin 2x12 Jensen">Fender Twin 2x12 Jensen (Sparkling Clean)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: DELAY PARAMETERS -->
+      <div class="param-panel" id="panel-delay">
+        <div class="param-master-col">
+          <button class="big-power-btn off" id="btn-module-power-delay">⏻</button>
+          <span class="panel-badge">ANALOG DELAY</span>
+        </div>
+        <div class="param-knobs-area">
+          <div class="knob-row">
+            <div class="knob-group">
+              <div class="knob" id="knob-delay-time" data-section="delay" data-param="time" data-min="0.05" data-max="1.0" data-val="0.36">
+                <div class="knob-pointer"></div>
+              </div>
+              <label>TIME</label>
+              <span class="knob-val" id="val-delay-time">360 ms</span>
+            </div>
+            <div class="knob-group">
+              <div class="knob" id="knob-delay-fb" data-section="delay" data-param="feedback" data-min="0" data-max="0.85" data-val="0.35">
+                <div class="knob-pointer"></div>
+              </div>
+              <label>FEEDBACK</label>
+              <span class="knob-val" id="val-delay-fb">35%</span>
+            </div>
+            <div class="knob-group">
+              <div class="knob" id="knob-delay-mix" data-section="delay" data-param="mix" data-min="0" data-max="1" data-val="0.25">
+                <div class="knob-pointer"></div>
+              </div>
+              <label>MIX</label>
+              <span class="knob-val" id="val-delay-mix">25%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: REVERB PARAMETERS -->
+      <div class="param-panel" id="panel-reverb">
+        <div class="param-master-col">
+          <button class="big-power-btn on" id="btn-module-power-reverb">⏻</button>
+          <span class="panel-badge">HALL REVERB</span>
+        </div>
+        <div class="param-knobs-area">
+          <div class="knob-row">
+            <div class="knob-group">
+              <div class="knob" id="knob-rev-decay" data-section="reverb" data-param="decay" data-min="0.1" data-max="1.0" data-val="0.40">
+                <div class="knob-pointer"></div>
+              </div>
+              <label>DECAY</label>
+              <span class="knob-val" id="val-rev-decay">40%</span>
+            </div>
+            <div class="knob-group">
+              <div class="knob" id="knob-rev-mix" data-section="reverb" data-param="mix" data-min="0" data-max="1" data-val="0.18">
+                <div class="knob-pointer"></div>
+              </div>
+              <label>MIX</label>
+              <span class="knob-val" id="val-rev-mix">18%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

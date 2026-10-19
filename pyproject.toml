@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hack-effect"
+version = "1.0.0"
+description = "กดจนหลอนTone - Professional Guitar Rig & Amp Workstation"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.14"
+authors = [
+    {name = "กดจนหลอนTone Team"}
+]
+keywords = ["guitar", "amp", "dsp", "audio", "vst", "plugin"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "Topic :: Multimedia :: Sound/Audio",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: Microsoft :: Windows",
+]
+
+dependencies = [
+    "fastapi>=0.146.0",
+    "uvicorn[standard]>=0.54.0",
+    "pydantic>=2.14.0",
+    "numpy>=2.5.0",
+    "scipy>=1.18.0",
+    "sounddevice>=0.5.0",
+    "pywebview>=6.2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/hack-effect"
+Documentation = "https://github.com/yourusername/hack-effect/blob/main/README.md"
+Repository = "https://github.com/yourusername/hack-effect"
+
+[tool.setuptools]
+packages = ["engine"]
+
+[tool.setuptools.package-data]
+engine = ["*.py"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]

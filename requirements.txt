@@ -1,0 +1,24 @@
+# Core Dependencies
+fastapi==0.146.0
+uvicorn[standard]==0.54.0
+pydantic==2.14.1
+pydantic-core==2.50.1
+
+# Audio Processing
+numpy==2.5.4
+scipy==1.18.1
+sounddevice==0.5.6
+
+# Desktop Window
+pywebview==6.2.1
+
+# Database (SQLite built-in, but for future PostgreSQL support)
+# sqlite3 (built-in)
+
+# Development & Testing
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+
+# Optional: Neural Amp Modeler (for future NAM integration)
+# neural-amp-modeler
+# onnxruntime
