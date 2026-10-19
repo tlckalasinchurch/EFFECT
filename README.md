@@ -201,7 +201,9 @@ MIT License - See LICENSE file
 
 ## 📞 Support
 
-For issues or questions, please refer to PROJECT_HANDOFF.md for detailed technical documentation.
+- **`docs/HANDOFF.md`** — current state, verified facts about the installed KEMPER rig packs, the bugs already fixed, and what is still outstanding. **Read this first when picking the project back up.**
+- `docs/kemper-rig-manager-library-rig-spec.md` — evidence-backed reverse-engineering spec of the real KEMPER Rig Manager library / rig browsing workflow.
+- `PROJECT_HANDOFF.md` — original design document. Partly superseded; see section 8 of `docs/HANDOFF.md`.
 
 ---
 
