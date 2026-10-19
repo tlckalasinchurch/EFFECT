@@ -1051,3 +1051,42 @@ body.studio-body {
   font-size: 9px;
   color: var(--text-muted);
 }
+
+/* ── Library category filter chips (Zone 1) ───────────────────────── */
+.category-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 10px 8px;
+  border-bottom: 1px solid #2a2e38;
+}
+
+.cat-chip {
+  background: #232833;
+  color: #9aa4b2;
+  border: 1px solid #2f3542;
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 10px;
+  font-family: inherit;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  white-space: nowrap;
+}
+
+.cat-chip:hover {
+  background: #2b3140;
+  color: #cfd6e0;
+}
+
+.cat-chip.active {
+  background: #1d4034;
+  border-color: #33715b;
+  color: #4ef58d;
+}
+
+.cat-chip:focus-visible {
+  outline: 2px solid #4ef58d;
+  outline-offset: 1px;
+}

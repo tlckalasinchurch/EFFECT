@@ -8,6 +8,26 @@ let pollingInterval = null;
 let currentLoadedRigId = null;
 let allPresetsCache = [];
 let allKemperPacksCache = [];
+
+// Rig names, authors and amp metadata come from .rigpack SQLite files that
+// anyone can ship. Everything interpolated into innerHTML must go through this.
+function esc(v) {
+  if (v === null || v === undefined) return '';
+  return String(v)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Every pack numbers its own rigs from 1, so bare r.id collides across the 35
+// packs. Selection identity must include the pack.
+function rigKey(r) {
+  if (!r) return '';
+  const scope = r.pack_path || r.pack || (r.__packPath) || '';
+  return scope ? `${scope}::${r.id}` : String(r.id);
+}
 let allTone3000PresetsCache = [];
 
 // DOM Elements
@@ -608,10 +628,23 @@ async function loadLibrary() {
 function renderKemperSubPacks(packs) {
   const container = document.getElementById('kemper-sub-packs');
   container.innerHTML = '';
-  packs.slice(0, 15).forEach(p => {
+
+  // Category filter chips, built from the server's aggregate counts.
+  renderCategoryChips();
+
+  // Show every pack. The previous slice(0,15) hid 20 of the 35 installed
+  // packs with no way to reach them.
+  packs.forEach((p) => {
     const item = document.createElement('div');
     item.className = 'tree-sub-item';
-    item.innerHTML = `<span>${p.pack_name}</span><span style="opacity:0.5;">${p.rig_count}</span>`;
+    item.title = esc(`${p.pack_name} — ${p.rig_count} rigs`);
+    item.innerHTML =
+      `<span>${esc(p.pack_name)}</span>` +
+      `<span style="opacity:0.5;">${esc(p.rig_count ?? 0)}</span>`;
+    if (p.error) {
+      item.style.opacity = '0.45';
+      item.title = `Unreadable pack: ${p.error}`;
+    }
     item.addEventListener('click', () => {
       document.querySelectorAll('.tree-item, .tree-sub-item').forEach(el => el.classList.remove('active'));
       item.classList.add('active');
@@ -621,20 +654,91 @@ function renderKemperSubPacks(packs) {
   });
 }
 
+let kemperCategoryFilter = null;
+
+function renderCategoryChips() {
+  const host = document.getElementById('kemper-categories');
+  if (!host) return;
+
+  fetch('/api/kemper/categories')
+    .then(r => r.json())
+    .then(d => {
+      const cats = d.categories || [];
+      host.innerHTML = '';
+
+      const all = document.createElement('button');
+      all.className = 'cat-chip active';
+      all.textContent = 'All';
+      all.addEventListener('click', () => setCategoryFilter(null, all));
+      host.appendChild(all);
+
+      cats.forEach(c => {
+        const b = document.createElement('button');
+        b.className = 'cat-chip';
+        b.textContent = `${c.category} (${c.count})`;
+        b.addEventListener('click', () => setCategoryFilter(c.category, b));
+        host.appendChild(b);
+      });
+    })
+    .catch(() => { /* chips are optional; grid still works */ });
+}
+
+function setCategoryFilter(category, activeBtn) {
+  kemperCategoryFilter = category;
+  document.querySelectorAll('#kemper-categories .cat-chip').forEach(c => c.classList.remove('active'));
+  if (activeBtn) activeBtn.classList.add('active');
+
+  // Re-run whatever the user is currently looking at.
+  if (librarySearchTerm) {
+    runLibrarySearch();
+  } else if (currentKemperPack) {
+    loadKemperPackRigs(currentKemperPack.path, currentKemperPack.pack_name);
+  }
+}
+
+let currentKemperPack = null;
+
 async function loadKemperPackRigs(packPath, packName) {
-  document.getElementById('grid-current-folder').innerText = `Kemper Pack: ${packName}`;
-  tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px;">Loading Kemper Rigs...</td></tr>';
-  const res = await fetch(`/api/kemper/rigs?pack_path=${encodeURIComponent(packPath)}`);
-  const data = await res.json();
-  renderRigTable(data.rigs, true);
+  currentKemperPack = allKemperPacksCache.find(p => p.path === packPath) || null;
+  const title = document.getElementById('grid-current-folder');
+  title.innerText = `Kemper Pack: ${packName}` + (kemperCategoryFilter ? ` · ${kemperCategoryFilter}` : '');
+  tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px;">Loading Kemper Rigs…</td></tr>';
+
+  const url = new URL('/api/kemper/rigs', window.location.origin);
+  url.searchParams.set('pack_path', packPath);
+  url.searchParams.set('limit', '5000');
+  url.searchParams.set('decode', 'true');
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    let rigs = data.rigs || [];
+    if (kemperCategoryFilter) {
+      rigs = rigs.filter(r => (r.category || '') === kemperCategoryFilter);
+    }
+    title.innerText = `Kemper Pack: ${packName} — ${rigs.length} rigs`;
+    renderRigTable(rigs, true);
+  } catch (err) {
+    console.error('Failed to load pack rigs:', err);
+    tableBody.innerHTML =
+      `<tr><td colspan="7" style="text-align:center; padding:20px; color:#e0555f;">Failed to load pack: ${esc(err.message)}</td></tr>`;
+  }
 }
 
 function renderRigTable(rigs, isKemper = false) {
   tableBody.innerHTML = '';
-  rigs.forEach((r, idx) => {
+  if (!rigs || !rigs.length) {
+    tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:#7a8290;">No rigs matched.</td></tr>';
+    return;
+  }
+
+  rigs.forEach((r) => {
     const tr = document.createElement('tr');
     tr.dataset.id = r.id;
-    if (r.id === currentLoadedRigId) tr.classList.add('active-row');
+    tr.dataset.rigKey = rigKey(r);
+    if (rigKey(r) === currentLoadedRigId) tr.classList.add('active-row');
 
     // Stepped gain meter (1 to 9 bars)
     const gainVal = r.settings ? (r.settings.amp.gain || 0.6) : (r.name.toLowerCase().includes('clean') ? 0.2 : 0.7);
@@ -645,28 +749,40 @@ function renderRigTable(rigs, isKemper = false) {
     }
     gainMeterHtml += '</div>';
 
-    const ampName = r.settings ? (r.settings.amp.model || '5150') : (r.name.toLowerCase().includes('plexi') ? 'Plexi' : '5150');
-    const cabName = r.settings ? (r.settings.cab.ir_name || 'Celestion V30') : 'Celestion V30 4x12';
+    // Prefer values actually decoded from the rig; fall back only when absent.
+    const amp = r.amp || {};
+    const ampName = r.settings
+      ? (r.settings.amp.model || '5150')
+      : (amp.amp_name || amp.model || (r.name.toLowerCase().includes('plexi') ? 'Plexi' : '5150'));
+    const cabName = r.settings
+      ? (r.settings.cab.ir_name || 'Celestion V30')
+      : (amp.cab_name || 'Celestion V30 4x12');
+
+    // Keep the real values on the row so the click handler does not have to
+    // re-derive them from the display name.
+    tr.dataset.rigName = r.name;
+    tr.dataset.rigAuthor = r.author || '';
+    tr.dataset.packName = r.pack || '';
 
     tr.innerHTML = `
       <td style="text-align: center;">⭐</td>
-      <td><strong>${r.name}</strong></td>
-      <td>${r.author || 'กดจนหลอนTone'}</td>
+      <td><strong>${esc(r.name)}</strong></td>
+      <td>${esc(r.author || 'กดจนหลอนTone')}</td>
       <td>${gainMeterHtml}</td>
-      <td>${ampName}</td>
-      <td>${cabName}</td>
-      <td><span class="badge" style="background:#202530; color:#4ef58d; padding:2px 6px; border-radius:3px;">${r.category || (isKemper ? 'Kemper Rig' : 'Factory')}</span></td>
+      <td>${esc(ampName)}</td>
+      <td>${esc(cabName)}</td>
+      <td><span class="badge" style="background:#202530; color:#4ef58d; padding:2px 6px; border-radius:3px;">${esc(r.category || (isKemper ? 'Kemper Rig' : 'Factory'))}</span></td>
     `;
 
     tr.addEventListener('click', () => {
       document.querySelectorAll('.rig-table tbody tr').forEach(row => row.classList.remove('active-row'));
       tr.classList.add('active-row');
-      currentLoadedRigId = r.id;
+      currentLoadedRigId = rigKey(r);
       updateInspector(r);
 
       if (isKemper) {
         loadKemperRig(r.name, r.author);
-      } else if (r.isTone3000 || (r.id && r.id.startsWith('t3k_'))) {
+      } else if (r.isTone3000 || (r.id && String(r.id).startsWith('t3k_'))) {
         loadTone3000Preset(r.id);
       } else {
         loadPresetById(r.id);
@@ -734,18 +850,18 @@ function renderTone3000Table(presets) {
 
     tr.innerHTML = `
       <td style="text-align: center;">🔥</td>
-      <td><strong>${r.name}</strong></td>
-      <td>${r.author || 'TONE3000'}</td>
+      <td><strong>${esc(r.name)}</strong></td>
+      <td>${esc(r.author || 'TONE3000')}</td>
       <td>${gainMeterHtml}</td>
-      <td>${r.amp_model}</td>
-      <td>${r.cab_model}</td>
+      <td>${esc(r.amp_model)}</td>
+      <td>${esc(r.cab_model)}</td>
       <td><span class="badge" style="background:#2a1b3d; color:#ce93d8; border:1px solid #7b1fa2; padding:2px 6px; border-radius:3px;">TONE3000 NAM</span></td>
     `;
 
     tr.addEventListener('click', () => {
       document.querySelectorAll('.rig-table tbody tr').forEach(row => row.classList.remove('active-row'));
       tr.classList.add('active-row');
-      currentLoadedRigId = r.id;
+      currentLoadedRigId = rigKey(r);
       document.getElementById('insp-name').innerText = r.name;
       document.getElementById('insp-author').innerText = r.author;
       document.getElementById('insp-category').innerText = `Neural: ${r.category}`;
@@ -975,9 +1091,18 @@ document.querySelectorAll('.tree-item').forEach(item => {
   });
 });
 
-// Search filter
-searchInput.addEventListener('input', (e) => {
-  const q = e.target.value.toLowerCase().trim();
+// ── Library search ───────────────────────────────────────────────────
+// The previous filter only ever scanned the handful of local presets and
+// TONE3000 entries, so the placeholder "Search Rigs, Amps, Artists..." could
+// not reach any of the 1821 installed KEMPER rigs. Searching now goes through
+// /api/kemper/search, which covers rig name, author, and (opt-in) the amp,
+// brand, model and cabinet decoded from each rig's SysEx payload.
+
+let librarySearchTerm = '';
+let librarySearchTimer = null;
+let librarySearchToken = 0;
+
+function searchLocalOnly(term) {
   const allList = [
     ...allPresetsCache,
     ...allTone3000PresetsCache.map(t => ({
@@ -992,16 +1117,71 @@ searchInput.addEventListener('input', (e) => {
       isTone3000: true
     }))
   ];
-  if (!q) {
+  if (!term) {
     renderRigTable(allPresetsCache);
     return;
   }
-  const filtered = allList.filter(r =>
-    r.name.toLowerCase().includes(q) ||
-    (r.author && r.author.toLowerCase().includes(q)) ||
-    (r.category && r.category.toLowerCase().includes(q))
-  );
-  renderRigTable(filtered);
+  renderRigTable(allList.filter(r =>
+    String(r.name || '').toLowerCase().includes(term) ||
+    String(r.author || '').toLowerCase().includes(term) ||
+    String(r.category || '').toLowerCase().includes(term)
+  ));
+}
+
+async function runLibrarySearch() {
+  const term = librarySearchTerm;
+  const token = ++librarySearchToken;
+
+  // Fewer than 2 characters: fall back to the local, instant list.
+  if (term.length < 2) {
+    searchLocalOnly(term);
+    return;
+  }
+
+  const url = new URL('/api/kemper/search', window.location.origin);
+  url.searchParams.set('q', term);
+  url.searchParams.set('limit', '400');
+  url.searchParams.set('include_amp', 'true');
+  if (kemperCategoryFilter) url.searchParams.set('category', kemperCategoryFilter);
+
+  const title = document.getElementById('grid-current-folder');
+  title.innerText = `Searching "${term}"…`;
+  tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px;">Searching 1821 KEMPER rigs…</td></tr>';
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    // Drop stale responses so a slow earlier query cannot overwrite a newer one.
+    if (token !== librarySearchToken) return;
+
+    title.innerText = `"${term}" — ${data.count} KEMPER rigs`;
+    renderRigTable(data.results || [], true);
+  } catch (err) {
+    if (token !== librarySearchToken) return;
+    console.error('Library search failed:', err);
+    title.innerText = `Search failed: ${err.message}`;
+    tableBody.innerHTML =
+      `<tr><td colspan="7" style="text-align:center; padding:20px; color:#e0555f;">Search failed: ${esc(err.message)}</td></tr>`;
+  }
+}
+
+searchInput.addEventListener('input', (e) => {
+  librarySearchTerm = e.target.value.toLowerCase().trim();
+  clearTimeout(librarySearchTimer);
+  // Debounce: include_amp decodes one blob per rig server-side.
+  librarySearchTimer = setTimeout(runLibrarySearch, 260);
+});
+
+// Escape restores the full local list without re-querying the server.
+searchInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    e.target.value = '';
+    librarySearchTerm = '';
+    clearTimeout(librarySearchTimer);
+    librarySearchToken++;
+    searchLocalOnly('');
+  }
 });
 
 // ── 8. INITIAL BOOTSTRAP ─────────────────────────────────────────────
