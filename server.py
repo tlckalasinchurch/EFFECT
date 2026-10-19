@@ -13,7 +13,12 @@ from setup_logging import get_logger
 
 from engine.audio import AudioEngine
 from engine.presets import get_all_presets, save_preset
-from engine.kemper_importer import list_installed_kemper_packs, read_rigs_from_pack
+from engine.kemper_importer import (
+    list_installed_kemper_packs,
+    read_rigs_from_pack,
+    search_packs,
+    list_categories,
+)
 from engine.tone3000_importer import list_tone3000_presets
 
 # Setup logger
@@ -183,6 +188,25 @@ class KemperRigLoad(BaseModel):
     name: str
     author: str = "Kemper"
 
+@app.get("/api/kemper/categories")
+def kemper_categories():
+    """Distinct instrument categories (Guitar / Bass / Acoustic) with counts."""
+    return {"categories": list_categories()}
+
+@app.get("/api/kemper/search")
+def kemper_search(q: str = "", category: str | None = None, limit: int = 100,
+                  include_amp: bool = False):
+    """
+    Search every installed rig pack.
+
+    `include_amp` also decodes each rig's SysEx payload so the source amp,
+    brand, model and cabinet name match the query. That costs one decode per
+    rig, so it is opt-in.
+    """
+    limit = max(1, min(int(limit), 2000))
+    hits = search_packs(q, category=category, limit=limit, include_amp=include_amp)
+    return {"query": q, "category": category, "count": len(hits), "results": hits}
+
 @app.post("/api/kemper/load")
 def load_kemper_rig(req: KemperRigLoad):
     name_lower = req.name.lower()
@@ -279,8 +303,18 @@ def get_kemper_packs():
     return {"packs": list_installed_kemper_packs()}
 
 @app.get("/api/kemper/rigs")
-def get_kemper_rigs(pack_path: str):
-    return {"rigs": read_rigs_from_pack(pack_path)}
+def get_kemper_rigs(pack_path: str, limit: int = 200, decode: bool = True):
+    """
+    Rigs in one pack.
+
+    `limit` defaults to 200 rather than the importer's 50 so a normal pack is
+    not silently truncated; the response reports what was actually returned.
+    """
+    if not os.path.exists(pack_path):
+        raise HTTPException(status_code=404, detail="Rig pack not found")
+    limit = max(1, min(int(limit), 5000))
+    rigs = read_rigs_from_pack(pack_path, limit=limit, decode=decode)
+    return {"pack_path": pack_path, "limit": limit, "count": len(rigs), "rigs": rigs}
 
 class Tone3000Load(BaseModel):
     id: str
