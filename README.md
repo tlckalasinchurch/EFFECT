@@ -108,6 +108,17 @@ INPUT → [NOISE GATE] → [PITCH] → [TS-9 DRIVE] → [AMP HEAD] → [CABINET 
 - The UI reports `Buffer` and `HW I/O` separately. The buffer value is calculated by the app; `HW I/O` is the latency reported by the active PortAudio stream.
 - If the callback time approaches or exceeds the buffer deadline, increase the buffer before reducing sample rate or disabling effects.
 
+### Mock UX1 hardware test
+
+ตรวจสอบการเลือก ASIO, stream callback, buffer deadline, hardware I/O latency และ XRUN counter โดยไม่ต้องต่อ UX1 จริง:
+
+```bash
+python tools/mock_ux1_hardware.py
+python tools/mock_ux1_hardware.py --buffer 128 --json
+```
+
+ตัวทดสอบใช้ fake `sounddevice` stream ใน memory จึงไม่เปิด microphone/speaker และไม่แตะอุปกรณ์จริง ผลที่คาดหวังคือ `MOCK UX1 HARDWARE: PASS`, เลือก host API เป็น `ASIO`, hardware I/O จำลอง `7.80 ms` และ XRuns เป็นศูนย์
+
 ### DSP Modules
 - **Noise Gate**: Envelope tracking with attack/release
 - **TS-9 Overdrive**: Asymmetric soft clipping (tube diode simulation)
