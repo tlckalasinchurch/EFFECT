@@ -119,6 +119,29 @@ python tools/mock_ux1_hardware.py --buffer 128 --json
 
 ตัวทดสอบใช้ fake `sounddevice` stream ใน memory จึงไม่เปิด microphone/speaker และไม่แตะอุปกรณ์จริง ผลที่คาดหวังคือ `MOCK UX1 HARDWARE: PASS`, เลือก host API เป็น `ASIO`, hardware I/O จำลอง `7.80 ms` และ XRuns เป็นศูนย์
 
+### TONE3000 amplifier CLI
+
+ใช้ [tools/tone3000_amp.py](tools/tone3000_amp.py) เพื่อค้นหาและเลือกแอมป์จาก TONE3000 โดยให้ EFFECT backend เป็นผู้จัดการ OAuth, token, model download, cache และ preset database:
+
+```bash
+# ตั้งค่า client และสร้าง OAuth URL
+python tools/tone3000_amp.py configure --client-id YOUR_PUBLISHABLE_KEY
+python tools/tone3000_amp.py connect --gears amp
+
+# ค้นหาแอมป์ เลือก tone_id แล้วดู model ที่มี
+python tools/tone3000_amp.py search "5150" --gear amp
+python tools/tone3000_amp.py models TONE_ID
+
+# โหลดเข้า NAM และบันทึกอัตโนมัติลง tone3000_cache/ + presets.db
+python tools/tone3000_amp.py load TONE_ID --model-id MODEL_ID --quality lite
+
+# ตรวจสถานะและรายการ preset ที่เก็บถาวร
+python tools/tone3000_amp.py status
+python tools/tone3000_amp.py presets
+```
+
+สคริปต์ไม่เก็บ access token และไม่เรียก TONE3000 โดยตรงจาก CLI; จึงใช้ credential storage เดิมของ EFFECT และปลอดภัยกว่า การโหลดสำเร็จจะสร้าง preset พร้อม `_t3k` metadata เพื่อ rebuild NAM จาก cache หลังปิดและเปิดโปรแกรมใหม่
+
 ### DSP Modules
 - **Noise Gate**: Envelope tracking with attack/release
 - **TS-9 Overdrive**: Asymmetric soft clipping (tube diode simulation)
