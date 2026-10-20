@@ -1140,13 +1140,15 @@ function updateStatus(server) {
   const bs = Number(server.block_size || 128);
   const stats = server.audio_stats || {};
   const deadline = Number(stats.deadline_ms || (bs / sr * 1000));
+  const hw = stats.stream_latency || {};
   const sys = server.system || {};
+  const hwLabel = hw.reported_io_ms == null ? 'HW I/O —' : `HW I/O ${Number(hw.reported_io_ms).toFixed(2)} ms`;
 
   if ($('spec-sr')) $('spec-sr').textContent = (sr / 1000).toFixed(1) + ' kHz';
   if ($('spec-block')) $('spec-block').textContent = bs + ' smp';
-  if ($('spec-lat')) $('spec-lat').textContent = deadline.toFixed(2) + ' ms';
+  if ($('spec-lat')) $('spec-lat').textContent = hw.reported_io_ms == null ? deadline.toFixed(2) + ' ms' : Number(hw.reported_io_ms).toFixed(2) + ' ms';
   if ($('status-audio-perf')) {
-    $('status-audio-perf').textContent = `SR ${sr.toLocaleString()} Hz · Buffer ${bs} (${deadline.toFixed(2)} ms) · Max CB ${stats.callback_ms_max ?? 0} ms · XRuns ${Object.values(stats.xruns || {}).reduce((a, b) => a + Number(b || 0), 0)}`;
+    $('status-audio-perf').textContent = `SR ${sr.toLocaleString()} Hz · Buffer ${bs} (${deadline.toFixed(2)} ms) · ${hwLabel} · Max CB ${stats.callback_ms_max ?? 0} ms · XRuns ${Object.values(stats.xruns || {}).reduce((a, b) => a + Number(b || 0), 0)}`;
   }
   if ($('status-system-telemetry')) {
     $('status-system-telemetry').textContent = `CPU ${sys.cpu_percent ?? 0}% · RAM ${sys.ram_mb ?? 0} MB`;

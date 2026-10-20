@@ -41,40 +41,54 @@ class AudioEngine:
 
     def get_device_list(self):
         devices = []
+        hostapis = sd.query_hostapis()
         for idx, dev in enumerate(sd.query_devices()):
+            hostapi_name = hostapis[dev["hostapi"]]["name"] if 0 <= dev["hostapi"] < len(hostapis) else "Unknown"
             devices.append({
                 "id": idx,
                 "name": dev["name"],
                 "hostapi": dev["hostapi"],
+                "hostapi_name": hostapi_name,
                 "inputs": dev["max_input_channels"],
                 "outputs": dev["max_output_channels"],
+                "default_samplerate": dev.get("default_samplerate", self.sample_rate),
+                "default_low_input_latency": dev.get("default_low_input_latency", 0.0),
+                "default_low_output_latency": dev.get("default_low_output_latency", 0.0),
                 "is_ux1": "UX1" in dev["name"] or "Line 6" in dev["name"]
             })
         return devices
 
     def auto_detect_ux1(self):
-        # Look for UX1, prioritizing low-latency Windows APIs: WASAPI (2) > DirectSound (1) > others
+        # Look for UX1, prioritizing ASIO (when the Line 6 driver exposes it),
+        # then WASAPI and DirectSound. Host API IDs differ by PortAudio build.
         devices = sd.query_devices()
+        hostapis = sd.query_hostapis()
         in_candidates = []
         out_candidates = []
 
         for idx, dev in enumerate(devices):
             name = dev["name"]
             if "UX1" in name or "Line 6" in name:
-                api = dev["hostapi"]
-                # Higher score = better latency (WASAPI=2 -> priority 3, DirectSound=1 -> priority 2, MME=0 -> priority 1)
-                prio = 3 if api == 2 else (2 if api == 1 else 1)
+                api_name = hostapis[dev["hostapi"]]["name"].lower()
+                if "asio" in api_name:
+                    prio = 4
+                elif "wasapi" in api_name:
+                    prio = 3
+                elif "directsound" in api_name:
+                    prio = 2
+                else:
+                    prio = 1
                 if dev["max_input_channels"] > 0:
-                    in_candidates.append((prio, idx))
+                    in_candidates.append((prio, -float(dev.get("default_low_input_latency", 0.0)), idx))
                 if dev["max_output_channels"] > 0:
-                    out_candidates.append((prio, idx))
+                    out_candidates.append((prio, -float(dev.get("default_low_output_latency", 0.0)), idx))
 
         if in_candidates:
-            in_candidates.sort(key=lambda x: x[0], reverse=True)
-            self.input_device = in_candidates[0][1]
+            in_candidates.sort(reverse=True)
+            self.input_device = in_candidates[0][2]
         if out_candidates:
-            out_candidates.sort(key=lambda x: x[0], reverse=True)
-            self.output_device = out_candidates[0][1]
+            out_candidates.sort(reverse=True)
+            self.output_device = out_candidates[0][2]
 
     def _audio_callback(self, indata, outdata, frames, time_info, status):
         t_start = time.perf_counter()
@@ -265,6 +279,19 @@ class AudioEngine:
         return {"cpu_percent": cpu_pct, "ram_mb": ram_mb}
 
     def get_state(self):
+        stream_latency = {"input_ms": None, "output_ms": None, "reported_io_ms": None}
+        if self.stream is not None:
+            try:
+                reported = self.stream.latency
+                if isinstance(reported, (tuple, list)):
+                    stream_latency["input_ms"] = round(float(reported[0]) * 1000.0, 2)
+                    stream_latency["output_ms"] = round(float(reported[1]) * 1000.0, 2)
+                    stream_latency["reported_io_ms"] = round(sum(float(v) for v in reported) * 1000.0, 2)
+                else:
+                    stream_latency["output_ms"] = round(float(reported) * 1000.0, 2)
+                    stream_latency["reported_io_ms"] = stream_latency["output_ms"]
+            except (AttributeError, TypeError, ValueError):
+                pass
         return {
             "is_running": self.is_running,
             "sample_rate": self.sample_rate,
@@ -280,6 +307,7 @@ class AudioEngine:
                 "callback_ms_max": round(self.callback_ms_max, 2),
                 "clipped_blocks": self.clipped_blocks,
                 "deadline_ms": round(self.block_size / self.sample_rate * 1000.0, 2),
+                "stream_latency": stream_latency,
             },
             "tuner": self.tuner_info if self.tuner_active else None,
             "chain": {
@@ -342,4 +370,3 @@ class AudioEngine:
                 }
             }
         }
-

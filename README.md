@@ -4,7 +4,7 @@
 
 ## 🎯 Features
 
-- **Vectorized DSP Engine** - Low-latency audio processing (~10.6ms @ 512 samples)
+- **Vectorized DSP Engine** - Low-latency audio processing (engine buffer + hardware I/O latency shown separately)
 - **4-Zone UI** - Kemper-style interface (Locations, Grid, Inspector, Signal Chain)
 - **KEMPER Integration** - Load from 35 Kemper Rig Packs (.rigpack SQLite)
 - **TONE3000 Integration** - Load 8 Factory Neural Presets (.t3kpreset)
@@ -95,9 +95,18 @@ INPUT → [NOISE GATE] → [PITCH] → [TS-9 DRIVE] → [AMP HEAD] → [CABINET 
 
 ### Audio Engine
 - **Sample Rate**: 48,000 Hz
-- **Buffer Size**: 512 samples (WASAPI Exclusive)
-- **Latency**: ~10.6ms
+- **Buffer Size**: 512 samples (low-latency PortAudio stream)
+- **Engine Buffer Time**: 10.67ms at 512 samples / 48kHz (one processing deadline, not total round-trip latency)
+- **Hardware I/O Latency**: read from PortAudio after the stream starts and shown in the status bar
 - **Processing**: Vectorized NumPy operations (no Python loops in signal path)
+
+### Line 6 POD Studio UX1
+
+- Connect the UX1 before starting the app and select the Line 6 input/output pair in Settings.
+- Auto-detection prioritizes the Line 6 **ASIO** host API when its driver is available, then WASAPI and DirectSound.
+- Use `BUFFER_SIZE=256` for a lower-latency starting point (about 5.33ms engine buffer time at 48kHz); use `512` if XRuns or crackles appear.
+- The UI reports `Buffer` and `HW I/O` separately. The buffer value is calculated by the app; `HW I/O` is the latency reported by the active PortAudio stream.
+- If the callback time approaches or exceeds the buffer deadline, increase the buffer before reducing sample rate or disabling effects.
 
 ### DSP Modules
 - **Noise Gate**: Envelope tracking with attack/release
@@ -175,7 +184,7 @@ Create `.env` file:
 AUDIO_INPUT_DEVICE=17
 AUDIO_OUTPUT_DEVICE=15
 SAMPLE_RATE=48000
-BUFFER_SIZE=512
+BUFFER_SIZE=256
 LOG_LEVEL=INFO
 ```
 
