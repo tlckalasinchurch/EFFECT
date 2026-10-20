@@ -125,9 +125,13 @@ TONE3000       C:\ProgramData\TONE3000\Presets\Factory
 
 ## 5. งานที่ยังค้าง — เรียงตามความสำคัญ
 
-### ⭐ P0 — `/api/kemper/load` ยังเดา ไม่ได้ถอดจริง
+### ⭐ P0 — `/api/kemper/load` (อัปเดตแล้วบางส่วน)
 
-ตอนนี้โค้ดเดาค่า DSP **จากชื่อ rig**:
+**ทำแล้ว (ยังไม่ commit):** `iter_sysex()` อ่านความยาวแบบ 2 ไบต์ได้ (เดิมทิ้ง 4,356 ข้อความ = 233 B/541 B) และ `decode_rig_params()` ถอด gain/bass/mid/treble/presence จาก blob จริง (page `0x0a` word 4, page `0x0b` word 4-7, ค่า 14-bit) แล้ว `/api/kemper/load` ใช้แทนค่าเดาเมื่อ client ส่ง `pack_path`+`rig_id`
+**ยังเป็นการอนุมาน ไม่ใช่ของ Kemper:** ความหมายของ word เหล่านี้ยืนยันจากสถิติ (EQ กลาง 8192 ทั้ง 363 rig; gain เฉลี่ย ~2300 ใน rig ชื่อ clean/jazz/twin เทียบ ~8900 ใน metal/5150/recto/lead) ยังไม่ได้ฟังเสียงเทียบเครื่องจริง
+**ยังเดาอยู่:** amp model, cab, screamer, delay, reverb — ยังมาจากชื่อ rig (ถอดจาก page อื่นยังไม่ทำ)
+
+ของเดิมก่อนแก้ — โค้ดเดาค่า DSP **จากชื่อ rig**:
 
 ```python
 if any(k in name_lower for k in ["clean", "jazz", "acoustic", "twin", "sparkle"]):
@@ -148,7 +152,9 @@ if any(k in name_lower for k in ["clean", "jazz", "acoustic", "twin", "sparkle"]
 
 ### P1 — UI ยังไม่ได้เชื่อม
 - คลิก rig ในตาราง → ยังโหลดผ่าน `/api/kemper/load` แบบเดา (ผูกกับ P0)
-- ยังไม่มี **favourite / star** — คอลัมน์ ⭐ ยังเป็นข้อความตาย
+- **NAM จริงจาก TONE3000 (ทำแล้ว ยังไม่ commit):** `.t3kpreset` ฝังโมเดล NAM v0.7.0 (SlimmableContainer: WaveNet 3 ช่อง 1,871 น้ำหนัก + 8 ช่อง 12,146 น้ำหนัก) `engine/nam.py` รันด้วย numpy (`NamChain`, `SlimmableWaveNet`), `get_nam_chain()` ใน `tone3000_importer.py` ดึงบล็อก NAM ตามลำดับเชน, `GuitarSignalChain.nam` แทน screamer+amp, `/api/tone3000/load` รับ `nam`, `nam_quality` (`lite`|`full`), `nam_input_gain_db` ตรวจกับ golden vector ของ TONE3000 (MIT, github.com/tone-3000/embedded) ได้ ESR −140.9 dB (Full) / −135.5 dB (Lite) เทสต์: `python -m unittest tests.test_nam -v` (ตั้ง `T3K_EMBEDDED_DIR` เพื่อรันเทสต์ golden) **ข้อควรระวัง:** บนเครื่องนี้ (i3 2 แกน, โหลดอื่นรันอยู่) เวลาต่อบล็อก 512 ตัวอย่างแกว่ง: Lite ปกติ 1 ถึง 6 ms แต่มีบล็อกเกิน 10.67 ms เป็นช่วง ๆ ยังไม่ได้ฟังเสียงจริงผ่าน UX1 ตัวเลือกเร่งความเร็วที่ยังไม่ทำ: คอมไพล์ engine C99 ของ `tone-3000/embedded` (ต้องมีคอมไพเลอร์ และต้องรีวิวโค้ดก่อน) หรือรัน WASM ใน AudioWorklet
+- **Export `.rigpack` (ทำแล้ว ยังไม่ commit):** ชิป ⬇ Export .rigpack ส่งออก favourites (หรือแท็กเดียว) ไป `exports/<ชื่อ>.rigpack` (`engine/rigpack_export.py`, `POST /api/library/export`, `GET /api/library/exports/{file}`) schema เหมือน pack จริงทุกตาราง, blob ก๊อปไบต์ต่อไบต์, ตัวอ่านของโปรเจกต์ถอดได้ **ยังไม่รู้ว่า Rig Manager ของ Kemper ยอมรับไหม** (pack จริงมี `signature2` 20 ไบต์ ของเราเป็น NULL)
+- ~~favourite / star~~ — **ทำแล้ว (ยังไม่ commit):** ดาวและแท็กของ rig Kemper เก็บใน `user_library.json` (`engine/user_library.py`, `/api/library/*`), ชิป ★ Favourites / # tag ในแถบหมวด, แก้แท็กด้วยปุ่ม `#` (ใช้ `window.prompt`), ค้นหาด้วย `++++` = gain ราว n/10 (สมมติว่าค่า gain ที่ถอดเป็นเส้นตรงกับปุ่ม 0-10) ทดสอบด้วย Playwright headless แล้ว แถว non-Kemper ยังเป็น ⭐ ตาย
 - ยังไม่มี **loading skeleton / progress** ตอน decode ทั้ง pack
 - ยังไม่มี **lazy render** ตาราง — search 400 แถวค่อยเรนเดอร์ทั้งหมด
 - ยังไม่มี **pack search filter** ใน Zone 1 (ตอนนี้ 35 รายการต้องเลื่อน)

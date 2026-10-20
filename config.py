@@ -18,6 +18,8 @@ ENGINE_DIR = PROJECT_ROOT / "engine"
 WEB_DIR = PROJECT_ROOT / "web"
 DOCS_DIR = PROJECT_ROOT / "docs"
 DB_PATH = PROJECT_ROOT / "presets.db"
+USER_LIBRARY_PATH = PROJECT_ROOT / "user_library.json"
+EXPORT_DIR = PROJECT_ROOT / "exports"
 
 # Audio Configuration
 SAMPLE_RATE = int(os.getenv("SAMPLE_RATE", "48000"))

@@ -69,3 +69,19 @@ custom_irs/
 # OS
 Thumbs.db
 Desktop.ini
+
+# per-user favourites and tags
+user_library.json
+exports/
+
+# TONE3000 API credentials (publishable key + OAuth tokens)
+t3k_config.json
+t3k_tokens.json
+
+# Local tool caches & build artifacts
+.freebuff/
+graphify-out/
+*.exp
+*.lib
+*.obj
+

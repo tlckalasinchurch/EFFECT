@@ -6,10 +6,15 @@ from scipy import signal
 import config
 
 class NoiseGate:
-    def __init__(self, threshold_db=-60.0, ratio=4.0, attack_ms=2.0, release_ms=50.0, sample_rate=48000):
+    def __init__(self, threshold_db=-60.0, ratio=4.0, attack_ms=2.0, release_ms=50.0, hold_ms=50.0, range_db=-60.0, sample_rate=48000):
         self.threshold_db = threshold_db
         self.ratio = ratio
         self.sample_rate = sample_rate
+        self.attack_ms = attack_ms
+        self.release_ms = release_ms
+        self.hold_ms = hold_ms
+        self.range_db = range_db
+        self.hold_counter = 0
         self.envelope = 0.0
         self.enabled = True
         self.set_timing(attack_ms, release_ms)
@@ -25,14 +30,26 @@ class NoiseGate:
         mono = audio[:, 0] if audio.ndim > 1 else audio
         rms = float(np.sqrt(np.mean(mono ** 2) + 1e-9))
 
-        coeff = self.attack_coeff if rms > self.envelope else self.release_coeff
+        thresh_lin = 10.0 ** (self.threshold_db / 20.0)
+        hold_samples = int(self.hold_ms * 0.001 * self.sample_rate)
+
+        if rms >= thresh_lin:
+            self.hold_counter = hold_samples
+            coeff = self.attack_coeff
+        else:
+            if self.hold_counter > 0:
+                self.hold_counter -= len(mono)
+                coeff = self.attack_coeff
+            else:
+                coeff = self.release_coeff
+
         self.envelope = coeff * self.envelope + (1.0 - coeff) * rms
 
-        thresh_lin = 10.0 ** (self.threshold_db / 20.0)
+        min_gain = float(10.0 ** (self.range_db / 20.0))
         if self.envelope < thresh_lin and thresh_lin > 1e-7:
             diff_db = 20.0 * np.log10(max(self.envelope, 1e-7) / thresh_lin)
             gain_db = diff_db * (self.ratio - 1.0) / self.ratio
-            target_gain = float(10.0 ** (gain_db / 20.0))
+            target_gain = max(min_gain, float(10.0 ** (gain_db / 20.0)))
         else:
             target_gain = 1.0
 
@@ -89,7 +106,7 @@ class Overdrive:
 
 class AmpHead:
     """Tube Amplifier Emulation with 12AX7 / 6L6 non-linear stages and Tone Stack"""
-    def __init__(self, gain=0.6, bass=0.5, mid=0.5, treble=0.5, presence=0.5, master=0.7, model='5150', sample_rate=48000):
+    def __init__(self, gain=0.6, bass=0.5, mid=0.5, treble=0.5, presence=0.5, master=0.7, model='5150', bright=False, sample_rate=48000):
         self.gain = gain
         self.bass = bass
         self.mid = mid
@@ -97,6 +114,7 @@ class AmpHead:
         self.presence = presence
         self.master = master
         self.model = model  # '5150', 'Plexi', 'Twin', 'Clean'
+        self.bright = bright
         self.enabled = True
         self.sample_rate = sample_rate
         self._init_filters()
@@ -117,6 +135,10 @@ class AmpHead:
         
         # 1. Pre-amp low cut (tightens the bass before distortion)
         x, self.lowcut_zi = signal.lfilter(self.lowcut_b, self.lowcut_a, mono, zi=self.lowcut_zi)
+
+        # Bright switch adds treble definition in front of the preamp
+        if self.bright:
+            x = x + 0.35 * (x - np.roll(x, 1))
         
         # 2. Multi-stage tube preamp saturation
         # Stage 1: Initial tube saturation
@@ -199,9 +221,15 @@ class CabinetSimulator:
     def __init__(self, sample_rate=48000):
         self.sample_rate = sample_rate
         self.enabled = True
+        self.level = 1.0
         self.ir_name = 'Celestion V30 4x12'
         self.ir_data = self._generate_synthetic_ir('v30')
         self.zi = np.zeros(len(self.ir_data) - 1)
+        # Per-block EQ (TONE3000-plugin style): Low Cut / High Cut / dry-wet.
+        self.lowcut_hz = 20.0
+        self.highcut_hz = 20000.0
+        self.mix = 1.0
+        self._design_cutoffs()
 
     # Per-cabinet voicing. Previously `_generate_synthetic_ir` ignored its
     # `cab_type` argument, so every cabinet produced a byte-identical
@@ -243,10 +271,22 @@ class CabinetSimulator:
 
     DEFAULT_CAB = "v30"
 
+    # TONE3000 presets without an embedded speaker IR report a synthetic cab
+    # fallback by real gear name; alias it to the closest voice we have.
+    CAB_ALIASES = {
+        "matchless 2x12 custom": "greenback",   # Class-A mid-forward crunch
+        "vintage 1x12 oxford": "twin",           # Magnatone sparkle / chime
+        "ampeg 8x10 svt": "greenback",
+        "bogner 4x12 v30": "v30",
+        "dumble 2x12 open": "greenback",
+    }
+
     @classmethod
     def cab_key_for_name(cls, cab_name: str) -> str:
         """Map a display name back to its profile key (case-insensitive)."""
         target = (cab_name or "").strip().lower()
+        if target in cls.CAB_ALIASES:
+            return cls.CAB_ALIASES[target]
         for key, profile in cls.CAB_PROFILES.items():
             if profile["name"].lower() == target:
                 return key
@@ -302,6 +342,25 @@ class CabinetSimulator:
         if peak > 1e-9:
             ir = ir / peak * config.IR_NORMALIZATION_GAIN
         return np.ascontiguousarray(ir, dtype=np.float32)
+
+    def _design_cutoffs(self):
+        """Build the cab's Low Cut / High Cut biquads and clear their state."""
+        nyq = self.sample_rate * 0.5
+        low = min(max(float(self.lowcut_hz), 10.0), nyq * 0.90)
+        high = min(max(float(self.highcut_hz), low * 1.5), nyq * 0.95)
+        self.hp_b, self.hp_a = signal.butter(2, low / nyq, btype='high')
+        self.lp_b, self.lp_a = signal.butter(2, high / nyq, btype='low')
+        self.hp_zi = np.zeros(max(len(self.hp_a), len(self.hp_b)) - 1, dtype=np.float64)
+        self.lp_zi = np.zeros(max(len(self.lp_a), len(self.lp_b)) - 1, dtype=np.float64)
+
+    def set_cutoffs(self, lowcut_hz=None, highcut_hz=None):
+        """Set the IR CAB Low Cut / High Cut without touching the loaded IR."""
+        if lowcut_hz is not None:
+            self.lowcut_hz = float(lowcut_hz)
+        if highcut_hz is not None:
+            self.highcut_hz = float(highcut_hz)
+        self._design_cutoffs()
+
 
     def select_cab(self, cab_name: str) -> str:
         """
@@ -388,18 +447,118 @@ class CabinetSimulator:
         self.ir_data = prepared
         self.ir_name = str(ir_name)
         self.zi = np.zeros(len(self.ir_data) - 1, dtype=np.float32)
+        # A new IR must not inherit the previous cabinet's filter history.
+        self._design_cutoffs()
         return True
 
     def process(self, audio):
         if not self.enabled:
             return audio
-            
+
         mono = audio[:, 0] if audio.ndim > 1 else audio
-        out = signal.fftconvolve(mono, self.ir_data, mode='full')[:len(mono)]
-        
+        wet = signal.fftconvolve(mono, self.ir_data, mode='full')[:len(mono)]
+
+        # Per-block EQ: Low Cut then High Cut, exactly like the plugin's IR CAB
+        # block. Both filters are 2nd-order Butterworth biquads.
+        wet, self.hp_zi = signal.lfilter(self.hp_b, self.hp_a, wet, zi=self.hp_zi)
+        wet, self.lp_zi = signal.lfilter(self.lp_b, self.lp_a, wet, zi=self.lp_zi)
+        if self.level != 1.0:
+            wet = wet * self.level
+
+        out = wet if self.mix >= 0.999 else mono * (1.0 - self.mix) + wet * self.mix
+
         if audio.ndim > 1:
             return np.column_stack((out, out))
         return out
+
+
+class PitchShifter:
+    """
+    Vectorized dual-tap crossfading pitch shifter with zero audio loop allocations.
+    Transposes pitch from -24 to +24 semitones with fine cents tuning.
+    """
+    def __init__(self, semitones=0.0, cents=0.0, mix=1.0, window_ms=30.0, glide=0.0, sample_rate=48000):
+        self.sample_rate = sample_rate
+        self.enabled = False
+        self.semitones = float(semitones)
+        self.target_semitones = float(semitones)
+        self.cents = float(cents)
+        self.mix = float(mix)
+        self.glide_pct = max(0.0, min(100.0, float(glide)))
+        self.glide_ms = (self.glide_pct / 100.0) * 400.0
+        self.window_size = int(sample_rate * (window_ms / 1000.0))
+        if self.window_size < 128:
+            self.window_size = 128
+        self.buf_size = self.window_size * 4
+        self.buffer = np.zeros(self.buf_size, dtype=np.float32)
+        self.write_pos = 0
+        self.phase = 0.0
+        w = np.arange(self.window_size, dtype=np.float32)
+        self.window_lut = (0.5 * (1.0 - np.cos(2.0 * np.pi * w / self.window_size))).astype(np.float32)
+
+    def set_semitones(self, value):
+        """Set the transposition target; Glide decides how fast it is reached."""
+        self.target_semitones = float(value)
+        if self.glide_ms <= 0.0:
+            self.semitones = self.target_semitones
+
+    def set_glide(self, pct):
+        """Glide time 0-100 % -> 0-400 ms portamento."""
+        self.glide_pct = max(0.0, min(100.0, float(pct)))
+        self.glide_ms = (self.glide_pct / 100.0) * 400.0
+        if self.glide_ms <= 0.0:
+            self.semitones = self.target_semitones
+
+    def _ratio(self):
+        return 2.0 ** ((self.semitones + self.cents / 100.0) / 12.0)
+
+    def process(self, audio):
+        if not self.enabled:
+            return audio
+
+        # Portamento: move the current pitch toward the knob target per block.
+        diff = self.target_semitones - self.semitones
+        if abs(diff) > 1e-6:
+            if self.glide_ms > 0.0:
+                n_glide = len(audio)
+                tau = max(0.005, self.glide_ms / 1000.0)
+                coeff = 1.0 - np.exp(-n_glide / (tau * self.sample_rate))
+                self.semitones += diff * coeff
+                if abs(self.target_semitones - self.semitones) < 0.01:
+                    self.semitones = self.target_semitones
+            else:
+                self.semitones = self.target_semitones
+
+        if self.semitones == 0.0 and self.cents == 0.0 and self.mix >= 0.999:
+            return audio
+
+        mono = audio[:, 0] if audio.ndim > 1 else audio
+        n = len(mono)
+        ratio = self._ratio()
+        rate_diff = 1.0 - ratio
+        
+        idx = (np.arange(n) + self.write_pos) % self.buf_size
+        self.buffer[idx] = mono
+        
+        phase_arr = (self.phase + np.arange(n) * rate_diff) % self.window_size
+        half_win = self.window_size // 2
+        p1 = phase_arr.astype(np.int32)
+        p2 = ((phase_arr + half_win) % self.window_size).astype(np.int32)
+        
+        r1 = (idx - p1) % self.buf_size
+        r2 = (idx - p2) % self.buf_size
+        
+        w1 = self.window_lut[p1]
+        w2 = self.window_lut[p2]
+        
+        wet = self.buffer[r1] * w1 + self.buffer[r2] * w2
+        self.write_pos = (self.write_pos + n) % self.buf_size
+        self.phase = (self.phase + n * rate_diff) % self.window_size
+        
+        out = (1.0 - self.mix) * mono + self.mix * wet
+        if audio.ndim > 1:
+            return np.column_stack((out, out))
+        return out.astype(np.float32)
 
 
 class Delay:
@@ -436,9 +595,11 @@ class Delay:
 
 class Reverb:
     """Schroeder-style algorithmic reverberator"""
-    def __init__(self, decay=0.5, mix=0.2, sample_rate=48000):
+    def __init__(self, decay=0.5, mix=0.2, tone=0.5, reverb_type='plate', sample_rate=48000):
         self.decay = decay
         self.mix = mix
+        self.tone = tone
+        self.reverb_type = reverb_type
         self.enabled = False
         self.sample_rate = sample_rate
         # Comb filter delays
@@ -482,7 +643,10 @@ class GuitarSignalChain:
     """The Complete Guitar Effect Rig Chain"""
     def __init__(self, sample_rate=48000):
         self.sample_rate = sample_rate
+        self.master_volume = 1.0
+        self.input_trim_db = 0.0
         self.noise_gate = NoiseGate(threshold_db=-55.0, sample_rate=sample_rate)
+        self.pitch_shifter = PitchShifter(sample_rate=sample_rate)
         self.screamer = Overdrive(drive=0.4, tone=0.6, level=0.7, sample_rate=sample_rate)
         self.amp = AmpHead(gain=0.65, bass=0.55, mid=0.5, treble=0.6, presence=0.6, master=0.7, sample_rate=sample_rate)
         self.cab = CabinetSimulator(sample_rate=sample_rate)
@@ -490,23 +654,39 @@ class GuitarSignalChain:
         self.reverb = Reverb(decay=0.5, mix=0.2, sample_rate=sample_rate)
         self.input_level_meter = 0.0
         self.output_level_meter = 0.0
+        self.nam = None  # engine.nam.NamChain; replaces the DSP amp stage when set
 
     def process(self, input_chunk):
-        # Calculate input level
+        # Calculate input level from the raw signal, then apply the input trim.
         in_rms = float(np.sqrt(np.mean(input_chunk ** 2) + 1e-9))
         self.input_level_meter = self.input_level_meter * 0.8 + in_rms * 0.2
-        
-        x = self.noise_gate.process(input_chunk)
+
+        x = input_chunk
+        if self.input_trim_db:
+            x = x * np.float32(10.0 ** (self.input_trim_db / 20.0))
+        x = self.noise_gate.process(x)
+        x = self.pitch_shifter.process(x)
+
+        # DRIVE is a real block in front of the amp, even when a NAM chain is
+        # installed. The old path skipped it whenever `nam` was set.
         x = self.screamer.process(x)
-        x = self.amp.process(x)
+
+        nam = self.nam  # read once: the UI thread may swap it mid-block
+        if nam is not None:
+            if getattr(nam, "enabled", True):
+                x = nam.process(x)
+        else:
+            x = self.amp.process(x)
+
         x = self.cab.process(x)
         x = self.delay.process(x)
         x = self.reverb.process(x)
         
-        # Master brickwall limiter to protect hearing / speakers
-        x = np.clip(x, -1.0, 1.0)
+        # Master volume control & brickwall limiter to protect hearing / speakers
+        x = np.clip(x * self.master_volume, -1.0, 1.0)
         
         out_rms = float(np.sqrt(np.mean(x ** 2) + 1e-9))
         self.output_level_meter = self.output_level_meter * 0.8 + out_rms * 0.2
         
         return x.astype(np.float32)
+

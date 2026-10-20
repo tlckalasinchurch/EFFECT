@@ -3,560 +3,359 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>กดจนหลอนTone - Guitar Rig & Amp Workstation</title>
-  <link rel="stylesheet" href="/static/style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;500;600;700&family=Kanit:wght@400;600;700&display=swap" rel="stylesheet">
+  <title>กดจนหลอนTone — Neural Guitar Workstation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css?v=20261020">
 </head>
-<body class="studio-body">
+<body>
 
-  <!-- TOP GLOBAL WORKSTATION BAR -->
-  <header class="studio-header">
-    <div class="logo-area">
-      <div class="logo-icon">⚡</div>
-      <div class="logo-text">
-        <span class="logo-title">กดจนหลอน<span class="highlight">Tone</span></span>
-        <span class="logo-sub">GUITAR RIG &amp; NEURAL AMP WORKSTATION</span>
-      </div>
-    </div>
+  <!-- Shared SVG defs for the knob face gradient -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <radialGradient id="knobGrad" cx="38%" cy="32%" r="80%">
+        <stop offset="0%" stop-color="#2c3646" />
+        <stop offset="55%" stop-color="#1a212d" />
+        <stop offset="100%" stop-color="#11161f" />
+      </radialGradient>
+    </defs>
+  </svg>
 
-    <!-- 5-SLOT LIVE PERFORMANCE SWITCHER (KEMPER STYLE) -->
-    <div class="performance-bar">
-      <span class="perf-title">PERFORMANCE:</span>
-      <div class="perf-slots">
-        <button class="perf-slot active" data-slot="1" data-preset="preset-5150">
-          <span class="slot-num">1</span>
-          <span class="slot-name">Lead 5150</span>
-          <span class="slot-edit-btn" title="Edit Slot">✎</span>
-        </button>
-        <button class="perf-slot" data-slot="2" data-preset="preset-plexi">
-          <span class="slot-num">2</span>
-          <span class="slot-name">Plexi Crunch</span>
-          <span class="slot-edit-btn" title="Edit Slot">✎</span>
-        </button>
-        <button class="perf-slot" data-slot="3" data-preset="preset-twin">
-          <span class="slot-num">3</span>
-          <span class="slot-name">Twin Clean</span>
-          <span class="slot-edit-btn" title="Edit Slot">✎</span>
-        </button>
-        <button class="perf-slot" data-slot="4" data-preset="preset-texas">
-          <span class="slot-num">4</span>
-          <span class="slot-name">Texas Solo</span>
-          <span class="slot-edit-btn" title="Edit Slot">✎</span>
-        </button>
-        <button class="perf-slot" data-slot="5" data-preset="preset-ambient">
-          <span class="slot-num">5</span>
-          <span class="slot-name">Ambient Space</span>
-          <span class="slot-edit-btn" title="Edit Slot">✎</span>
-        </button>
-      </div>
-    </div>
+  <div class="page">
+    <section class="app" aria-label="หน้าจอแอป กดจนหลอนTone">
 
-    <!-- AUDIO ENGINE & POWER STATUS -->
-    <div class="engine-controls">
-      <div class="device-pill" id="device-pill" title="Hardware Audio Interface">
-        <span class="status-dot green"></span>
-        <span id="device-label">Line 6 UX1 (WASAPI)</span>
-      </div>
-      <button id="btn-tuner-toggle" class="btn-toggle">TUNER</button>
-      <button id="btn-power" class="btn-power off">POWER</button>
-    </div>
-  </header>
+      <!-- ================= TOP BAR ================= -->
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M3 12h2.5l2-6 3 12 3-16 2.5 10H21" stroke="#191104" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="brand-name">กดจนหลอน<span>Tone</span></div>
+          <span class="badge" id="engine-badge">NAM A2</span>
+        </div>
 
-  <!-- METERS STRIP & CHROMATIC TUNER -->
-  <section class="meters-strip">
-    <div class="meter-box">
-      <span class="meter-label">INPUT (UX1)</span>
-      <div class="vu-bar-container">
-        <div id="meter-in" class="vu-bar"></div>
-      </div>
-    </div>
-    
-    <!-- Chromatic Tuner Panel -->
-    <div id="tuner-display" class="tuner-compact hidden">
-      <div class="tuner-note-display" id="tuner-note">--</div>
-      <div class="tuner-gauge">
-        <div class="tuner-cents-bar">
-          <div id="tuner-needle" class="tuner-needle"></div>
+        <div class="preset-nav">
+          <button class="nav-arrow" id="prevPreset" aria-label="พรีเซ็ตก่อนหน้า">‹</button>
+          <div class="cur-preset">
+            <div class="cp-name"><span id="curName">—</span><span class="dirty-dot" id="dirtyDot" title="มีการแก้ไขที่ยังไม่บันทึก"></span></div>
+            <div class="cp-sub" id="curSub">—</div>
+          </div>
+          <button class="nav-arrow" id="nextPreset" aria-label="พรีเซ็ตถัดไป">›</button>
         </div>
-        <div class="tuner-scale">
-          <span>-50</span>
-          <span>-25</span>
-          <span class="center">0</span>
-          <span>+25</span>
-          <span>+50</span>
-        </div>
-      </div>
-      <div class="tuner-tune-status" id="tuner-status">PLAY STRING</div>
-    </div>
 
-    <div class="meter-box">
-      <span class="meter-label">OUTPUT (PHONES)</span>
-      <div class="vu-bar-container">
-        <div id="meter-out" class="vu-bar"></div>
-      </div>
-    </div>
-  </section>
+        <div class="top-actions">
+          <button class="btn power-btn on" id="btn-power" title="เปิด/ปิดเสียงเอ็นจิน">
+            <span class="power-led" aria-hidden="true"></span><span id="power-label">POWER</span>
+          </button>
+          <button class="btn" id="btn-tuner-toggle" title="จูนสาย (Chromatic Tuner)">TUNER</button>
+          <button class="btn icon-only" id="btn-settings-open" title="ตั้งค่าเสียง / UI" aria-label="ตั้งค่า">⚙</button>
+          <button class="btn" id="btn-save-preset" title="บันทึกทับพรีเซ็ตปัจจุบัน">บันทึก</button>
+          <button class="btn" id="btn-save-as-preset" title="บันทึกเป็นพรีเซ็ตใหม่">โคลน</button>
+          <button class="btn accent" id="btn-t3k-open" title="ค้นหาเสียงจากคลัง TONE3000">
+            ค้นหาเสียงจาก TONE3000
+          </button>
+        </div>
+      </header>
 
-  <!-- MAIN 4-ZONE STUDIO WORKSPACE -->
-  <main class="studio-main-grid">
+      <!-- ================= LIBRARY / PRESET TABLE / DETAILS ================= -->
+      <div class="main">
+        <aside class="side" aria-label="คลังพรีเซ็ต">
+          <div class="side-title">Library</div>
+          <div id="libList"></div>
 
-    <!-- ZONE 1: LOCATIONS TREE SIDEBAR -->
-    <aside class="zone-locations">
-      <div class="sidebar-header">
-        <span>LOCATIONS</span>
-        <button id="btn-refresh-library" class="btn-icon" title="Refresh">↻</button>
-      </div>
-      <div class="search-box">
-        <input type="text" id="rig-search-input" placeholder="🔍 Search Rigs, Amps, Artists..." />
-      </div>
-      <div class="category-chips" id="kemper-categories">
-        <!-- Populated from /api/kemper/categories -->
-      </div>
-      <div class="tree-menu">
-        <div class="tree-item active" data-folder="all">
-          <span class="tree-icon">🌐</span>
-          <span class="tree-label">All Rigs</span>
-          <span class="tree-badge" id="count-all">0</span>
-        </div>
-        <div class="tree-item" data-folder="factory">
-          <span class="tree-icon">⚡</span>
-          <span class="tree-label">Factory Tones</span>
-          <span class="tree-badge" id="count-factory">5</span>
-        </div>
-        <div class="tree-item" data-folder="tone3000">
-          <span class="tree-icon">🔥</span>
-          <span class="tree-label">TONE3000 Neural Rigs</span>
-          <span class="tree-badge" id="count-tone3000">8</span>
-        </div>
-        <div class="tree-item" data-folder="user">
-          <span class="tree-icon">💾</span>
-          <span class="tree-label">User Presets</span>
-          <span class="tree-badge" id="count-user">0</span>
-        </div>
-        <div class="tree-item" data-folder="kemper-root">
-          <span class="tree-icon">🎸</span>
-          <span class="tree-label">Kemper Rig Packs</span>
-          <span class="tree-badge" id="count-kemper">35</span>
-        </div>
-        <!-- Sub-list for Kemper Packs -->
-        <div class="tree-sub-list" id="kemper-sub-packs">
-          <!-- Dynamically populated -->
-        </div>
-      </div>
-    </aside>
+          <div class="side-engine">
+            <div class="se-row"><span>ENGINE</span><b id="side-engine-state">…</b></div>
+            <div class="se-row"><span>SR</span><b id="spec-sr">48.0 kHz</b></div>
+            <div class="se-row"><span>BUFFER</span><b id="spec-block">128 smp</b></div>
+            <div class="se-row"><span>LATENCY</span><b id="spec-lat">2.67 ms</b></div>
+          </div>
 
-    <!-- ZONE 2: RIG DATA GRID (CENTER TABLE) -->
-    <section class="zone-grid">
-      <div class="grid-toolbar">
-        <span class="grid-title" id="grid-current-folder">All Rigs (Loaded)</span>
-        <div class="grid-actions">
-          <button id="btn-save-preset" class="btn-action">💾 Save Tone</button>
+          <div class="side-foot">
+            พรีเซ็ต = เชนทั้งเส้น + ค่า knob ทุกบล็อก · TONE3000 = ค้นคลังจริงผ่าน OAuth
+          </div>
+        </aside>
+
+        <section class="center" aria-label="รายการพรีเซ็ต">
+          <div class="table-tools">
+            <label class="search">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+              <input type="text" id="rig-search-input" placeholder="ค้นหาพรีเซ็ต หรือชื่อแอมป์…" />
+            </label>
+            <span class="row-count" id="rowCount"></span>
+            <button class="icon-btn" id="btn-refresh-lib" title="โหลดคลังใหม่" aria-label="โหลดคลังใหม่">↻</button>
+          </div>
+
+          <div class="t3k-cta hidden" id="t3k-cta">
+            <div>
+              <div class="t3k-cta-title">TONE3000 · NATIVE SEARCH</div>
+              <div class="t3k-cta-sub">ค้นหาแคปเจอร์ NAM และ IR จากคลังจริง แล้วโหลดเข้า NAM AMP ทันที</div>
+            </div>
+            <button class="btn accent" id="btn-t3k-cta">ค้นหาเสียง</button>
+          </div>
+
+          <div class="table-scroll" id="tableScroll">
+            <table class="presets">
+              <thead>
+                <tr>
+                  <th>ชื่อ</th>
+                  <th>แอมป์</th>
+                  <th>เกน</th>
+                  <th class="c-date-h">ประเภท</th>
+                  <th aria-label="ชื่นชอบ"></th>
+                </tr>
+              </thead>
+              <tbody id="presetBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <aside class="details" id="details" aria-label="รายละเอียดพรีเซ็ต"></aside>
+      </div>
+
+      <!-- ================= SIGNAL CHAIN ================= -->
+      <div class="chain-wrap">
+        <div class="chain-head">
+          <span class="ch-title">Signal Chain</span>
+          <span class="ch-note">กดไทล์เพื่อปรับค่า · คลิกขวา/แตะค้างเพื่อ Load File หรือ Load Folder</span>
+          <span class="ch-hint" id="pitch-hint"></span>
+        </div>
+
+        <div class="face">
+          <div class="meter" aria-hidden="true">
+            <div class="meter-scale l"><span>0</span><span>-6</span><span>-12</span><span>-24</span><span>-36</span><span>-48</span><span>-60</span></div>
+            <div class="meter-leds" id="meterIn"></div>
+          </div>
+          <div class="chain" id="chain"></div>
+          <div class="meter" aria-hidden="true">
+            <div class="meter-leds" id="meterOut"></div>
+            <div class="meter-scale r"><span>0</span><span>-6</span><span>-12</span><span>-24</span><span>-36</span><span>-48</span><span>-60</span></div>
+          </div>
+        </div>
+
+        <div class="facestrip" id="faceStrip" aria-label="แถบควบคุมหลักของเชน"></div>
+      </div>
+
+      <!-- ================= SELECTED BLOCK PANEL ================= -->
+      <div class="panel">
+        <div class="panel-head">
+          <span class="pb-en" id="pbEn">NAM AMP</span>
+          <span class="pb-th" id="pbTh"></span>
+          <button class="bypass-toggle" id="bypassToggle" aria-pressed="true">
+            <span id="bypassLabel">เปิดใช้งาน</span><span class="sw" aria-hidden="true"></span>
+          </button>
+        </div>
+        <div class="panel-body">
+          <div class="knobs" id="knobs"></div>
+          <div class="panel-side" id="panelSide"></div>
         </div>
       </div>
-      <div class="table-container">
-        <table class="rig-table" id="rig-data-table">
-          <thead>
-            <tr>
-              <th style="width: 35px;">Fav</th>
-              <th>Rig Name</th>
-              <th>Author / Artist</th>
-              <th style="width: 100px;">Gain</th>
-              <th>Amp Model</th>
-              <th>Cabinet</th>
-              <th>Category</th>
-            </tr>
-          </thead>
-          <tbody id="rig-table-body">
-            <!-- Dynamically populated rows -->
-          </tbody>
-        </table>
-      </div>
+
+      <!-- ================= STATUS BAR ================= -->
+      <footer class="statusbar">
+        <span id="stPreset">—</span>
+        <div class="st-mid">
+          <span id="status-audio-perf">SR 48,000 Hz · Buffer 128</span>
+          <span id="status-system-telemetry">CPU — · RAM —</span>
+          <span id="status-engine-text">Audio Engine: …</span>
+        </div>
+        <span class="st-save" id="stSave">บันทึกแล้ว</span>
+      </footer>
     </section>
+  </div>
 
-    <!-- ZONE 3: PROPERTIES INSPECTOR (RIGHT PANEL) -->
-    <aside class="zone-inspector">
-      <div class="inspector-header">PROPERTIES INSPECTOR</div>
-      <div class="inspector-body">
-        
-        <div class="inspector-section">
-          <div class="inspector-section-title">RIG DETAILS</div>
-          <div class="prop-row">
-            <span class="prop-label">Rig Name:</span>
-            <span class="prop-val" id="insp-name">5150 High Gain Metal</span>
-          </div>
-          <div class="prop-row">
-            <span class="prop-label">Author:</span>
-            <span class="prop-val" id="insp-author">กดจนหลอนTone Studio</span>
-          </div>
-          <div class="prop-row">
-            <span class="prop-label">Instrument:</span>
-            <span class="prop-val">Electric Guitar (Hi-Z)</span>
-          </div>
-          <div class="prop-row">
-            <span class="prop-label">Category:</span>
-            <span class="prop-val highlight" id="insp-category">High Gain Metal</span>
+  <!-- ================= FLOATING TUNER ================= -->
+  <div id="tuner-display" class="tuner-float hidden" role="status" aria-label="จูนเนอร์">
+    <div class="tuner-top">
+      <span>TUNER</span>
+      <button id="btn-tuner-close" aria-label="ปิดจูนเนอร์">✕</button>
+    </div>
+    <div class="tuner-note" id="tuner-note">--</div>
+    <div class="tuner-freq" id="tuner-freq">0.0 Hz</div>
+    <div class="tuner-track">
+      <div class="tuner-center"></div>
+      <div class="tuner-needle" id="tuner-needle"></div>
+    </div>
+    <div class="tuner-status" id="tuner-status">PLAY STRING</div>
+  </div>
+
+  <!-- ================= SETTINGS MODAL ================= -->
+  <div id="modal-settings" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="ตั้งค่า">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Audio &amp; UI Settings</h3>
+        <button id="btn-close-settings" class="btn-modal-close" aria-label="ปิด">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="setting-row">
+          <label for="modal-select-in">Input Device</label>
+          <select id="modal-select-in" class="modal-select"></select>
+        </div>
+        <div class="setting-row">
+          <label for="modal-select-out">Output Device</label>
+          <select id="modal-select-out" class="modal-select"></select>
+        </div>
+        <div class="setting-row">
+          <label>Sample Rate</label>
+          <span class="setting-readout" id="modal-sr-readout">48,000 Hz</span>
+        </div>
+        <div class="setting-row">
+          <label>Buffer</label>
+          <span class="setting-readout" id="modal-buf-readout">128 samples</span>
+        </div>
+        <div class="setting-row switch-row">
+          <label for="sw-show-pitch">Show Pitch Shift</label>
+          <label class="switch">
+            <input type="checkbox" id="sw-show-pitch">
+            <span class="switch-track" aria-hidden="true"></span>
+          </label>
+        </div>
+        <div class="setting-row">
+          <label>NAM Quality</label>
+          <div class="seg" id="quality-seg">
+            <button id="btn-quality-lite" class="active">Lite</button>
+            <button id="btn-quality-full">Full</button>
           </div>
         </div>
-
-        <div class="inspector-section">
-          <div class="inspector-section-title">AMPLIFIER STACK</div>
-          <div class="prop-row">
-            <span class="prop-label">Amp Model:</span>
-            <span class="prop-val" id="insp-amp-model">Peavey 5150 Block Letter</span>
-          </div>
-          <div class="prop-row">
-            <span class="prop-label">Tube Voicing:</span>
-            <span class="prop-val">12AX7 Pre / 6L6 Power</span>
-          </div>
-          <div class="prop-row">
-            <span class="prop-label">Cabinet IR:</span>
-            <span class="prop-val" id="insp-cab-ir">Celestion V30 4x12</span>
-          </div>
+        <div class="setting-note">
+          Pitch Shift ถูกซ่อนเป็นค่าเริ่มต้น (เหมือน TONE3000 Plugin) — เปิดสวิตช์นี้เพื่อให้บล็อก PITCH ปรากฏในเชน
         </div>
-
-        <div class="inspector-section">
-          <div class="inspector-section-title">ACTIVE HARDWARE ROUTE</div>
-          <div class="prop-row">
-            <span class="prop-label">Audio I/O:</span>
-            <span class="prop-val">Line 6 UX1 (In: 17 / Out: 15)</span>
-          </div>
-          <div class="prop-row">
-            <span class="prop-label">Sample Rate:</span>
-            <span class="prop-val">48,000 Hz (WASAPI Exclusive)</span>
-          </div>
-          <div class="prop-row">
-            <span class="prop-label">Latency:</span>
-            <span class="prop-val" style="color: #4ef58d;">~10.6 ms (512 samples)</span>
-          </div>
-        </div>
-
-        <div class="inspector-actions">
-          <button id="btn-audition-rig" class="btn-action-primary">🔊 Audition Tone</button>
-        </div>
-
       </div>
-    </aside>
-
-  </main>
-
-  <!-- ZONE 4 & 5: LOWER HALF SIGNAL CHAIN & DUAL-ROW PARAMETER STRIP -->
-  <footer class="studio-footer-editor">
-
-    <!-- HORIZONTAL MODULAR SIGNAL CHAIN -->
-    <div class="signal-chain-bar" id="signal-chain">
-      <div class="chain-module chain-in">
-        <span class="mod-icon">🎸</span>
-        <span class="mod-name">INPUT</span>
-      </div>
-
-      <div class="chain-arrow">➔</div>
-
-      <!-- Module 1: Noise Gate -->
-      <div class="chain-module active-edit draggable" id="cmod-gate" data-target="panel-gate" data-module="gate" draggable="true">
-        <div class="mod-led on" id="cled-gate"></div>
-        <span class="mod-icon">🔇</span>
-        <span class="mod-title">NOISE GATE</span>
-        <button class="mod-power-btn" id="cpow-gate" title="Toggle Gate">⏻</button>
-        <div class="drag-handle" title="Drag to reorder">⋮⋮</div>
-      </div>
-
-      <div class="chain-arrow">➔</div>
-
-      <!-- Module 2: Overdrive / TS9 -->
-      <div class="chain-module draggable" id="cmod-screamer" data-target="panel-screamer" data-module="screamer" draggable="true">
-        <div class="mod-led on" id="cled-screamer"></div>
-        <span class="mod-icon">🟩</span>
-        <span class="mod-title">TS-9 DRIVE</span>
-        <button class="mod-power-btn" id="cpow-screamer" title="Toggle Screamer">⏻</button>
-        <div class="drag-handle" title="Drag to reorder">⋮⋮</div>
-      </div>
-
-      <div class="chain-arrow">➔</div>
-
-      <!-- Module 3: Amp Head Stack -->
-      <div class="chain-module draggable" id="cmod-amp" data-target="panel-amp" data-module="amp" draggable="true">
-        <div class="mod-led on" id="cled-amp"></div>
-        <span class="mod-icon">📻</span>
-        <span class="mod-title" id="cmod-amp-title">AMP (5150)</span>
-        <button class="mod-power-btn" id="cpow-amp" title="Toggle Amp">⏻</button>
-        <div class="drag-handle" title="Drag to reorder">⋮⋮</div>
-      </div>
-
-      <div class="chain-arrow">➔</div>
-
-      <!-- Module 4: Cabinet IR -->
-      <div class="chain-module draggable" id="cmod-cab" data-target="panel-cab" data-module="cab" draggable="true">
-        <div class="mod-led on" id="cled-cab"></div>
-        <span class="mod-icon">🔊</span>
-        <span class="mod-title">CABINET IR</span>
-        <button class="mod-power-btn" id="cpow-cab" title="Toggle Cabinet">⏻</button>
-        <div class="drag-handle" title="Drag to reorder">⋮⋮</div>
-      </div>
-
-      <div class="chain-arrow">➔</div>
-
-      <!-- Module 5: Delay -->
-      <div class="chain-module bypassed draggable" id="cmod-delay" data-target="panel-delay" data-module="delay" draggable="true">
-        <div class="mod-led off" id="cled-delay"></div>
-        <span class="mod-icon">⏱️</span>
-        <span class="mod-title">DELAY</span>
-        <button class="mod-power-btn" id="cpow-delay" title="Toggle Delay">⏻</button>
-        <div class="drag-handle" title="Drag to reorder">⋮⋮</div>
-      </div>
-
-      <div class="chain-arrow">➔</div>
-
-      <!-- Module 6: Reverb -->
-      <div class="chain-module draggable" id="cmod-reverb" data-target="panel-reverb" data-module="reverb" draggable="true">
-        <div class="mod-led on" id="cled-reverb"></div>
-        <span class="mod-icon">🌌</span>
-        <span class="mod-title">REVERB</span>
-        <button class="mod-power-btn" id="cpow-reverb" title="Toggle Reverb">⏻</button>
-        <div class="drag-handle" title="Drag to reorder">⋮⋮</div>
-      </div>
-
-      <div class="chain-arrow">➔</div>
-
-      <div class="chain-module chain-out">
-        <span class="mod-icon">🎧</span>
-        <span class="mod-name">OUTPUT</span>
+      <div class="modal-footer">
+        <button id="btn-apply-settings" class="btn accent">Apply &amp; Restart Engine</button>
       </div>
     </div>
+  </div>
 
-    <!-- DUAL-ROW DEEP PARAMETER STRIP -->
-    <div class="parameter-strip-container">
-
-      <!-- Panel: AMP HEAD PARAMETERS -->
-      <div class="param-panel active" id="panel-amp">
-        <div class="param-master-col">
-          <button class="big-power-btn on" id="btn-module-power-amp">⏻</button>
-          <span class="panel-badge" id="badge-amp-model">5150 LEAD</span>
+  <!-- ================= TONE3000 SELECT TONE ================= -->
+  <div id="modal-t3k" class="t3k-backdrop hidden" role="dialog" aria-modal="true"
+       aria-label="เลือกเสียงจากคลัง TONE3000">
+    <div class="t3k-browser">
+      <header class="t3k-head">
+        <button id="btn-t3k-back" class="t3k-back hidden" aria-label="ย้อนกลับ">←</button>
+        <div class="t3k-head-text">
+          <span class="t3k-wordmark">TONE<span>3000</span></span>
+          <span class="t3k-head-sub" id="t3k-view-title">SELECT TONE</span>
         </div>
-        <div class="param-knobs-area">
-          <!-- Row 1: Core Tone Stack -->
-          <div class="knob-row">
-            <div class="knob-group">
-              <div class="knob" id="knob-amp-gain" data-section="amp" data-param="gain" data-min="0" data-max="1" data-val="0.75">
-                <div class="knob-pointer"></div>
-              </div>
-              <label>GAIN</label>
-              <span class="knob-val" id="val-amp-gain">7.5</span>
-            </div>
-            <div class="knob-group">
-              <div class="knob" id="knob-amp-bass" data-section="amp" data-param="bass" data-min="0" data-max="1" data-val="0.55">
-                <div class="knob-pointer"></div>
-              </div>
-              <label>BASS</label>
-              <span class="knob-val" id="val-amp-bass">5.5</span>
-            </div>
-            <div class="knob-group">
-              <div class="knob" id="knob-amp-mid" data-section="amp" data-param="mid" data-min="0" data-max="1" data-val="0.45">
-                <div class="knob-pointer"></div>
-              </div>
-              <label>MIDDLE</label>
-              <span class="knob-val" id="val-amp-mid">4.5</span>
-            </div>
-            <div class="knob-group">
-              <div class="knob" id="knob-amp-treble" data-section="amp" data-param="treble" data-min="0" data-max="1" data-val="0.65">
-                <div class="knob-pointer"></div>
-              </div>
-              <label>TREBLE</label>
-              <span class="knob-val" id="val-amp-treble">6.5</span>
-            </div>
-            <div class="knob-group">
-              <div class="knob" id="knob-amp-presence" data-section="amp" data-param="presence" data-min="0" data-max="1" data-val="0.65">
-                <div class="knob-pointer"></div>
-              </div>
-              <label>PRESENCE</label>
-              <span class="knob-val" id="val-amp-presence">6.5</span>
-            </div>
-            <div class="knob-group">
-              <div class="knob" id="knob-amp-master" data-section="amp" data-param="master" data-min="0" data-max="1" data-val="0.70">
-                <div class="knob-pointer"></div>
-              </div>
-              <label>MASTER</label>
-              <span class="knob-val" id="val-amp-master">7.0</span>
+        <div class="t3k-slot">กำลังโหลดเข้า<br><b>NAM AMP</b></div>
+        <div class="t3k-user" id="t3k-user"></div>
+        <button id="btn-t3k-settings" class="t3k-back" aria-label="ตั้งค่า TONE3000"
+                title="ตั้งค่า / เปลี่ยน architecture">⚙</button>
+        <button id="btn-t3k-close" class="t3k-close" aria-label="ปิด">✕</button>
+      </header>
+
+      <section id="t3k-connect" class="t3k-connect hidden">
+        <div class="t3k-splash">
+          <div class="t3k-splash-logo">TONE<span>3000</span></div>
+          <h2>คลังเสียงจริงจาก TONE3000</h2>
+          <p>
+            ค้นหาแคปเจอร์ Neural Amp Modeler (NAM) และ IR จากอุปกรณ์จริงในคลัง TONE3000
+            แล้วโหลดเข้า NAM AMP ทันที — ไม่ต้องดาวน์โหลดไฟล์เอง
+          </p>
+
+          <button id="btn-t3k-connect" class="t3k-primary t3k-connect-btn hidden">
+            เข้าสู่ระบบ TONE3000
+          </button>
+
+          <div id="t3k-waiting" class="t3k-waiting hidden">
+            <span class="t3k-spinner" aria-hidden="true"></span>
+            <div>เปิดแท็บ TONE3000 ให้แล้ว — เลือกเสียงแล้วกลับมาที่นี่
+              <small>หน้านี้จะอัปเดตเองเมื่อดาวน์โหลดเสร็จ</small>
             </div>
           </div>
-          <!-- Row 2: Kemper-Style Tube Dynamics & Physics -->
-          <div class="knob-row secondary-row">
-            <div class="knob-group compact">
-              <div class="knob sm" id="knob-amp-sag" data-section="amp" data-param="presence" data-min="0" data-max="1" data-val="0.5">
-                <div class="knob-pointer sm"></div>
-              </div>
-              <label>SAG</label>
-              <span class="knob-val sm">5.0</span>
-            </div>
-            <div class="knob-group compact">
-              <div class="knob sm" id="knob-amp-bias" data-section="amp" data-param="bass" data-min="0" data-max="1" data-val="0.5">
-                <div class="knob-pointer sm"></div>
-              </div>
-              <label>BIAS</label>
-              <span class="knob-val sm">5.0</span>
-            </div>
-            <div class="knob-group compact">
-              <div class="knob sm" id="knob-amp-clarity" data-section="amp" data-param="treble" data-min="0" data-max="1" data-val="0.6">
-                <div class="knob-pointer sm"></div>
-              </div>
-              <label>CLARITY</label>
-              <span class="knob-val sm">6.0</span>
-            </div>
-            <div class="knob-group compact">
-              <div class="knob sm" id="knob-amp-tube-shape" data-section="amp" data-param="mid" data-min="0" data-max="1" data-val="0.4">
-                <div class="knob-pointer sm"></div>
-              </div>
-              <label>TUBE SHAPE</label>
-              <span class="knob-val sm">4.0</span>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <!-- Panel: TS-9 SCREAMER PARAMETERS -->
-      <div class="param-panel" id="panel-screamer">
-        <div class="param-master-col">
-          <button class="big-power-btn on" id="btn-module-power-screamer">⏻</button>
-          <span class="panel-badge">TS-9 OVERDRIVE</span>
-        </div>
-        <div class="param-knobs-area">
-          <div class="knob-row">
-            <div class="knob-group">
-              <div class="knob" id="knob-ts-drive" data-section="screamer" data-param="drive" data-min="0" data-max="1" data-val="0.25">
-                <div class="knob-pointer"></div>
-              </div>
-              <label>DRIVE</label>
-              <span class="knob-val" id="val-ts-drive">2.5</span>
-            </div>
-            <div class="knob-group">
-              <div class="knob" id="knob-ts-tone" data-section="screamer" data-param="tone" data-min="0" data-max="1" data-val="0.70">
-                <div class="knob-pointer"></div>
-              </div>
-              <label>TONE</label>
-              <span class="knob-val" id="val-ts-tone">7.0</span>
-            </div>
-            <div class="knob-group">
-              <div class="knob" id="knob-ts-level" data-section="screamer" data-param="level" data-min="0" data-max="1" data-val="0.80">
-                <div class="knob-pointer"></div>
-              </div>
-              <label>LEVEL</label>
-              <span class="knob-val" id="val-ts-level">8.0</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Panel: NOISE GATE PARAMETERS -->
-      <div class="param-panel" id="panel-gate">
-        <div class="param-master-col">
-          <button class="big-power-btn on" id="btn-module-power-gate">⏻</button>
-          <span class="panel-badge">SILENCER GATE</span>
-        </div>
-        <div class="param-knobs-area">
-          <div class="knob-row">
-            <div class="knob-group">
-              <div class="knob" id="knob-gate-thresh" data-section="gate" data-param="threshold" data-min="-80" data-max="-20" data-val="-55">
-                <div class="knob-pointer"></div>
-              </div>
-              <label>THRESHOLD</label>
-              <span class="knob-val" id="val-gate-thresh">-55 dB</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Panel: CABINET IR PARAMETERS -->
-      <div class="param-panel" id="panel-cab">
-        <div class="param-master-col">
-          <button class="big-power-btn on" id="btn-module-power-cab">⏻</button>
-          <span class="panel-badge">CABINET SIM</span>
-        </div>
-        <div class="param-knobs-area">
-          <div class="knob-row" style="align-items: center; gap: 24px;">
-            <div class="cab-select-wrapper">
-              <label style="font-size: 11px; color: #a0aec0; margin-bottom: 6px; display: block;">IMPULSE RESPONSE (IR):</label>
-              <select id="select-cab-ir" class="cab-select-dropdown">
-                <option value="Celestion V30 4x12">Celestion V30 4x12 (Standard High Gain)</option>
-                <option value="Mesa Rectifier 4x12 Slant">Mesa Rectifier 4x12 Slant (Heavy Metal)</option>
-                <option value="Marshall 1960A Greenback">Marshall 1960A Greenback (Classic Rock)</option>
-                <option value="Fender Twin 2x12 Jensen">Fender Twin 2x12 Jensen (Sparkling Clean)</option>
-                <option value="custom" disabled>──────────────</option>
-                <option value="custom_upload">📁 Load Custom IR (.wav)</option>
+          <div id="t3k-connect-form" class="t3k-key-form">
+            <label>Publishable key
+              <input id="t3k-key-input" type="text" placeholder="t3k_pub_..." autocomplete="off" spellcheck="false">
+            </label>
+            <label>Redirect URI
+              <input id="t3k-redirect-input" type="text" spellcheck="false">
+            </label>
+            <label>Model architecture
+              <select id="t3k-arch-select">
+                <option value="2">A2 — แนะนำ (engine รองรับ SlimmableContainer)</option>
+                <option value="1">A1 — ใช้เมื่อโมเดล A2 โหลดไม่ติด</option>
+                <option value="custom">Custom</option>
               </select>
-            </div>
-            <div class="cab-drop-zone" id="cab-drop-zone">
-              <div class="drop-zone-content">
-                <span class="drop-icon">📁</span>
-                <span class="drop-text">Drag & Drop .wav IR file here</span>
-                <span class="drop-subtext">or click to browse</span>
-                <input type="file" id="ir-file-input" accept=".wav" style="display: none;">
-              </div>
+            </label>
+            <button id="btn-t3k-save-key" class="t3k-primary">บันทึก Key</button>
+            <div class="t3k-key-hint">
+              สร้าง key ที่ tone3000.com → Settings → API Keys แล้วคัดลอก Publishable key มาวาง
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Panel: DELAY PARAMETERS -->
-      <div class="param-panel" id="panel-delay">
-        <div class="param-master-col">
-          <button class="big-power-btn off" id="btn-module-power-delay">⏻</button>
-          <span class="panel-badge">ANALOG DELAY</span>
-        </div>
-        <div class="param-knobs-area">
-          <div class="knob-row">
-            <div class="knob-group">
-              <div class="knob" id="knob-delay-time" data-section="delay" data-param="time" data-min="0.05" data-max="1.0" data-val="0.36">
-                <div class="knob-pointer"></div>
-              </div>
-              <label>TIME</label>
-              <span class="knob-val" id="val-delay-time">360 ms</span>
-            </div>
-            <div class="knob-group">
-              <div class="knob" id="knob-delay-fb" data-section="delay" data-param="feedback" data-min="0" data-max="0.85" data-val="0.35">
-                <div class="knob-pointer"></div>
-              </div>
-              <label>FEEDBACK</label>
-              <span class="knob-val" id="val-delay-fb">35%</span>
-            </div>
-            <div class="knob-group">
-              <div class="knob" id="knob-delay-mix" data-section="delay" data-param="mix" data-min="0" data-max="1" data-val="0.25">
-                <div class="knob-pointer"></div>
-              </div>
-              <label>MIX</label>
-              <span class="knob-val" id="val-delay-mix">25%</span>
-            </div>
+      <section id="t3k-browse" class="t3k-browse hidden">
+        <div class="t3k-toolbar">
+          <label class="t3k-search">
+            <span aria-hidden="true">⌕</span>
+            <input id="t3k-search-input" type="text" placeholder="ค้นหาเสียง, แอมป์, ผู้สร้าง…">
+          </label>
+          <button id="btn-t3k-verified" class="t3k-icon-btn" aria-pressed="false"
+                  title="เฉพาะผู้สร้างที่ยืนยันตัวตน">✓</button>
+          <span class="t3k-sep" aria-hidden="true"></span>
+          <div class="t3k-pills" id="t3k-pills">
+            <button class="t3k-pill active" data-kind="trending">Trending</button>
+            <button class="t3k-pill" data-kind="latest">Latest</button>
+            <button class="t3k-pill" data-kind="favorited">★ Favorites</button>
+            <button class="t3k-pill" data-kind="downloaded">Downloaded</button>
+            <button class="t3k-pill" data-kind="created">Created</button>
           </div>
+          <select id="t3k-gear" class="t3k-gear" aria-label="ชนิดเกียร์">
+            <option value="">ทุกชนิด</option>
+            <option value="amp-cab">Amp + Cab</option>
+            <option value="amp">Amp</option>
+            <option value="pedal">Pedal</option>
+            <option value="cab">Cab</option>
+            <option value="space">Space</option>
+            <option value="outboard">Outboard</option>
+            <option value="experimental">Experimental</option>
+          </select>
         </div>
-      </div>
 
-      <!-- Panel: REVERB PARAMETERS -->
-      <div class="param-panel" id="panel-reverb">
-        <div class="param-master-col">
-          <button class="big-power-btn on" id="btn-module-power-reverb">⏻</button>
-          <span class="panel-badge">HALL REVERB</span>
-        </div>
-        <div class="param-knobs-area">
-          <div class="knob-row">
-            <div class="knob-group">
-              <div class="knob" id="knob-rev-decay" data-section="reverb" data-param="decay" data-min="0.1" data-max="1.0" data-val="0.40">
-                <div class="knob-pointer"></div>
-              </div>
-              <label>DECAY</label>
-              <span class="knob-val" id="val-rev-decay">40%</span>
-            </div>
-            <div class="knob-group">
-              <div class="knob" id="knob-rev-mix" data-section="reverb" data-param="mix" data-min="0" data-max="1" data-val="0.18">
-                <div class="knob-pointer"></div>
-              </div>
-              <label>MIX</label>
-              <span class="knob-val" id="val-rev-mix">18%</span>
-            </div>
-          </div>
-        </div>
-      </div>
+        <div id="t3k-grid" class="t3k-grid"></div>
+        <div id="t3k-pager" class="t3k-pager"></div>
 
+        <footer class="t3k-foot">
+          <span id="t3k-count" class="t3k-count"></span>
+          <button id="btn-t3k-browse-all" class="t3k-link">เปิดคลังเต็มบน TONE3000 ↗</button>
+          <span class="t3k-foot-note">NAM • ดาวน์โหลดเข้า NAM AMP อัตโนมัติ</span>
+        </footer>
+      </section>
+
+      <section id="t3k-detail" class="t3k-detail hidden"></section>
+      <div id="t3k-toast" class="t3k-toast" role="status"></div>
     </div>
-  </footer>
+  </div>
 
-  <script src="/static/app.js"></script>
+  <!-- ================= TILE CONTEXT MENU ================= -->
+  <div id="ctx-menu" class="ctx-menu" role="menu" aria-label="เมนูไทล์">
+    <div class="ctx-title" id="ctx-title">NAM AMP</div>
+    <button class="ctx-item" id="ctx-load-file" role="menuitem">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+      <span>Load File</span>
+    </button>
+    <button class="ctx-item" id="ctx-load-folder" role="menuitem">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+      <span>Load Folder</span>
+    </button>
+    <button class="ctx-item" id="ctx-clear-file" role="menuitem">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>
+      <span>Clear file</span>
+    </button>
+  </div>
+
+  <!-- Hidden pickers -->
+  <input type="file" id="file-picker" accept=".nam,.wav" hidden>
+  <input type="file" id="folder-picker" webkitdirectory directory multiple hidden>
+  <input type="file" id="nam-file-input" accept=".nam" hidden>
+  <input type="file" id="ir-file-input" accept=".wav" hidden>
+
+  <div id="toast" class="toast" role="status"></div>
+
+  <script src="/static/app.js?v=20261020"></script>
 </body>
 </html>
