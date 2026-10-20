@@ -8,15 +8,24 @@
 
 ## 1. TL;DR — ตอนนี้อยู่ตรงไหน
 
-ทำงานไป 3 ก้อน จบแล้วทั้งหมด commit แล้ว:
+ทำงานไป 4 ก้อน จบแล้วทั้งหมด commit แล้ว:
 
 | # | Commit | สิ่งที่ทำ |
 |---|---|---|
 | 1 | `e56cd80` | แก้ 9 บั๊กที่ทำให้ฟีเจอร์พังจริง (Custom IR, คาแร่, signal chain, logging) |
 | 2 | `2264ea3` | ถอดรหัส `.rigpack` จริง + เพิ่ม API ค้นหา library |
 | 3 | `0c9ed43` | ต่อค้นหา + category filter เข้า UI (Zone 1–2) + แก้ XSS |
+| 4 | `84c45fc` และงานต่อเนื่อง | เพิ่ม Delay UI, route manifest, TONE3000 model persistence และจำ preset ล่าสุด |
 
 **สิ่งที่ยังไม่ทำ** — ดูหัวข้อ 5 (สำคัญที่สุด: `/api/kemper/load` ยังเดาค่า DSP จากชื่อ rig)
+
+### 1.1 TONE3000 persistence ที่ทำเพิ่มแล้ว
+
+- OAuth config และ token เดิมเก็บใน `t3k_config.json` / `t3k_tokens.json` แบบ local และไม่ถูก commit
+- โมเดลจาก `/api/t3k/load` ถูกเขียนแบบ atomic ลง `tone3000_cache/` และ preset SQLite เก็บ `_t3k` metadata
+- `/api/preset/load` rebuilds NAM จาก cache หลัง restart; ถ้า cache หายจะตอบ `409` พร้อมข้อความให้โหลดจาก TONE3000 ใหม่ โดยไม่ลบ preset
+- frontend จำ `tone.lastPresetKey` และเปิด preset ล่าสุดกลับมาเมื่อเริ่มแอป
+- PitchShifter ปรับ target state แล้ว; pytest ล่าสุด `7 passed, 13 skipped`
 
 ---
 

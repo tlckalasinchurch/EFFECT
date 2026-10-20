@@ -75,6 +75,10 @@ ENABLE_PERFORMANCE_MONITORING = os.getenv("ENABLE_PERFORMANCE_MONITORING", "fals
 # Custom IR Directory
 CUSTOM_IR_DIR = PROJECT_ROOT / "custom_irs"
 
+# Cached TONE3000 model payloads.  Preset metadata points to these files so a
+# loaded tone can be restored after the application is restarted.
+T3K_CACHE_DIR = PROJECT_ROOT / "tone3000_cache"
+
 # Cabinet IR limits (shared by the DSP layer and the upload endpoint)
 IR_MAX_LENGTH = 2048  # Maximum IR length in samples
 IR_UPLOAD_MAX_BYTES = 16 * 1024 * 1024  # Hard cap on uploaded .wav payload

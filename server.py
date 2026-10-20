@@ -237,12 +237,31 @@ def load_preset(req: PresetLoad):
     chain.pitch_shifter.mix = float(pitch.get("mix", 1.0))
     chain.pitch_shifter.set_glide(float(pitch.get("glide", 0.0)))
     chain.pitch_shifter.set_semitones(float(pitch.get("semitones", 0.0)))
+
+    # TONE3000 presets carry a reference to an app-local cached model. Older
+    # presets do not have this metadata and continue to use the DSP amp path.
+    t3k_meta = s.get("_t3k")
+    if isinstance(t3k_meta, dict):
+        try:
+            chain.nam = _restore_cached_t3k(t3k_meta, chain)
+        except (OSError, ValueError, KeyError) as exc:
+            logger.warning("Could not restore cached TONE3000 model for %s: %s", req.preset_id, exc)
+            raise HTTPException(
+                status_code=409,
+                detail="พรีเซ็ตนี้ต้องใช้ไฟล์ NAM ในเครื่อง แต่ไฟล์ cache หายหรืออ่านไม่ได้ — "
+                       "เลือกโหลดเสียงนี้จาก TONE3000 ใหม่อีกครั้ง",
+            ) from exc
     
     return {"success": True, "loaded_preset": target, "state": engine.get_state()}
 
 @app.post("/api/preset/save")
 def create_preset(req: PresetSave):
     curr_state = engine.get_state()["chain"]
+    # Preserve the source model when saving/duplicating an active TONE3000
+    # sound instead of silently converting it to the DSP amp.
+    last_load = globals().get("_T3K_STATE", {}).get("last_load") or {}
+    if engine.chain.nam is not None and last_load.get("tone_id"):
+        curr_state["_t3k"] = _t3k_metadata(last_load)
     save_preset(req.id, req.name, req.category, req.author, curr_state)
     return {"success": True, "message": "Preset saved"}
 
@@ -859,6 +878,49 @@ def clear_nam_model():
 # ------------------------------------------------------------------
 _T3K_STATE = {"seq": 0, "last_load": None, "cancel_seq": 0}
 
+
+def _t3k_metadata(load: dict) -> dict:
+    """Keep only stable, non-secret fields needed to restore a cached model."""
+    return {
+        "tone_id": int(load["tone_id"]),
+        "model_id": int(load["model_id"]) if load.get("model_id") is not None else None,
+        "architecture": str(load.get("architecture") or "2"),
+        "quality": str(load.get("quality") or "lite"),
+        "file": str(load.get("file") or "tone.nam"),
+        "cache_file": str(load.get("cache_file") or ""),
+    }
+
+
+def _t3k_cache_path(tone_id: int, model_id: int | None, architecture: str):
+    config.T3K_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    model_part = str(model_id) if model_id is not None else "auto"
+    return config.T3K_CACHE_DIR / f"tone_{int(tone_id)}_model_{model_part}_a{architecture}.nam"
+
+
+def _cache_t3k_model(raw: bytes, tone_id: int, model_id: int | None, architecture: str) -> str:
+    """Persist the downloaded model without exposing it to git or partial writes."""
+    path = _t3k_cache_path(tone_id, model_id, architecture)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_bytes(raw)
+    os.replace(tmp, path)
+    return path.name
+
+
+def _restore_cached_t3k(meta: dict, chain):
+    """Build a NAM chain from a previously downloaded TONE3000 model."""
+    cache_name = os.path.basename(str(meta.get("cache_file") or ""))
+    if not cache_name or cache_name != str(meta.get("cache_file")):
+        raise ValueError("invalid TONE3000 cache reference")
+    path = config.T3K_CACHE_DIR / cache_name
+    raw = path.read_bytes()
+    quality = str(meta.get("quality") or "lite")
+    restored = _build_nam_chain(raw, str(meta.get("file") or path.name), quality)
+    if restored is None:
+        raise ValueError("empty NAM chain")
+    chain.amp.enabled = True
+    chain.cab.enabled = not restored.includes_cab
+    return restored
+
 # Gear labels used when auto-saving a TONE3000 tone as a user preset.
 T3K_GEAR_LABELS = {
     "amp": "Amp",
@@ -873,7 +935,7 @@ T3K_GEAR_LABELS = {
 }
 
 
-def _save_t3k_preset(tone: dict, creator: str, chain) -> bool:
+def _save_t3k_preset(tone: dict, creator: str, chain, model_meta: dict | None = None) -> bool:
     """Auto-save a loaded TONE3000 tone as a user preset in presets.db.
 
     Never raises: preset persistence is a nicety and must not break the load flow.
@@ -887,12 +949,15 @@ def _save_t3k_preset(tone: dict, creator: str, chain) -> bool:
         gear = str(tone.get("gear") or "")
         category = T3K_GEAR_LABELS.get(gear, gear.replace("-", " ").title() or "TONE3000")
         name = tone.get("title") or "TONE3000 Tone"
+        settings = engine.get_state()["chain"]
+        if model_meta:
+            settings["_t3k"] = _t3k_metadata(model_meta)
         save_preset(
             preset_id,
             name,
             category,
             creator or "TONE3000",
-            engine.get_state()["chain"],
+            settings,
         )
         logger.info("Auto-saved TONE3000 tone %s as preset %s", tone_id, preset_id)
         return True
@@ -974,8 +1039,20 @@ def _install_t3k_tone(tone_id: int, model_id: int | None = None,
         engine.chain.amp.enabled = True
         engine.chain.cab.enabled = not chain.includes_cab
 
-    # Persist so the tone survives a restart and shows in the preset library.
-    preset_saved = _save_t3k_preset(tone, creator, chain)
+    # Persist the downloaded payload so the preset can rebuild the NAM chain
+    # after a restart, even when TONE3000 is temporarily offline.
+    cache_file = _cache_t3k_model(
+        pkg["bytes"], tone["id"], model.get("id"), pkg["architecture"]
+    )
+    model_meta = {
+        "tone_id": tone.get("id"),
+        "model_id": model.get("id"),
+        "architecture": pkg["architecture"],
+        "quality": quality,
+        "file": pkg["filename"],
+        "cache_file": cache_file,
+    }
+    preset_saved = _save_t3k_preset(tone, creator, chain, model_meta)
 
     _T3K_STATE["seq"] += 1
     info = {
@@ -993,6 +1070,7 @@ def _install_t3k_tone(tone_id: int, model_id: int | None = None,
         "fallback_a1": bool(pkg.get("was_fallback")),
         "quality": quality,
         "file": pkg["filename"],
+        "cache_file": cache_file,
         "includes_cab": chain.includes_cab,
         "nam": chain.describe(),
         "preset_saved": preset_saved,

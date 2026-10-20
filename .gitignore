@@ -77,6 +77,7 @@ exports/
 # TONE3000 API credentials (publishable key + OAuth tokens)
 t3k_config.json
 t3k_tokens.json
+tone3000_cache/
 
 # Local tool caches & build artifacts
 .freebuff/
@@ -84,4 +85,3 @@ graphify-out/
 *.exp
 *.lib
 *.obj
-

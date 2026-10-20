@@ -81,6 +81,16 @@ INPUT → [NOISE GATE] → [PITCH] → [TS-9 DRIVE] → [AMP HEAD] → [CABINET 
 - **Kemper**: Expand "Kemper Rig Packs" in sidebar
 - **TONE3000**: Click "TONE3000 Neural Rigs" in sidebar
 
+### TONE3000 API / persistence
+
+- เปิด `ค้นหาเสียงจาก TONE3000` แล้วใส่ Publishable key จาก TONE3000 เพียงครั้งเดียว
+- กดเข้าสู่ระบบเพื่อเปิด OAuth และเลือกเสียงจากคลังจริง หรือค้นหาในเบราว์เซอร์ภายในแอป
+- เลือก architecture/model ได้จากรายละเอียดเสียงก่อนกด `โหลดเข้า NAM AMP`
+- โมเดลที่โหลดสำเร็จจะถูกเก็บใน `tone3000_cache/` (ไฟล์ local ที่ถูก ignore โดย Git) และ metadata จะถูกบันทึกใน SQLite preset
+- เมื่อปิดและเปิดแอปใหม่ ให้เลือก preset ที่บันทึกไว้ ระบบจะ rebuild NAM จาก cache โดยไม่ต้องดาวน์โหลดซ้ำ
+- preset ล่าสุดจะถูกจำไว้ในเครื่องด้วย browser local storage และเปิดกลับมาให้อัตโนมัติ
+- หาก cache ของ preset หาย ระบบจะแจ้งให้โหลดเสียงนั้นจาก TONE3000 ใหม่แทนการลบหรือเขียนทับ preset
+
 ## 🛠️ Technical Details
 
 ### Audio Engine

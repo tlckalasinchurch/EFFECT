@@ -802,6 +802,7 @@ async function loadPreset(item, opts = {}) {
     state.selectedId = item.id;
     state.selectedType = item.type;
     state.selectedKey = favKey(item);
+    localStorage.setItem('tone.lastPresetKey', state.selectedKey);
     markDirty(false);
     updateTopPreset(item);
     renderTable();
@@ -1612,7 +1613,9 @@ async function boot() {
   }
 
   if (!state.selectedKey) {
-    const first = filteredPresets()[0];
+    const lastKey = localStorage.getItem('tone.lastPresetKey');
+    const last = lastKey ? mappedPresets().find((p) => favKey(p) === lastKey) : null;
+    const first = last || filteredPresets()[0];
     if (first) await loadPreset(first, { silent: true });
     else renderDetails(null);
   }

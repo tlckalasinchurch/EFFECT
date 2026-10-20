@@ -482,6 +482,7 @@ class PitchShifter:
         self.enabled = False
         self.semitones = float(semitones)
         self.target_semitones = float(semitones)
+        self._target_dirty = False
         self.cents = float(cents)
         self.mix = float(mix)
         self.glide_pct = max(0.0, min(100.0, float(glide)))
@@ -499,8 +500,10 @@ class PitchShifter:
     def set_semitones(self, value):
         """Set the transposition target; Glide decides how fast it is reached."""
         self.target_semitones = float(value)
+        self._target_dirty = True
         if self.glide_ms <= 0.0:
             self.semitones = self.target_semitones
+            self._target_dirty = False
 
     def set_glide(self, pct):
         """Glide time 0-100 % -> 0-400 ms portamento."""
@@ -508,6 +511,7 @@ class PitchShifter:
         self.glide_ms = (self.glide_pct / 100.0) * 400.0
         if self.glide_ms <= 0.0:
             self.semitones = self.target_semitones
+            self._target_dirty = False
 
     def _ratio(self):
         return 2.0 ** ((self.semitones + self.cents / 100.0) / 12.0)
@@ -518,7 +522,7 @@ class PitchShifter:
 
         # Portamento: move the current pitch toward the knob target per block.
         diff = self.target_semitones - self.semitones
-        if abs(diff) > 1e-6:
+        if self._target_dirty and abs(diff) > 1e-6:
             if self.glide_ms > 0.0:
                 n_glide = len(audio)
                 tau = max(0.005, self.glide_ms / 1000.0)
@@ -526,8 +530,10 @@ class PitchShifter:
                 self.semitones += diff * coeff
                 if abs(self.target_semitones - self.semitones) < 0.01:
                     self.semitones = self.target_semitones
+                    self._target_dirty = False
             else:
                 self.semitones = self.target_semitones
+                self._target_dirty = False
 
         if self.semitones == 0.0 and self.cents == 0.0 and self.mix >= 0.999:
             return audio
@@ -689,4 +695,3 @@ class GuitarSignalChain:
         self.output_level_meter = self.output_level_meter * 0.8 + out_rms * 0.2
         
         return x.astype(np.float32)
-
