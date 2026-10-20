@@ -11,7 +11,7 @@
 - **Real-time Tuner** - NSDF pitch detection (throttled 15 Hz)
 - **Custom Presets** - Save and load user presets via SQLite
 - **VU Meters** - Real-time input/output level monitoring
-- **Modular Signal Chain** - Gate, TS-9 Overdrive, Amp Head, Cabinet IR, Delay, Reverb
+- **Modular Signal Chain** - Gate, TS-9 Overdrive, Amp Head, Cabinet IR, Delay, Reverb และ Pitch Shift
 
 ## 🚀 Quick Start
 
@@ -71,7 +71,7 @@ python main.py
 ### Signal Chain
 
 ```
-INPUT → [NOISE GATE] → [TS-9 DRIVE] → [AMP HEAD] → [CABINET IR] → [DELAY] → [REVERB] → OUTPUT
+INPUT → [NOISE GATE] → [PITCH] → [TS-9 DRIVE] → [AMP HEAD] → [CABINET IR] → [DELAY] → [REVERB] → OUTPUT
 ```
 
 ### Preset Management
@@ -124,7 +124,8 @@ Hack-effect/
 ├── web/
 │   ├── index.html             # 4-Zone UI
 │   ├── style.css              # Kemper green theme
-│   └── app.js                 # Frontend logic
+│   ├── app.js                 # Frontend logic
+│   └── manus-routes.json      # Page route manifest for Preview tooling
 ├── docs/
 │   └── ui-references/kemper/  # UI reference images
 └── README.md                  # This file
@@ -132,9 +133,16 @@ Hack-effect/
 
 ## 🧪 Testing
 
-Run the audit test suite:
+Run the audit test suite (install dependencies first):
 ```bash
+uv pip install -r requirements.txt
 python audit_test.py
+```
+
+Frontend-only checks can run without the audio stack:
+```bash
+node --check web/app.js
+python -m compileall -q server.py config.py setup_logging.py engine tests
 ```
 
 Expected output:

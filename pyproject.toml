@@ -39,9 +39,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/hack-effect"
-Documentation = "https://github.com/yourusername/hack-effect/blob/main/README.md"
-Repository = "https://github.com/yourusername/hack-effect"
+Homepage = "https://github.com/tlckalasinchurch/EFFECT"
+Documentation = "https://github.com/tlckalasinchurch/EFFECT/blob/main/README.md"
+Repository = "https://github.com/tlckalasinchurch/EFFECT"
 
 [tool.setuptools]
 packages = ["engine"]

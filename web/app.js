@@ -107,6 +107,7 @@ const ICONS = {
   pedal: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18H6z"/><circle cx="9" cy="8" r="1.5"/><circle cx="15" cy="8" r="1.5"/><path d="M9 14h6"/></svg>',
   cab: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/></svg>',
   reverb: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c2-4 4-4 6 0s4 4 6 0 4-4 6 0"/><path d="M3 17c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/></svg>',
+  delay: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v5l3 2"/><path d="M5 4 3 6M19 4l2 2"/></svg>',
   output: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h11"/><path d="M11 7l5 5-5 5"/><path d="M20 5v14"/></svg>',
 };
 
@@ -120,6 +121,7 @@ const BLOCKS = [
   { id: 'drive', en: 'DRIVE', th: 'โอเวอร์ไดรฟ์', section: 'screamer', canBypass: true, icon: 'pedal' },
   { id: 'amp', en: 'NAM AMP', th: 'แอมป์ / NAM', section: 'amp', canBypass: true, icon: 'amp' },
   { id: 'cab', en: 'IR CAB', th: 'ตู้ + IR', section: 'cab', canBypass: true, icon: 'cab' },
+  { id: 'delay', en: 'DELAY', th: 'ดีเลย์', section: 'delay', canBypass: true, icon: 'delay' },
   { id: 'reverb', en: 'REVERB', th: 'รีเวิร์บ', section: 'reverb', canBypass: true, icon: 'reverb' },
   { id: 'output', en: 'OUTPUT', th: 'เอาต์พุต', section: 'master', canBypass: false, icon: 'output' },
 ];
@@ -160,6 +162,11 @@ const KNOB_SETS = {
     K('highcut', 'High Cut', 1000, 20000, 10, 'hz', 20000, 'cab', 'highcut'),
     K('mix', 'Mix', 0, 100, 1, 'pct', 100, 'cab', 'mix', 100),
     K('level', 'Level', 0, 200, 1, 'pct', 100, 'cab', 'level', 100),
+  ],
+  delay: [
+    K('time', 'Time', 20, 2000, 1, 'ms', 360, 'delay', 'time'),
+    K('feedback', 'Feedback', 0, 95, 1, 'pct', 35, 'delay', 'feedback', 100),
+    K('mix', 'Mix', 0, 100, 1, 'pct', 25, 'delay', 'mix', 100),
   ],
   reverb: [
     K('decay', 'Decay', 0, 100, 1, 'pct', 50, 'reverb', 'decay', 100),
@@ -202,6 +209,7 @@ function blockEnabled(id) {
   if (id === 'drive') return c.screamer ? !!c.screamer.enabled : false;
   if (id === 'amp') return state.nam ? !!state.nam.enabled : (c.amp ? !!c.amp.enabled : true);
   if (id === 'cab') return c.cab ? !!c.cab.enabled : true;
+  if (id === 'delay') return c.delay ? !!c.delay.enabled : false;
   if (id === 'reverb') return c.reverb ? !!c.reverb.enabled : false;
   return true;
 }
@@ -242,6 +250,7 @@ function blockSubtitle(id) {
     return 'DSP · ' + shortText(c.amp?.model || 'Amp', 12);
   }
   if (id === 'cab') return shortText(c.cab?.ir_name || 'IR', 16);
+  if (id === 'delay') return Math.round(Number(c.delay?.time || 0.36) * 1000) + ' ms';
   if (id === 'reverb') {
     const type = String(c.reverb?.type || 'plate');
     return type.charAt(0).toUpperCase() + type.slice(1);
@@ -256,7 +265,8 @@ function toUi(kd, serverValue) {
 }
 
 function toServer(kd, uiValue) {
-  return Number(uiValue) / (kd.uiScale || 1);
+  const scaled = Number(uiValue) / (kd.uiScale || 1);
+  return kd.section === 'delay' && kd.param === 'time' ? scaled / 1000 : scaled;
 }
 
 function readServer(kd) {
@@ -277,6 +287,10 @@ function readServer(kd) {
   else if (kd.section === 'screamer') v = c.screamer?.[kd.param];
   else if (kd.section === 'amp') v = c.amp?.[kd.param];
   else if (kd.section === 'cab') v = c.cab?.[kd.param];
+  else if (kd.section === 'delay') {
+    v = c.delay?.[kd.param];
+    if (kd.param === 'time') v = Number(v || 0) * 1000;
+  }
   else if (kd.section === 'reverb') v = c.reverb?.[kd.param];
   else if (kd.section === 'master') v = c.master_volume;
   else if (kd.section === 'nam') v = state.nam?.[kd.param];

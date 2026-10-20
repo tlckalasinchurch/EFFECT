@@ -1520,3 +1520,41 @@ table.presets th:nth-child(5), table.presets td:nth-child(5) { width: 9%; }
   .t3k-slot { display: none; }
   .t3k-foot-note { display: none; }
 }
+
+/* Modern responsive shell: keep the signal chain usable on compact screens. */
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+@media (max-width: 900px) {
+  .page { padding: 10px 8px 24px; }
+  .main { grid-template-columns: 172px minmax(0, 1fr); }
+  .details { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line-soft); }
+  .details:empty { display: none; }
+  .top-actions { margin-left: auto; }
+}
+
+@media (max-width: 640px) {
+  body { font-size: 14px; }
+  .topbar { align-items: flex-start; padding: 10px; gap: 10px; }
+  .brand { flex: 1 1 100%; }
+  .preset-nav { order: 3; flex-basis: 100%; }
+  .top-actions { width: 100%; margin-left: 0; }
+  .top-actions .btn { flex: 1 1 auto; padding: 8px 9px; }
+  .top-actions .accent { flex-basis: 100%; }
+  .main { display: block; min-height: 0; }
+  .side { border-right: 0; border-bottom: 1px solid var(--line-soft); }
+  .side-foot, .side-engine { display: none; }
+  #libList { display: flex; gap: 4px; overflow-x: auto; }
+  .lib-item { min-width: max-content; }
+  .center { padding: 10px; }
+  .details { padding: 12px 10px; }
+  .chain-wrap { padding-inline: 8px; }
+  .chain-head { flex-wrap: wrap; }
+  .chain-head .ch-note { flex-basis: 100%; }
+  .face { padding: 10px 6px; }
+  .meter-scale { display: none; }
+  .statusbar { flex-wrap: wrap; gap: 4px 10px; }
+  .st-mid { order: 3; flex-basis: 100%; }
+}

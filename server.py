@@ -1184,5 +1184,10 @@ if os.path.exists(WEB_DIR):
 def index():
     return FileResponse(os.path.join(WEB_DIR, "index.html"))
 
+@app.get("/manus-routes.json")
+def manus_routes():
+    """Expose the page route inventory without falling back to the SPA shell."""
+    return FileResponse(os.path.join(WEB_DIR, "manus-routes.json"), media_type="application/json")
+
 if __name__ == "__main__":
     uvicorn.run("server:app", host="127.0.0.1", port=8000, reload=False)
