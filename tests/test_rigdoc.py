@@ -51,6 +51,12 @@ class V1RoundTripTests(unittest.TestCase):
         doc = rigdoc.from_v1(FULL_V1, meta={"id": "p1"})
         self.assertEqual(doc.to_v1(), FULL_V1)
 
+    def test_import_canonicalises_the_order_v1_does_not_have(self):
+        """v1 key order is get_state() order (pitch last); processing puts it second."""
+        doc = rigdoc.from_v1(FULL_V1)
+        self.assertEqual(doc.ordered_types(), params.PROCESS_ORDER)
+        self.assertNotEqual(list(FULL_V1), list(doc.ordered_types()))
+
     def test_round_trip_preserves_every_supported_value(self):
         doc = rigdoc.from_v1(FULL_V1)
         back = doc.to_v1()
@@ -151,17 +157,67 @@ class V2DocumentTests(unittest.TestCase):
         with self.assertRaises(rigdoc.UnknownModuleType):
             rigdoc.RigDocument.from_dict(bad)
 
-    def test_ordered_types_follow_the_engine_order(self):
-        scrambled = dict(self.doc.to_dict())
-        scrambled["modules"] = list(reversed(scrambled["modules"]))
-        doc = rigdoc.RigDocument.from_dict(scrambled)
-        self.assertEqual(doc.ordered_types(), params.PROCESS_ORDER)
+    def test_stored_order_is_the_processing_order(self):
+        self.assertEqual(self.doc.ordered_types(), params.PROCESS_ORDER)
+
+    def test_a_reordered_document_keeps_the_user_order(self):
+        reordered = dict(self.doc.to_dict())
+        reordered["modules"] = list(reversed(reordered["modules"]))
+        doc = rigdoc.RigDocument.from_dict(reordered)
+        self.assertEqual(doc.ordered_types(), tuple(reversed(params.PROCESS_ORDER)))
+        self.assertEqual([m["type"] for m in doc.to_dict()["modules"]], list(reversed(params.PROCESS_ORDER)))
 
     def test_effective_params_fill_defaults_only_at_read_time(self):
         doc = rigdoc.from_v1({"gate": {"enabled": True}})
         self.assertNotIn("threshold", doc.module("gate").params)
         self.assertEqual(doc.effective_params("gate")["threshold"], -55.0)
         self.assertEqual(doc.to_v1()["gate"], {"enabled": True})
+
+    def test_second_instance_of_a_type_is_an_error(self):
+        doc = rigdoc.from_v1({"delay": {"enabled": True}, "gate": {"enabled": True}})
+        duplicate = dict(doc.to_dict())
+        duplicate["modules"] = duplicate["modules"] + [
+            {"slot_id": "delay-2", "type": "delay", "enabled": True, "params": {"mix": 0.5}}
+        ]
+        loaded = rigdoc.RigDocument.from_dict(duplicate)
+        self.assertEqual([i.problem for i in loaded.errors], [rigdoc.DUPLICATE_TYPE])
+        # Nothing is dropped: the document still carries both instances.
+        self.assertEqual(len(loaded.modules), 3)
+
+    def test_amp_and_nam_together_is_an_error(self):
+        doc = rigdoc.from_v1({"amp": {"enabled": True}, "nam": {"enabled": True}})
+        self.assertIn(rigdoc.DUPLICATE_SLOT, [i.problem for i in doc.errors])
+
+    def test_parallel_tap_is_frozen_after_pitch(self):
+        self.assertEqual(self.doc.tap_after, "pitch")
+        self.assertEqual(rigdoc.PARALLEL_TAP_AFTER, "pitch")
+        # and it must not leak into the legacy shape
+        self.assertNotIn("tap_after", self.doc.to_v1())
+
+    def test_parallel_blend_point_is_frozen_after_cab(self):
+        """The wet path rejoins after the cab; mod/delay/reverb stay fully wet."""
+        self.assertEqual(self.doc.blend_after, "cab")
+        self.assertEqual(rigdoc.PARALLEL_BLEND_AFTER, "cab")
+        self.assertEqual(rigdoc.PARALLEL_ANCHORS, ("pitch", "cab"))
+        for anchor in rigdoc.PARALLEL_ANCHORS:
+            self.assertNotIn(anchor, [k for k in self.doc.to_v1() if "anchor" in k or "after" in k])
+
+    def test_default_order_keeps_the_tap_before_the_blend(self):
+        self.assertTrue(self.doc.parallel_tap_is_reachable())
+
+    def test_a_reorder_that_crosses_an_anchor_is_detectable(self):
+        """Moving pitch past the cab would put distortion inside the dry tap."""
+        doc = rigdoc.from_v1(FULL_V1)
+        tainted = doc.to_dict()
+        order = [m["type"] for m in tainted["modules"]]
+        order.remove("pitch")
+        order.insert(order.index("cab") + 1, "pitch")
+        by_type = {m["type"]: m for m in tainted["modules"]}
+        tainted["modules"] = [by_type[t] for t in order]
+        loaded = rigdoc.RigDocument.from_dict(tainted)
+        self.assertEqual(list(loaded.ordered_types()), order)  # order itself is kept
+        self.assertFalse(loaded.parallel_tap_is_reachable())
+        self.assertTrue(doc.parallel_tap_is_reachable())
 
     def test_chain_level_modules_live_outside_the_graph(self):
         self.assertEqual(set(self.doc.chain), {"master", "input", "parallel"})

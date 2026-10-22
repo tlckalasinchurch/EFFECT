@@ -45,6 +45,29 @@ SUPPORTED_VERSIONS = (2,)
 #: v1 stores the master volume as a bare top-level scalar, not as a block.
 V1_SCALARS = {"master_volume": ("master", "volume")}
 
+#: Which stages a parallel dry tap can contain, and where the wet path rejoins.
+#:
+#: GuitarSignalChain.process captures the dry signal after gate and pitch, then
+#: blends it back after the cabinet — before mod, delay and reverb, which stay
+#: fully wet. Both positions are implicit in the order of the statements, not
+#: declared anywhere, so they are frozen here for the refactor phase: moving
+#: either one changes the sound of every preset with parallel enabled, and
+#: making them configurable is a routing feature, not a refactor.
+#:
+#: ``PARALLEL_TAP_AFTER`` is the *last* stage included in the tap; gate and pitch
+#: are the only stages before it, so the tap is gate + pitch.
+PARALLEL_TAP_AFTER = "pitch"
+PARALLEL_BLEND_AFTER = "cab"
+
+#: Declared anchors in nominal (default) order, for callers that validate a chain.
+PARALLEL_ANCHORS = (PARALLEL_TAP_AFTER, PARALLEL_BLEND_AFTER)
+
+#: One DSP instance per module type in this phase: the engine holds a single
+#: attribute per type and the API addresses a module by (section, param) with
+#: no instance id. A document may still be *read* with two of a kind so nothing
+#: is lost, but it is reported as an error and must not be built.
+MAX_INSTANCES_PER_TYPE = 1
+
 
 class RigDocumentError(ValueError):
     """Base class for anything that makes a document unusable."""
@@ -72,6 +95,7 @@ UNKNOWN_MODULE = "unknown-module?"
 INVALID_VALUE = "invalid-value"
 OUT_OF_RANGE = "out-of-range"
 DUPLICATE_SLOT = "duplicate-slot"
+DUPLICATE_TYPE = "duplicate-type"
 
 
 @dataclass(frozen=True)
@@ -181,13 +205,39 @@ class RigDocument:
         return merged
 
     def ordered_types(self) -> Tuple[str, ...]:
-        """Module types in engine processing order, however the list is stored."""
-        present = {m.type for m in self.modules}
-        order = [t for t in params.PROCESS_ORDER if t in present]
-        # Anything present but not in the canonical order keeps its stored place
-        # at the end rather than being dropped.
-        order += [m.type for m in self.modules if m.type not in params.PROCESS_ORDER]
-        return tuple(order)
+        """Module types in the order they are stored, i.e. the order they process.
+
+        Stored order is authoritative. A document read from v1 is canonicalised
+        on import (v1 has no order of its own), so this returns PROCESS_ORDER for
+        a legacy preset and the user's own order for a reordered v2 document.
+        """
+        return tuple(m.type for m in self.modules)
+
+    @property
+    def tap_after(self) -> str:
+        """Last stage included in the parallel dry tap (frozen this phase)."""
+        return PARALLEL_TAP_AFTER
+
+    @property
+    def blend_after(self) -> str:
+        """Stage the wet path reaches before the dry tap rejoins (frozen)."""
+        return PARALLEL_BLEND_AFTER
+
+    def parallel_tap_is_reachable(self) -> bool:
+        """True when both anchors exist and sit in tap-then-blend order.
+
+        Used by the builder to refuse a reorder that would move a stage across an
+        anchor, which would silently change what the parallel path contains.
+        """
+        order = self.ordered_types()
+        if PARALLEL_TAP_AFTER not in order or PARALLEL_BLEND_AFTER not in order:
+            return False
+        return order.index(PARALLEL_TAP_AFTER) < order.index(PARALLEL_BLEND_AFTER)
+
+    @property
+    def errors(self) -> Tuple[Issue, ...]:
+        """Issues that make the document unbuildable, as opposed to lossy."""
+        return tuple(i for i in self.issues if i.severity == "error")
 
     # -- serialisation ---------------------------------------------------
 
@@ -360,8 +410,20 @@ def from_v1(settings: Dict[str, Any], meta: Optional[Dict[str, Any]] = None) -> 
         else:
             doc.chain[registry.name] = mod_config
 
+    # v1 inherits its key order from get_state(), which is not the processing
+    # order (pitch is emitted last but processes second). Canonicalise here so
+    # that stored order is meaningful from this point on and a later reorder by
+    # the user is the only thing that can change it.
+    doc.modules.sort(key=_process_index)
     doc.issues.extend(_check_slots(doc))
     return doc
+
+
+def _process_index(mod: ModuleConfig) -> Tuple[int, str]:
+    try:
+        return (params.PROCESS_ORDER.index(mod.type), mod.slot_id)
+    except ValueError:
+        return (len(params.PROCESS_ORDER), mod.slot_id)
 
 
 def _module_from_v1(registry: params.Module, block: Dict[str, Any]) -> Tuple[ModuleConfig, List[Issue]]:
@@ -454,7 +516,18 @@ def _check_slots(doc: RigDocument) -> List[Issue]:
         seen[mod.slot_id] = mod.type
     installed = {m for m in ("amp", "nam") if any(x.type == m for x in doc.modules)}
     if len(installed) > 1:
-        issues.append(Issue("modules", DUPLICATE_SLOT, "amp and nam share one slot but both are present"))
+        issues.append(Issue("modules", DUPLICATE_SLOT, "amp and nam share one slot but both are present", "error"))
+
+    counts: Dict[str, int] = {}
+    for mod in doc.modules:
+        counts[mod.type] = counts.get(mod.type, 0) + 1
+    for type_name, count in counts.items():
+        if count > MAX_INSTANCES_PER_TYPE:
+            issues.append(Issue(
+                f"modules.{type_name}", DUPLICATE_TYPE,
+                f"{count} instances of {type_name!r}; the engine holds one DSP object per type",
+                "error",
+            ))
     return issues
 
 
