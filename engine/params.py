@@ -30,7 +30,7 @@ from dataclasses import dataclass, field
 from typing import Any, Optional, Tuple
 
 
-KINDS = ("float", "bool", "int", "str")
+KINDS = ("float", "bool", "int", "str", "list")
 
 
 @dataclass(frozen=True)
@@ -190,7 +190,7 @@ EQ = Module(
         _p("model_id", "model_id", "int", 1, setter="set_model", minimum=1, maximum=5),
         # List of band gains; the server edits one index and re-designs filters.
         # "data" is the name the MOOER/Cortex importers use for this list.
-        _p("bands", "gains", "float", (0.0,) * 6, setter="set_bands", ui=False,
+        _p("bands", "gains", "list", (0.0,) * 6, setter="set_bands", ui=False,
            aliases=("data",), index_template="band{index}"),
         _p("curve", "get_curve_points", "float", (), read_only=True, ui=False),
     ),
