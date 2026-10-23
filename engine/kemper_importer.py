@@ -77,10 +77,52 @@ INTERESTING_PROPERTIES = (
 
 
 def _pack_paths():
+    paths = []
     directory = KEMPER_PACK_DIR
-    if not os.path.isdir(directory):
+    if os.path.isdir(directory):
+        paths.extend(glob.glob(os.path.join(directory, "*.rigpack")))
+    custom_dir = str(getattr(config, "CUSTOM_RIGS_DIR", ""))
+    if custom_dir and os.path.isdir(custom_dir):
+        paths.extend(glob.glob(os.path.join(custom_dir, "*.rigpack")))
+        paths.extend(glob.glob(os.path.join(custom_dir, "**", "*.rigpack"), recursive=True))
+    return sorted(list(dict.fromkeys(paths)))
+
+
+def get_custom_kipr_files():
+    custom_dir = str(getattr(config, "CUSTOM_RIGS_DIR", ""))
+    if not custom_dir or not os.path.isdir(custom_dir):
         return []
-    return sorted(glob.glob(os.path.join(directory, "*.rigpack")))
+    files = glob.glob(os.path.join(custom_dir, "*.kipr"))
+    files.extend(glob.glob(os.path.join(custom_dir, "**", "*.kipr"), recursive=True))
+    return sorted(list(dict.fromkeys(files)))
+
+
+def read_single_kipr(file_path):
+    if not os.path.isfile(file_path):
+        return None
+    try:
+        with open(file_path, "rb") as f:
+            blob = f.read()
+        decoded = decode_rig_blob(blob)
+        params = decode_rig_params(blob)
+        base = os.path.splitext(os.path.basename(file_path))[0]
+        name = decoded["verified"].get("rig_name") or base
+        author = decoded["verified"].get("rig_author") or "Downloaded"
+        created = decoded["verified"].get("rig_created") or ""
+        return {
+            "id": file_path,
+            "name": name,
+            "author": author,
+            "comment": "Guitar",
+            "createdate": created,
+            "amp": decoded["amp"],
+            "params": params,
+            "path": file_path,
+            "blob": blob,
+            "is_kipr": True,
+        }
+    except Exception:
+        return None
 
 
 def _connect(path):
@@ -195,6 +237,10 @@ def decode_rig_params(blob):
 
 def get_rig_params(pack_path, rig_id):
     """Params for one rig. Only installed packs are opened (path comes from the client)."""
+    if pack_path == "custom_rigs::__kipr__" or (pack_path and str(pack_path).endswith(".kipr")):
+        path = str(rig_id) if str(rig_id).endswith(".kipr") else str(pack_path)
+        info = read_single_kipr(path)
+        return info["params"] if info else None
     target = os.path.abspath(pack_path or "")
     if target not in {os.path.abspath(p) for p in _pack_paths()}:
         return None
@@ -286,6 +332,23 @@ def list_installed_kemper_packs():
                 conn.close()
 
         packs.append(record)
+    kiprs = get_custom_kipr_files()
+    if kiprs:
+        packs.insert(0, {
+            "path": "custom_rigs::__kipr__",
+            "filename": "Downloaded Rigs (.kipr)",
+            "pack_name": "Downloaded KEMPER Rigs (.kipr)",
+            "author": "User / Community",
+            "rig_count": len(kiprs),
+            "releasedate": None,
+            "minversion": "3.0",
+            "type": "custom",
+            "visibility": "65535",
+            "description": "Downloaded single .kipr profiles",
+            "artwork": False,
+            "properties": {"Content": "Rigs", "type": "user"},
+            "error": None,
+        })
     return packs
 
 
@@ -297,6 +360,13 @@ def read_rigs_from_pack(pack_path, limit=50, decode=True):
     `decode` is set, the SysEx payload adds amp/cab metadata and a decode
     status so callers can tell a rich row from a metadata-only one.
     """
+    if pack_path == "custom_rigs::__kipr__":
+        rigs = []
+        for p in get_custom_kipr_files()[:limit]:
+            info = read_single_kipr(p)
+            if info:
+                rigs.append(info)
+        return rigs
     if not os.path.exists(pack_path):
         return []
 

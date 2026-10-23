@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Feature placement on TONE3000 layout</title>
+<style>
+:root{--bg:#070b12;--pn:#0e1522;--pn2:#121c2d;--ln:#1d2b42;--tx:#e6edf6;--mu:#7d8ca3;--bl:#2f8cff;--gd:#e8b14a;--gr:#34d399;--rd:#ef4444;--vi:#a78bfa;--nw:#22d3ee}
+*{box-sizing:border-box}body{margin:0;background:#020409;color:var(--tx);font-family:'Segoe UI',system-ui,sans-serif;padding:16px}
+h2{margin:0 0 4px;font-size:18px}p.s{margin:0 0 12px;color:var(--mu);font-size:13px}
+.app{background:var(--bg);border:1px solid var(--ln);border-radius:12px;font-size:11px;position:relative;overflow:hidden}
+.row{display:flex;gap:8px;align-items:center}
+.top{padding:8px 12px;border-bottom:1px solid var(--ln);background:var(--pn)}
+.pill{padding:3px 9px;border-radius:999px;background:var(--pn2);border:1px solid var(--ln);color:var(--mu)}
+.nav{padding:8px 12px;gap:6px}.tab{padding:6px 14px;border-radius:6px;background:var(--pn2);color:var(--mu)}.tab.on{background:var(--bl);color:#fff}
+.body{display:grid;grid-template-columns:1fr 210px;gap:10px;padding:0 12px 10px}
+.hdr{background:var(--pn);border:1px solid var(--ln);border-radius:8px;padding:8px 10px;gap:10px}
+.perf{background:var(--pn);border:1px solid var(--ln);border-radius:8px;padding:6px 8px;gap:6px;margin-top:8px}
+.sc{flex:1;text-align:center;padding:6px 0;border-radius:6px;background:var(--pn2);border:1px solid var(--c);font-weight:700}
+.sc.on{background:var(--c);color:#06101a;box-shadow:0 0 14px var(--c)}
+.morph{width:130px;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--vi),var(--nw));position:relative}
+.morph:after{content:'';position:absolute;left:40%;top:-4px;width:5px;height:14px;background:#fff;border-radius:2px}
+.chain{margin-top:8px;gap:3px;align-items:stretch}
+.blk{flex:1;text-align:center;padding:10px 2px;border-radius:8px;font-weight:600;color:#fff}
+.plus{color:var(--mu);align-self:center}
+.lane{margin:4px 0 0 18%;width:48%;border:1px dashed var(--nw);border-radius:8px;padding:5px 8px;color:var(--nw);display:flex;justify-content:space-between;align-items:center}
+.panel{margin-top:8px;background:var(--pn);border:1px solid var(--ln);border-radius:8px;padding:10px}
+.tabs2{gap:4px;margin:8px 0}.t2{padding:5px 10px;border-radius:5px;background:var(--pn2);color:var(--mu)}.t2.on{background:#1b3a66;color:#fff;border:1px solid var(--bl)}.t2.new{border:1px dashed var(--gd);color:var(--gd)}
+.kn{display:inline-block;width:42px;height:42px;border-radius:50%;border:3px solid var(--gd);margin:0 14px;box-shadow:0 0 8px rgba(232,177,74,.35)}
+.cards{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:8px}
+.card{background:var(--pn);border:1px solid var(--ln);border-radius:8px;padding:8px;text-align:center}
+.card.new{border-color:var(--gd)}
+.lib{background:var(--pn);border:1px solid var(--ln);border-radius:8px;padding:8px;margin-top:0}
+.li{padding:7px;border-radius:6px;margin-top:4px;background:var(--pn2)}
+.status{padding:6px 12px;border-top:1px solid var(--ln);background:var(--pn);color:var(--mu);gap:14px}
+.n{position:absolute;z-index:3;width:20px;height:20px;border-radius:50%;background:var(--gd);color:#000;font-weight:800;display:grid;place-items:center;font-size:11px;box-shadow:0 0 0 3px rgba(232,177,74,.3)}
+.legend{margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;font-size:13px}
+.legend b{color:var(--gd)}
+</style></head><body>
+<h2>ฟีเจอร์ของเรา ไปอยู่ตรงไหนในเลย์เอาต์ TONE3000</h2>
+<p class="s">เลย์เอาต์ตามภาพ reference · วงกลมทองเลข = จุดที่ผมเสนอให้ใส่ฟีเจอร์เพิ่ม · เส้นประทอง = ของใหม่ที่ภาพ reference ไม่มี</p>
+
+<div class="app">
+  <div class="n" style="left:566px;top:9px">1</div>
+  <div class="n" style="left:14px;top:112px">2</div>
+  <div class="n" style="left:400px;top:178px">3</div>
+  <div class="n" style="left:300px;top:222px">4</div>
+  <div class="n" style="left:130px;top:330px">5</div>
+  <div class="n" style="left:380px;top:430px">6</div>
+
+  <div class="row top"><b>⚡ กดจนหลอนTone</b><span class="pill">48.0 kHz</span><span class="pill">128 smp</span><span class="pill" style="color:var(--gr)">4.1 ms จริง</span><span class="pill">In 17 ▾</span><span class="pill">Out 15 ▾</span><span style="margin-left:auto" class="pill" style="border-color:var(--gd)">▶ GIG VIEW</span><span class="pill">⚙</span><span class="pill">Master ◉</span></div>
+  <div class="row nav"><span class="tab on">Home</span><span class="tab">Preset</span><span class="tab">Tone Library</span><span class="tab">Settings</span></div>
+
+  <div class="body">
+    <div>
+      <div class="row hdr"><span style="color:var(--gd);font-size:16px">★</span><b style="font-size:14px">01 Marshall Bluesbreaker</b><span style="color:var(--mu)">Factory › TONE3000 › Rock</span><span style="margin-left:auto" class="pill">‹ ›</span><span class="pill">Save</span><span class="pill">Save As</span></div>
+
+      <div class="row perf"><span style="color:var(--mu)">ซีน</span>
+        <div class="sc on" style="--c:#e74c3c">A</div><div class="sc" style="--c:#00bcd4">B</div><div class="sc" style="--c:#f1c40f">C</div><div class="sc" style="--c:#9b59b6">D</div><div class="sc" style="--c:#2ecc71">E</div><div class="sc" style="--c:#3498db">F</div><div class="sc" style="--c:#e67e22">G</div><div class="sc" style="--c:#e91e63">H</div>
+        <span style="color:var(--mu);margin-left:8px">มอร์ฟ A</span><div class="morph"></div><span style="color:var(--mu)">B</span>
+      </div>
+
+      <div class="row chain">
+        <div class="blk" style="background:#1c2536">Input</div><span class="plus">+</span>
+        <div class="blk" style="background:#1f8f5a">Gate</div><span class="plus">+</span>
+        <div class="blk" style="background:#b32a2a">Drive</div><span class="plus">+</span>
+        <div class="blk" style="background:#2a2f3a;border:2px solid var(--gd)">NAM Amp</div><span class="plus">+</span>
+        <div class="blk" style="background:#1d6fd1">IR Cab</div><span class="plus">+</span>
+        <div class="blk" style="background:#0f7c8a;border:1px dashed var(--gd)">Delay</div><span class="plus">+</span>
+        <div class="blk" style="background:#6a3fc8">Reverb</div><span class="plus">+</span>
+        <div class="blk" style="background:#1c2536">Output</div>
+      </div>
+      <div class="lane"><span>⤷ เส้นคู่ขนาน: สัญญาณสะอาด (DI)</span><span>Blend ◉ 30% · ⏻ เปิด/ปิด</span><span>⤴ รวมก่อน Output</span></div>
+
+      <div class="panel">
+        <div class="row"><b style="color:var(--gd)">⏻ NAM Amp</b><span class="pill">Marshall Bluesbreaker (A2) ▾</span><span class="pill">Lite | <b style="color:var(--bl)">Full</b></span><span class="pill">📁 Load NAM…</span><span style="margin-left:auto" class="pill">Input Gain ◉</span></div>
+        <div class="row tabs2"><span class="t2 on">Amp Control</span><span class="t2 new">EQ 5 ย่าน + กราฟ</span><span class="t2">Gate</span><span class="t2">Pitch</span><span class="t2 new">IR Cab + ไมค์ 3 มิติ</span><span class="t2">Reverb</span><span class="t2 new">Delay + Ducking</span></div>
+        <div style="text-align:center;padding:6px"><span class="kn"></span><span class="kn"></span><span class="kn"></span><span class="kn"></span><span class="kn"></span><span class="kn"></span></div>
+      </div>
+
+      <div class="cards">
+        <div class="card"><b style="color:var(--gr)">Noise Gate</b></div>
+        <div class="card"><b>Pitch Shift</b></div>
+        <div class="card"><b style="color:var(--bl)">IR Cabinet</b></div>
+        <div class="card new"><b style="color:var(--nw)">Delay</b><div style="color:var(--gd);font-size:10px">+ Ducking</div></div>
+        <div class="card"><b style="color:var(--vi)">Reverb</b><div style="color:var(--gd);font-size:10px">+ Ducking</div></div>
+        <div class="card new"><b>Mod</b></div>
+      </div>
+    </div>
+
+    <div class="lib"><b>Tone Library</b>
+      <div class="li">🔍 ค้นหา…</div>
+      <div class="li" style="border:1px solid var(--bl)">▤ Marshall Bluesbreaker ★</div>
+      <div class="li">▤ Fender Twin Clean ★</div><div class="li">▤ Mesa Mark IV</div><div class="li">▤ Vox AC30</div><div class="li">▤ Matchless DC30</div>
+      <div class="li" style="border:1px dashed var(--gd);color:var(--gd)">+ Kemper Rigs 1,260</div>
+    </div>
+  </div>
+  <div class="row status"><span style="color:var(--gr)">● Audio Engine Running</span><span>48000 Hz</span><span>Buffer 128</span><span>Latency 4.1 ms</span><span style="margin-left:auto">CPU 18%</span><span>RAM 245 MB</span></div>
+</div>
+
+<div class="legend">
+  <div><b>1 · GIG VIEW</b> — ปุ่มบนแถบบนสุด กดแล้วเต็มจอ ซีนใหญ่ 2x4 + จูนเนอร์กลางจอ</div>
+  <div><b>2 · แถบซีน A–H + มอร์ฟ</b> — แถบบางใต้หัวพรีเซ็ต กดเลข 1–8 ได้ มอร์ฟ A↔B อยู่ขวาสุด</div>
+  <div><b>3 · เส้นคู่ขนาน</b> — ปุ่มเปิดแล้วมีเลนสะอาดโผล่ใต้ chain พร้อม Blend เห็นจุดแยก/รวมชัด</div>
+  <div><b>4 · Delay เพิ่มเข้า chain</b> — reference ไม่มี Delay/Mod แต่เรามีใน DSP จริง จึงเพิ่มบล็อก</div>
+  <div><b>5 · แท็บใหม่ใน panel กลาง</b> — EQ 5 ย่านพร้อมกราฟ, IR Cab พร้อมไมค์ลากได้, Delay+Ducking</div>
+  <div><b>6 · การ์ดล่าง 6 ใบ</b> — เพิ่ม Delay กับ Mod, Ducking เป็นสวิตช์ในการ์ด Delay/Reverb</div>
+</div>
+</body></html>

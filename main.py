@@ -1,4 +1,6 @@
 import sys
+import os
+import signal
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 if hasattr(sys.stderr, 'reconfigure'):
@@ -54,7 +56,9 @@ def main():
     url = f"http://{config.WEB_HOST}:{config.WEB_PORT}"
     logger.info(f"Backend listening at {url}")
 
-    # Launch desktop window
+    # Launch desktop window with browser fallback
+    start_time = time.time()
+    opened_in_browser = False
     try:
         logger.info("Opening กดจนหลอนTone Desktop Window...")
         window = webview.create_window(
@@ -66,17 +70,34 @@ def main():
             background_color=config.WINDOW_BG_COLOR
         )
         webview.start()
+        elapsed = time.time() - start_time
+        if elapsed < 2.0:
+            logger.warning(f"Native desktop window closed immediately ({elapsed:.2f}s). Falling back to system browser...")
+            opened_in_browser = True
     except Exception as e:
         logger.error(f"Native webview window error: {e}")
-        logger.info("Opening in system browser instead...")
+        opened_in_browser = True
+
+    if opened_in_browser:
+        logger.info("Opening workstation in system browser instead...")
         webbrowser.open(url)
+        logger.info("=" * 60)
+        logger.info(f"⚡ Workstation running at: {url}")
         logger.info("Press Ctrl+C to terminate.")
+        logger.info("=" * 60)
         try:
             while True:
                 time.sleep(1)
         except KeyboardInterrupt:
             logger.info("Shutting down...")
-            sys.exit(0)
+
+    logger.info("Stopping Audio Engine and exiting...")
+    try:
+        from server import engine
+        engine.stop()
+    except Exception:
+        pass
+    os._exit(0)
 
 
 if __name__ == "__main__":

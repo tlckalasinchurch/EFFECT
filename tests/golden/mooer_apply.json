@@ -1,0 +1,479 @@
+{
+ "note": "state['chain'] after apply_mooer_preset(FACTORY_GE150_PRESETS[i])",
+ "sources": {
+  "server.py": "d53d13a7cced06b61a9b75dc39475432162112030810ecebeccb20e1e1cec3d6",
+  "engine/dsp.py": "21dcda2b7c0996d7a5ea07a3c3f16cb536c1e3a1bc891e684a4ebe93a7e8ceb0"
+ },
+ "presets": [
+  {
+   "index": 0,
+   "name": "01A 65 US DX",
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -42.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.35,
+     "tone": 0.55,
+     "level": 0.7
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.55,
+     "mid": 0.5,
+     "treble": 0.65,
+     "presence": 0.6,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 45.0,
+     "distance": 15.0
+    },
+    "eq": {
+     "enabled": false,
+     "model_id": 1,
+     "bands": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "mod": {
+     "enabled": false,
+     "model_id": 12,
+     "rate": 0.4,
+     "mix": 0.5,
+     "tone": 0.5,
+     "depth": 0.6
+    },
+    "delay": {
+     "enabled": false,
+     "time": 0.36,
+     "feedback": 0.3,
+     "mix": 0.25,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.45,
+     "mix": 0.25,
+     "tone": 0.5,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "index": 1,
+   "name": "01B J800 ROCK",
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -31.5,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.2,
+     "tone": 0.5,
+     "level": 0.8
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.68,
+     "bass": 0.55,
+     "mid": 0.65,
+     "treble": 0.6,
+     "presence": 0.65,
+     "master": 0.7,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "EL34",
+     "mic": "SM57",
+     "center": 50.0,
+     "distance": 10.0
+    },
+    "eq": {
+     "enabled": false,
+     "model_id": 1,
+     "bands": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "mod": {
+     "enabled": false,
+     "model_id": 12,
+     "rate": 0.5,
+     "mix": 0.5,
+     "tone": 0.5,
+     "depth": 0.5
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.42,
+     "feedback": 0.35,
+     "mix": 0.25,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.5,
+     "mix": 0.2,
+     "tone": 0.5,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "index": 2,
+   "name": "01C TRI REC LEAD",
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -26.6,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.15,
+     "tone": 0.6,
+     "level": 0.85
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.75,
+     "bass": 0.5,
+     "mid": 0.45,
+     "treble": 0.65,
+     "presence": 0.7,
+     "master": 0.68,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "MD421",
+     "center": 40.0,
+     "distance": 15.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 1,
+     "bands": [
+      2.0,
+      -1.0,
+      -2.0,
+      3.0,
+      2.0
+     ]
+    },
+    "mod": {
+     "enabled": false,
+     "model_id": 12,
+     "rate": 0.5,
+     "mix": 0.5,
+     "tone": 0.5,
+     "depth": 0.5
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.48,
+     "feedback": 0.4,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.55,
+     "mix": 0.25,
+     "tone": 0.6,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "index": 3,
+   "name": "01D JAZZ CHORUS",
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -45.5,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": false,
+     "drive": 0.5,
+     "tone": 0.5,
+     "level": 0.5
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.35,
+     "bass": 0.5,
+     "mid": 0.5,
+     "treble": 0.65,
+     "presence": 0.55,
+     "master": 0.8,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "OFF",
+     "mic": "U87",
+     "center": 60.0,
+     "distance": 25.0
+    },
+    "eq": {
+     "enabled": false,
+     "model_id": 1,
+     "bands": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 12,
+     "rate": 0.35,
+     "mix": 0.65,
+     "tone": 0.55,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.52,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.65,
+     "mix": 0.35,
+     "tone": 0.55,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "index": 4,
+   "name": "02A PV 5050 DJENT",
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -22.4,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.3,
+     "tone": 0.65,
+     "level": 0.8
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.7,
+     "bass": 0.5,
+     "mid": 0.6,
+     "treble": 0.6,
+     "presence": 0.65,
+     "master": 0.7,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 45.0,
+     "distance": 10.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 2,
+     "bands": [
+      2.0,
+      0.0,
+      2.0,
+      3.0,
+      1.0
+     ]
+    },
+    "mod": {
+     "enabled": false,
+     "model_id": 12,
+     "rate": 0.5,
+     "mix": 0.5,
+     "tone": 0.5,
+     "depth": 0.5
+    },
+    "delay": {
+     "enabled": false,
+     "time": 0.32,
+     "feedback": 0.25,
+     "mix": 0.2,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.35,
+     "mix": 0.15,
+     "tone": 0.5,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  }
+ ]
+}

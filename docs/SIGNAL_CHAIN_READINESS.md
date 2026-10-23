@@ -259,3 +259,40 @@ SignalChain (runtime only)
 | UI ไม่มี `mod` | **VERIFIED** | `grep "\.mod\b" web/app.js` = 0, ไม่มีใน `BLOCKS`/`KNOB_SETS` |
 | NAM golden vector | **BLOCKED** | ไม่มี checkout `tone-3000/embedded` |
 | `nam_c99.dll` ทำงานได้จริงไหม | **NOT VERIFIED** | ไม่มี `.namb` และไม่มีโค้ดเรียกใช้ |
+
+---
+
+## 10. Phase 2B — ต่อ registry เข้ากับ write path (ทำแล้ว)
+
+**สถานะ:** implemented · **วันที่:** 2026-10-23 · ต่อจาก Phase 2A (`engine/params.py` เป็น data ล้วน)
+
+### 10.1 สิ่งที่เปลี่ยน
+
+| ไฟล์ | เดิม | ใหม่ |
+|---|---|---|
+| `engine/param_access.py` | — | ทางเขียนพารามิเตอร์ทางเดียว: coerce ตาม `kind`, clamp เฉพาะที่ `Param.clamp`, เรียก setter ตาม signature จริงของ method, รับ index (`band3`) |
+| `server.py` `update_parameter` | if/elif ~85 บรรทัด ฝังชื่อ attribute ทุกตัว | 1 call เข้า `param_access.set` + 2 ข้อยกเว้นที่อธิบายไว้ (nam, cab IR lock) |
+| `engine/dsp.py` `apply_mooer_preset` | ~60 บรรทัดไล่ assign ทีละ key | `param_access.apply_settings` ต่อ block, เก็บเฉพาะตรรกะ pitch/mod และการไม่ทับ `amp.model` |
+| `engine/params.py` | — | เพิ่ม `assign` (setter เป็นเจ้าของการเขียน) และ `clamp` (ที่ที่ API เคย clamp จริง) |
+
+`assign=False` มี 3 ตัว และเป็นเหตุผลเชิงพฤติกรรม ไม่ใช่สไตล์: `pitch.semitones` (ต้องให้ค่า audible glide ตาม), `eq.model_id` (`set_model` reset bands เฉพาะเมื่อ model เปลี่ยน), `eq.bands` (`set_bands` เป็นเจ้าของ list + การ design filter)
+
+### 10.2 หลักฐานว่าเสียง/พฤติกรรมไม่เปลี่ยน
+
+| หลักฐาน | ผล |
+|---|---|
+| `tests/golden/parameter_dispatch.json` — state ที่ `/api/parameter` คืนให้ 1 probe ต่อพารามิเตอร์ + probe นอกช่วง | บันทึกจากโค้ดเดิม **ก่อน** refactor, replay ตรงทุก byte |
+| `tests/golden/mooer_apply.json` — state หลัง `apply_mooer_preset` ของ factory preset ทั้งหมด | ตรงทุก byte |
+| Audio ของ `apply_mooer_preset`: old apply vs new apply, 4096 samples @48k/block 128 | **bit-identical ทั้ง 5 preset** (วัดในเซสชันนี้ ไม่ได้เก็บเป็น test เพราะโค้ดเก่าจะหายไปหลัง commit) |
+| `tests/test_chain_sweep.py` (12 scenarios) + `test_characterization.py` | ผ่าน — `process()` ไม่ถูกแตะ |
+| Negative control | บังคับ clamp ทุกพารามิเตอร์ → golden fail ที่ `gate.threshold`/`mod.model_id`; เลิก withhold `amp.model` → mooer golden fail ทั้ง 5 preset |
+
+### 10.3 Bug ที่เจอและ **จงใจไม่แก้** ในรอบนี้
+
+`apply_mooer_preset` เดิมเขียน `screamer.tone = ...` โดยไม่เรียก `_update_filter()` ∴ biquad ของ tone ค้างค่าจาก preset ก่อนหน้า (หรือค่า default 0.6) ทั้งที่ state บอกค่าใหม่ — preset 3 ใน 5 ตัวมี tone ต่างจาก default จึงได้เสียงไม่ตรงกับปุ่มที่แสดง
+
+ถ้าปล่อยให้ registry เรียก setter ตามปกติ เสียงจะเปลี่ยน (ถูกต้องขึ้น) แต่ **golden ที่บันทึกไว้มองไม่เห็น** เพราะ state ที่ API เปิดเผยไม่มีค่า coefficient ∴ รอบนี้จึงเก็บพฤติกรรมเดิมไว้ด้วย `param_access.set(..., hook=False)` และคอมเมนต์กำกับ **การแก้คือลบ `hook=False` ออกบรรทัดเดียว** แล้ว re-record golden ด้วย `--accept-changed-code`
+
+### 10.4 ที่ยังไม่ต่อ registry (ตั้งใจ)
+
+`engine/audio.py get_state()` (schema ที่ UI/preset ใช้), `server.py load_preset` (มี default ต่อ block + NAM/T3K), `cortex_scenes.py`, `morph.py`, `web/app.js` — ทั้งหมดยังประกาศซ้ำ แต่ `tests/test_param_registry.py` ผูกไว้กับ registry แล้ว (state shape, BLOCK_ATTRS, PARAM_ALIASES, morph flat keys, mooer producer keys, UI knobs)

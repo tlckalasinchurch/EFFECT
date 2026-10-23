@@ -14,11 +14,18 @@ Record with::
     .venv/Scripts/python.exe -m tests.test_chain_sweep --write
 
 Only do that *before* a refactor. Re-recording afterwards on top of a changed
-chain would destroy the evidence.
+chain would destroy the evidence, so recording refuses to overwrite a sweep
+whose recorded ``dsp.py`` fingerprint does not match the working tree. If the
+DSP change is deliberate and the sound has been checked, pass
+``--accept-changed-dsp`` to record a new baseline in full knowledge.
 """
 
+import argparse
+import contextlib
 import hashlib
+import io
 import json
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -37,6 +44,16 @@ from tests.test_characterization import (
 )
 
 BASELINE_PATH = Path(__file__).parent / "golden" / "dsp_chain_sweep.json"
+DSP_PATH = Path(__file__).parents[1] / "engine" / "dsp.py"
+
+
+def dsp_fingerprint() -> str:
+    """Content hash of the DSP code this sweep is evidence about."""
+    return hashlib.sha256(DSP_PATH.read_bytes()).hexdigest()
+
+
+class GoldenRecordedFromDifferentCode(RuntimeError):
+    """Raised instead of overwriting a sweep taken from different DSP code."""
 
 
 def _base():
@@ -201,12 +218,97 @@ def build_baseline():
             "input": "110/220/330 Hz sine stack + 0.005 RMS white noise, seed 7",
             "cab_ir": "built-in synthetic IR generator only; custom_irs/*.wav is deliberately not read",
             "tolerance": ATOL,
-            "dsp_py_sha256": hashlib.sha256(
-                (Path(__file__).parents[1] / "engine" / "dsp.py").read_bytes()
-            ).hexdigest(),
+            "dsp_py_sha256": dsp_fingerprint(),
         },
         "cases": {name: signature(render(factory(), x)) for name, factory in CASES.items()},
     }
+
+
+def _recorded_fingerprint(path: Path):
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))["_metadata"]["dsp_py_sha256"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
+def write_baseline(path: Path = BASELINE_PATH, accept_changed_dsp: bool = False):
+    """Record the sweep, refusing to overwrite evidence from a different dsp.py.
+
+    The sweep only means anything against the code it was recorded from, and the
+    refactor is judged by re-running this module afterwards. Recording over an
+    older sweep would erase exactly that evidence, so a mismatch stops the write
+    instead of replacing it quietly.
+    """
+    current = dsp_fingerprint()
+    if path.exists() and not accept_changed_dsp:
+        recorded = _recorded_fingerprint(path)
+        if recorded != current:
+            raise GoldenRecordedFromDifferentCode(
+                f"{path.name} was recorded from engine/dsp.py "
+                f"{recorded[:12] if recorded else 'an unreadable file'}, but the working "
+                f"tree is {current[:12]}. Re-recording would erase the pre-refactor "
+                "evidence; verify the sound first, then pass --accept-changed-dsp."
+            )
+    data = build_baseline()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    return data
+
+
+class GoldenProvenanceTests(unittest.TestCase):
+    """Recording must not quietly replace evidence from different code."""
+
+    def setUp(self):
+        handle = tempfile.TemporaryDirectory()
+        self.addCleanup(handle.cleanup)
+        self.path = Path(handle.name) / "sweep.json"
+
+    def _foreign_golden(self, fingerprint="0" * 64):
+        self.path.write_text(
+            json.dumps({"_metadata": {"dsp_py_sha256": fingerprint}}), encoding="utf-8"
+        )
+
+    def test_recording_refuses_to_overwrite_a_golden_from_other_code(self):
+        self._foreign_golden()
+        before = self.path.read_text(encoding="utf-8")
+        with self.assertRaises(GoldenRecordedFromDifferentCode):
+            write_baseline(self.path)
+        self.assertEqual(self.path.read_text(encoding="utf-8"), before, "the golden was replaced")
+
+    def test_the_refusal_names_both_fingerprints(self):
+        self._foreign_golden("ab" * 32)
+        with self.assertRaises(GoldenRecordedFromDifferentCode) as caught:
+            write_baseline(self.path)
+        message = str(caught.exception)
+        self.assertIn("abababababab", message)
+        self.assertIn(dsp_fingerprint()[:12], message)
+
+    def test_a_foreign_golden_can_be_replaced_deliberately(self):
+        self._foreign_golden()
+        write_baseline(self.path, accept_changed_dsp=True)
+        data = json.loads(self.path.read_text(encoding="utf-8"))
+        self.assertEqual(data["_metadata"]["dsp_py_sha256"], dsp_fingerprint())
+        self.assertEqual(len(data["cases"]), 12)
+
+    def test_a_fresh_path_is_recorded_without_asking(self):
+        write_baseline(self.path)
+        data = json.loads(self.path.read_text(encoding="utf-8"))
+        self.assertEqual(data["_metadata"]["dsp_py_sha256"], dsp_fingerprint())
+
+    def test_a_corrupt_golden_is_not_silently_replaced(self):
+        self.path.write_text("not json", encoding="utf-8")
+        with self.assertRaises(GoldenRecordedFromDifferentCode):
+            write_baseline(self.path)
+
+    def test_the_command_line_refuses_instead_of_overwriting(self):
+        self._foreign_golden()
+        before = self.path.read_text(encoding="utf-8")
+        with contextlib.redirect_stderr(io.StringIO()) as stderr:
+            with self.assertRaises(SystemExit) as exit_code:
+                main(["--write"], path=self.path)
+        self.assertEqual(exit_code.exception.code, 2)
+        self.assertIn("recorded from engine/dsp.py", stderr.getvalue())
+        self.assertEqual(self.path.read_text(encoding="utf-8"), before)
 
 
 class DspChainSweepTests(unittest.TestCase):
@@ -246,14 +348,23 @@ class DspChainSweepTests(unittest.TestCase):
         self.assertEqual(pinned, [], f"clipped scenarios compress differences: {pinned}")
 
 
-if __name__ == "__main__":
-    import argparse
-
+def main(argv=None, path: Path = BASELINE_PATH):
     parser = argparse.ArgumentParser(description="Record the 12-case DSP sweep baseline.")
     parser.add_argument("--write", action="store_true", help="record from the current code")
-    args = parser.parse_args()
+    parser.add_argument(
+        "--accept-changed-dsp",
+        action="store_true",
+        help="record even though the existing sweep came from different engine/dsp.py code",
+    )
+    args = parser.parse_args(argv)
     if not args.write:
         parser.error("pass --write to record the sweep")
-    BASELINE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    BASELINE_PATH.write_text(json.dumps(build_baseline(), indent=2) + "\n", encoding="utf-8")
-    print(f"wrote {BASELINE_PATH}")
+    try:
+        write_baseline(path, accept_changed_dsp=args.accept_changed_dsp)
+    except GoldenRecordedFromDifferentCode as exc:
+        parser.error(str(exc))
+    print(f"wrote {path}")
+
+
+if __name__ == "__main__":
+    main()

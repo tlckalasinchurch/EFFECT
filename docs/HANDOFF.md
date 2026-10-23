@@ -1,8 +1,82 @@
 # Handoff — กดจนหลอนTone / Hack-effect
 
-> **วันที่:** 2026-10-19 · **Branch:** main · **Working tree:** สะอาด
-> **สถานะ:** audit 14/14 ผ่าน · commit ล่าสุด `0c9ed43`
+> **วันที่อัปเดตล่าสุด:** 2026-10-21 · **Branch:** main · **Working tree:** มีไฟล์แก้ไข/untracked จำนวนมาก (ยังไม่ commit)
+> **สถานะ:** `python -m unittest discover -s tests -t .` → **95 tests OK (skipped 2)**
 > **ไฟล์นี้สำคัญกว่า `PROJECT_HANDOFF.md` ในส่วนที่ขัดกัน** — ดูหัวข้อ 8
+
+---
+
+## 0. อัปเดต 2026-10-21 — ความหน่วงเสียง (P0/P1 ของแผน latency)
+
+### อาการที่ผู้ใช้บ่น
+"เสียงออกช้ากว่าที่ดีด" — วัดจริงแล้วเจอต้นเหตุ 3 ชั้น ไม่ใช่ DSP:
+
+| อาการ | หลักฐาน |
+|---|---|
+| stream เปิดไม่ติดแล้ว fallback เงียบ ๆ | `WdmSyncIoctl ... GLE = 0x490` ตอนเปิด WASAPI จาก worker thread ของ uvicorn |
+| fallback ได้ **106.67 ms** | in 13.33 + out 93.33 จากการ์ดเริ่มต้น (ไม่ใช่ UX1) |
+| device ที่บันทึกไว้ผิด | `audio_settings.json` = 17/15; 17 คือ SteelSeries Sonar, 15 เป็น endpoint ที่มีแต่ input |
+
+### สิ่งที่แก้
+- `engine/audio.py`: `ensure_com_initialized()` ต่อ thread (CoInitializeEx) ก่อนเปิด stream — **นี่คือ fix หลัก**
+- `engine/audio.py`: `_resolve_device_pair()` ตรวจ channel จริงก่อนเปิด, retry ด้วย UX1 ที่ detect ได้, และถ้าต้อง fallback จะตั้ง `using_fallback` + `audio_path.warning = "fallback"` แทนการรายงานสำเร็จเฉย ๆ
+- `config.py` + `engine/audio.py`: เลิกพึ่ง index ตายตัว เก็บ/จับคู่ชื่ออุปกรณ์ (`input_device_name`), เลือก host API ที่ดีที่สุดเมื่อชื่อซ้ำ (WASAPI > DirectSound > MME)
+- `audio_settings.json`: แก้เป็น 33/28 (UX1 WASAPI in/out) พร้อมชื่ออุปกรณ์
+- `web/*`: side panel มี `PATH` และ `LATENCY` ที่เป็นค่าจริง, เตือน FALLBACK/DSP เกินงบ, Settings แสดง host API + จำนวน channel + ค่าที่วัดได้
+- `engine/audio.py`: `_path_devices` cache — `sd.query_devices()` ระหว่างที่สตรีมรันทำให้ callback สะดุดถึง ~52 ms (พบตอนวัด) จึงไม่ query บน hot path ของ `/api/status` อีก
+- `audio_stats`: เพิ่ม `callback_ms_avg` และข้าม 50 callbacks แรก (warm-up) เพราะ max ตัวเดียวทำให้ดูเหมือนมีปัญหา
+- `engine/audio.py` + `server.py` (รอบ audit): ค่า DSP เป็นค่าเฉลี่ย **window ~1.3 s (500 blocks)** ไม่ใช่สะสมทั้งเซสชัน — ค่าเก่าแทบไม่ขยับหลังเล่นไป 2-3 นาที ทำให้เตือน `dsp_over_budget` ไม่ทัน; เตือนเมื่อเกินงบ **2 window ติดกัน** กันเสียงเตือนตอนโหลด NAM; `server.persist_audio_path()` **ไม่บันทึกคู่ device ของ fallback** (เดิมเขียนทับ preference ด้วย default device ทำให้ UX1 หลุดครั้งเดียวแล้วติด 107 ms ถาวร) และเหลือจุดบันทึกจุดเดียว
+
+### ตัวเลขที่วัดได้ (UX1, 48 kHz)
+
+| เส้นทาง | round trip |
+|---|---|
+| WASAPI shared (ค่าใหม่) | **46.7 ms** (22.0 + 24.7) |
+| WASAPI exclusive | 46.7 ms — ไม่ดีขึ้น + ล็อกอุปกรณ์ จึงไม่ใช้ |
+| default fallback (ค่าเก่า) | 106.7 ms |
+| DirectSound / MME | 125 / 107 ms |
+| block 16 / 32 / 64 | 44.3 / 44.7 / 45.3 ms — แทบไม่เปลี่ยน |
+
+พื้น ~44 ms มาจากไดรเวอร์ UX1 เอง ไม่ใช่แอป; WDM-KS ฝั่ง input เปิดไม่ได้ และ `sounddevice` ที่ติดตั้งไม่มี ASIO
+
+### งบ CPU ของ DSP (สำคัญ)
+NAM 2 stage จาก TONE3000 ใช้ ~1.3–2.9 ms ต่อ block 128 (deadline 2.67 ms) — พอดีงบเฉพาะโหมด lite; ถ้า avg เกิน 90% ของ block ระบบจะขึ้นเตือน `dsp_over_budget` และแนะนำ buffer 256
+
+### UI declutter (2026-10-21 รอบเดียวกัน)
+- ถอดแถบ `#faceStrip` ออก — knob ชุดเดียวกับ `.panel` และกินพื้นที่ 124px โดยไม่เพิ่มฟังก์ชัน (คลิกไทล์ในเชนเพื่อเลือกบล็อกได้อยู่แล้ว); โค้ดตาย (`renderFaceStrip()`, `knobControllers.face`, CSS `.fs-*`) ถูกลบออกแล้ว
+- `.panel` (inspector) เปลี่ยนเป็น 2 คอลัมน์ตอนกว้าง, knob 62px, padding แน่นขึ้น: 301 → 221px
+- status bar บังคับบรรทัดเดียว + ellipsis, ย่อเหลือ `HW I/O · DSP · XRUN` (device/block/max อยู่ใน `title`), ซ่อนข้อความซ้ำที่ <1450px
+- ซ่อน scrollbar ของ chain และ scene bar, ทำ scrollbar ของ 3 pane ให้เป็นสีเดียวกับพื้น
+- scene bar: 8 ปุ่มอยู่ในแถวเดียวที่ 1280 (ย่อ pill + ซ่อนชื่อ preset ที่ซ้ำกับ header) และ **wrap ตามปกติที่ 1080** — ก่อนหน้านี้ `overflow: hidden` ทำให้ scene G/H เข้าไม่ถึงด้วยเมาส์
+- media query ของ scene/statusbar รวมเป็นบล็อกเดียวท้ายไฟล์ (จาก 4 บล็อก `max-width: 1450px` ที่กระจัดกระจาย)
+- `style.css`/`app.js` มี cache-busting query แล้ว — ก่อนหน้านี้เบราว์เซอร์ค้าง CSS เก่าจนแก้แล้วไม่เห็นผล
+
+### ภาษาภาพ — 19" rack unit (2026-10-21 รอบ 2)
+
+ต้นเหตุที่หน้าจอดู "AI slop": ทุกค่าถูกตัดสินทีละ selector — 153 ค่าสี (110 hex + 43 rgba), 28 ขนาดตัวอักษร (มีครึ่งจุด 8.5/9.5/10.5/11.5/12.5/13.5/14.5), 11 ค่า radius, 8 เฉดดำที่ห่างกัน 2-6 หน่วย (ตาแยกไม่ออก จึงต้องใส่เส้นขอบทุกกล่อง), และสีรุ้ง 8 สีจาก Material/Bootstrap สำหรับ scene A-H
+
+**กติกาที่ใช้ต่อจากนี้ (อยู่ใน `:root` ของ `web/style.css`)**
+- 4 พื้นผิวที่แยกออกจริง: `--bg` (page) → `--app-bg` (chassis) → `--panel` (module face) → `--panel-2` (raised); หลุม (side/details/chain bay) ใช้ `--panel-3`
+- 2 เส้น: `--line` (ขอบเขตโมดูล), `--line-soft` (hairline ในโมดูล); hover ใช้ `--line-strong`
+- ink 4 ระดับ + accent เดียว (`--gold`) + `--hot`/`--ok`/`--hot-ink` เท่านั้น — **ห้ามเพิ่ม hex ใหม่ในไฟล์** ถ้าจำเป็นให้เพิ่ม token ก่อน
+- radius: `--radius` (3px) และ `--radius-lg` (4px); 999px/50% เฉพาะ LED, toggle, knob
+- type: 9/10/11/12/13/14/15/17/18/20 (+ display 32/40/140) และ `font-variant-numeric: tabular-nums` ทั้งหน้า
+- เส้นขอบ = ความหมาย ไม่ใช่สไตล์: ปุ่มรองไม่มีพื้น, ปุ่ม action (บันทึก/โคลน) เป็น text button, เหลือ amber หลัก 1 ปุ่มต่อหน้าจอ
+
+**โครงที่เปลี่ยน**
+- ปุ่ม/สวิตช์/ไอคอน: glyph `⚙ ↻ ✕ ‹ › ← ⌕ ✓ 🔄` ถูกแทนด้วย inline SVG ชุดเดียว (stroke 1.7-2, 12-16px); emoji `⚡`/`⚠` ใน toast/status ถูกถอด
+- scene bar: ปุ่มเทากันหมด มี LED amber ดวงเดียวที่ active (สี `SCENE_COLORS` ยังอยู่ใน API แต่ไม่ถูกวาดแล้ว — `--scene-color` ถูกถอดออกจาก DOM ทั้ง scene bar และ gig view)
+- control deck: scene row + morph row ใช้ hairline คั่น ไม่ใช่การ์ด 3 ใบ; chain bay มี hairline กลางอ่านเป็นสัญญาณต่อกัน
+- ลำดับชั้นของ shell: 3 คอลัมน์ > 1160px และล็อกที่ `height: 100vh` (หน้าไม่ scroll, ตารางเป็นที่เดียวที่ scroll); ≤1160 เป็น 2 คอลัมน์ + inspector เป็น grid เต็มความกว้าง และเอกสาร scroll; ≤900 เป็นคอลัมน์เดียว — statusbar เป็น `sticky`
+- เจ้าของข้อมูล: side box ตอบ "อยู่เส้นทางไหน" (ENGINE/PATH + fallback warning), statusbar ตอบ "เลขเท่าไร" (HW I/O · DSP · XRUN · CPU/RAM) — `spec-sr`/`spec-block`/`spec-lat`/`status-engine-text` ถูกลบ
+- `.side-engine`, `.t3k-cta`, `.cortex-scene-bar`, `.morph-strip`, `.d-t3k`, modal card: เลิกใช้ dashed border/gradient/glow; range input ใช้ `accent-color: var(--gold)`
+
+**ผล:** สี 153 → 20 (ทั้งหมดเป็น token + `#fff`/`#000`), radius 11 → 5, ตัวอักษร 28 → 13 ขนาดเต็ม; `node --check` ผ่าน, 95 tests OK, `audit_test.py` 14/14, ไม่มี console error ที่ 1080/1280/1600
+
+### ยังเปิดอยู่
+- **P2 (redesign GUI ตามภาพ TONE3000) ยังไม่เริ่ม** — รอผู้ใช้อนุมัติตำแหน่งฟีเจอร์/commit checkpoint
+- ASIO จริงต้องใช้ PortAudio ที่ build พร้อม ASIO (ไม่มีใน wheel ปัจจุบัน)
+- ยังไม่ได้ฟังเสียงจริงผ่าน UX1 (ไม่มีกีตาร์ต่อในเซสชันนี้); ตัวเลข latency มาจากค่าที่ไดรเวอร์รายงาน
 
 ---
 
@@ -167,6 +241,7 @@ if any(k in name_lower for k in ["clean", "jazz", "acoustic", "twin", "sparkle"]
 - ยังไม่มี **loading skeleton / progress** ตอน decode ทั้ง pack
 - ยังไม่มี **lazy render** ตาราง — search 400 แถวค่อยเรนเดอร์ทั้งหมด
 - ยังไม่มี **pack search filter** ใน Zone 1 (ตอนนี้ 35 รายการต้องเลื่อน)
+- **มีแผนปรับ UI/UX ฉบับเต็ม** (Performance Mode, knob interaction, preset filter/sort, macro controls) อยู่ที่ `docs/UI_MODERNIZATION_PROPOSAL.md` — ข้อ 2–4 ของ proposal ตรงกับรายการค้างข้างบนนี้
 
 ### P2 — ของที่ยังเป็น placeholder
 - `FormCreateRigPack` / pack authoring — ยังไม่ทำ

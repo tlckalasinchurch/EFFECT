@@ -95,18 +95,33 @@ INPUT → [NOISE GATE] → [PITCH] → [TS-9 DRIVE] → [AMP HEAD] → [CABINET 
 
 ### Audio Engine
 - **Sample Rate**: 48,000 Hz
-- **Buffer Size**: 512 samples (low-latency PortAudio stream)
-- **Engine Buffer Time**: 10.67ms at 512 samples / 48kHz (one processing deadline, not total round-trip latency)
-- **Hardware I/O Latency**: read from PortAudio after the stream starts and shown in the status bar
-- **Processing**: Vectorized NumPy operations (no Python loops in signal path)
+- **Buffer Size**: 128 samples by default (selectable 64–512 in Settings)
+- **Engine Buffer Time**: 2.67 ms at 128 samples / 48 kHz — one DSP processing deadline, **not** the round-trip latency a player feels
+- **Hardware I/O Latency**: read from PortAudio after the stream starts and shown in the status bar and the side panel (`LATENCY` and `PATH` rows)
+- **Processing**: Vectorized NumPy operations for the DSP blocks; NAM inference is the expensive stage (see below)
+
+Measured on the Line 6 UX1 (Windows 11, WASAPI):
+
+| Path | Reported round trip |
+|---|---|
+| UX1 WASAPI shared (what the app now opens) | **46.7 ms** (in 22.0 + out 24.7) |
+| UX1 WASAPI exclusive | 46.7 ms — no improvement, locks the device, so it is not used |
+| System-default fallback (old behaviour after a failed UX1 open) | **106.7 ms** |
+| DirectSound / MME | 125 ms / 107 ms |
+
+The ~44 ms floor comes from the UX1's Windows driver, not from the app: it stays at ~44.3 ms even with a 16-sample block, and WDM-KS input is not available through PortAudio. Going lower needs an ASIO-capable PortAudio build (the bundled `sounddevice` wheel has no ASIO) or different hardware.
+
+**NAM cost:** a two-stage TONE3000 chain needs ~1.3–2.9 ms per 128-sample block. It fits a 128-sample deadline only when NAM is lite; if the measured DSP average exceeds 90% of the block time the UI shows a warning and recommends buffer 256.
 
 ### Line 6 POD Studio UX1
 
-- Connect the UX1 before starting the app and select the Line 6 input/output pair in Settings.
-- Auto-detection prioritizes the Line 6 **ASIO** host API when its driver is available, then WASAPI and DirectSound.
-- Use `BUFFER_SIZE=256` for a lower-latency starting point (about 5.33ms engine buffer time at 48kHz); use `512` if XRuns or crackles appear.
-- The UI reports `Buffer` and `HW I/O` separately. The buffer value is calculated by the app; `HW I/O` is the latency reported by the active PortAudio stream.
-- If the callback time approaches or exceeds the buffer deadline, increase the buffer before reducing sample rate or disabling effects.
+- Connect the UX1 before starting the app and select the Line 6 input/output pair in Settings. Device options are labeled with host API and channel count; the UX1 pair is starred.
+- Auto-detection prefers ASIO when the PortAudio build exposes it, then WASAPI, then DirectSound. The bundled `sounddevice` 0.5.6 wheel exposes MME, DirectSound, WASAPI and WDM-KS only, so on this machine the UX1 opens over **WASAPI**.
+- Saved device indices are validated before use and re-resolved by device **name**: `audio_settings.json` used to hold indices 17/15, which today are a SteelSeries input and an output-less DirectSound endpoint. A stale pair is replaced by the detected UX1 pair instead of silently falling back.
+- WASAPI requires COM on the opening thread; `AudioEngine.start()` calls `CoInitializeEx` per thread. Without it the UX1 stream fails with `WdmSyncIoctl ... GLE = 0x490` and the engine lands on the default device (106 ms).
+- If the UX1 still cannot be opened, the app falls back to the system default pair **and says so**: the side panel shows `PATH FALLBACK` in red plus a warning line, and the status bar repeats it. It no longer reports plain success.
+- The UI reports `Buffer` (DSP block) and `HW I/O` (driver-reported round trip) separately — a 2.67 ms buffer must not be read as 2.67 ms of total latency.
+- If the measured DSP time approaches or exceeds the block deadline, increase the buffer before reducing sample rate or disabling effects.
 
 ### Mock UX1 hardware test
 
@@ -117,7 +132,9 @@ python tools/mock_ux1_hardware.py
 python tools/mock_ux1_hardware.py --buffer 128 --json
 ```
 
-ตัวทดสอบใช้ fake `sounddevice` stream ใน memory จึงไม่เปิด microphone/speaker และไม่แตะอุปกรณ์จริง ผลที่คาดหวังคือ `MOCK UX1 HARDWARE: PASS`, เลือก host API เป็น `ASIO`, hardware I/O จำลอง `7.80 ms` และ XRuns เป็นศูนย์
+ตัวทดสอบใช้ fake `sounddevice` stream ใน memory จึงไม่เปิด microphone/speaker และไม่แตะอุปกรณ์จริง ผลที่คาดหวังคือ `MOCK UX1 HARDWARE: PASS`, เลือก host API ตามที่ fake เปิดให้เห็น, hardware I/O จำลอง `7.80 ms` และ XRuns เป็นศูนย์
+
+> หมายเหตุ: fake ใน `tools/mock_ux1_hardware.py` มี host API `ASIO` จำลองอยู่ด้วย จึงเลือก ASIO ได้ — บนเครื่องจริง ASIO ไม่มีใน PortAudio ที่ติดตั้งมาพร้อม `sounddevice`
 
 ### TONE3000 amplifier CLI
 
@@ -249,6 +266,14 @@ The UI is based on KEMPER Rig Manager design:
 4. **Standalone Binary** - PyInstaller/Nuitka packaging
 5. **MIDI Footcontroller** - External pedal support
 
+### UI/UX Modernization (proposed, not yet implemented)
+
+See **`docs/UI_MODERNIZATION_PROPOSAL.md`** for the full roadmap. Top three recommended:
+
+1. **Performance Mode** — a play-focused layout for live use (edit mode stays available)
+2. **Precision knob interaction** — type a value, double-click to reset, arrow keys, mouse wheel
+3. **Faster preset browser** — filter chips, sorting, favorites, lazy rendering for large KEMPER packs
+
 ## 📄 License
 
 MIT License - See LICENSE file
@@ -264,6 +289,7 @@ MIT License - See LICENSE file
 
 - **`docs/HANDOFF.md`** — current state, verified facts about the installed KEMPER rig packs, the bugs already fixed, and what is still outstanding. **Read this first when picking the project back up.**
 - `docs/kemper-rig-manager-library-rig-spec.md` — evidence-backed reverse-engineering spec of the real KEMPER Rig Manager library / rig browsing workflow.
+- `docs/UI_MODERNIZATION_PROPOSAL.md` — proposed UI/UX modernization roadmap for the 4-Zone workstation (Performance Mode, knob interaction, preset browser, macro controls). **Proposal only — not yet implemented.**
 - `PROJECT_HANDOFF.md` — original design document. Partly superseded; see section 8 of `docs/HANDOFF.md`.
 
 ---

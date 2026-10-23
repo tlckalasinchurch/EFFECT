@@ -51,7 +51,7 @@ const state = {
   devices: { inputs: [], outputs: [] },
   selectedIn: null,
   selectedOut: null,
-  knobControllers: { panel: [], face: [] },
+  knobControllers: { panel: [] },
   pending: new Map(),
   pollTimer: null,
   pollBusy: false,
@@ -62,7 +62,14 @@ const state = {
   favorites: new Set(JSON.parse(localStorage.getItem('tone.favorites') || '[]')),
   booted: false,
   t3kLoaded: null,
+  irPreview: null,
   lastServer: null,
+  cortex: null,
+  gigViewOpen: false,
+  pendingScene: null,
+  mooerPresets: [],
+  cortexPresets: [],
+  kemperRigs: [],
 };
 
 // ── small API helper ─────────────────────────────────────────────────
@@ -108,6 +115,7 @@ const ICONS = {
   cab: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/></svg>',
   reverb: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c2-4 4-4 6 0s4 4 6 0 4-4 6 0"/><path d="M3 17c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/></svg>',
   delay: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v5l3 2"/><path d="M5 4 3 6M19 4l2 2"/></svg>',
+  eq: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-7"/><path d="M4 10V3"/><path d="M12 21v-9"/><path d="M12 8V3"/><path d="M20 21v-5"/><path d="M20 12V3"/><circle cx="4" cy="12" r="2"/><circle cx="12" cy="10" r="2"/><circle cx="20" cy="14" r="2"/></svg>',
   output: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h11"/><path d="M11 7l5 5-5 5"/><path d="M20 5v14"/></svg>',
 };
 
@@ -121,6 +129,7 @@ const BLOCKS = [
   { id: 'drive', en: 'DRIVE', th: 'โอเวอร์ไดรฟ์', section: 'screamer', canBypass: true, icon: 'pedal' },
   { id: 'amp', en: 'NAM AMP', th: 'แอมป์ / NAM', section: 'amp', canBypass: true, icon: 'amp' },
   { id: 'cab', en: 'IR CAB', th: 'ตู้ + IR', section: 'cab', canBypass: true, icon: 'cab' },
+  { id: 'eq', en: 'STUDIO EQ', th: 'อีควอไลเซอร์', section: 'eq', canBypass: true, icon: 'eq' },
   { id: 'delay', en: 'DELAY', th: 'ดีเลย์', section: 'delay', canBypass: true, icon: 'delay' },
   { id: 'reverb', en: 'REVERB', th: 'รีเวิร์บ', section: 'reverb', canBypass: true, icon: 'reverb' },
   { id: 'output', en: 'OUTPUT', th: 'เอาต์พุต', section: 'master', canBypass: false, icon: 'output' },
@@ -158,20 +167,41 @@ const KNOB_SETS = {
     K('input_gain', 'In Gain', -24, 24, 0.5, 'db', 0, 'nam', 'input_gain'),
   ],
   cab: [
+    K('center', 'Axis Center', 0, 100, 1, 'pct', 50, 'cab', 'center'),
+    K('distance', 'Distance', 0, 100, 1, 'pct', 20, 'cab', 'distance'),
     K('lowcut', 'Low Cut', 20, 500, 1, 'hz', 20, 'cab', 'lowcut'),
     K('highcut', 'High Cut', 1000, 20000, 10, 'hz', 20000, 'cab', 'highcut'),
     K('mix', 'Mix', 0, 100, 1, 'pct', 100, 'cab', 'mix', 100),
     K('level', 'Level', 0, 200, 1, 'pct', 100, 'cab', 'level', 100),
   ],
+  eq: [
+    K('band0', 'Band 1', -16, 16, 0.5, 'db', 0, 'eq', 'band0'),
+    K('band1', 'Band 2', -16, 16, 0.5, 'db', 0, 'eq', 'band1'),
+    K('band2', 'Band 3', -16, 16, 0.5, 'db', 0, 'eq', 'band2'),
+    K('band3', 'Band 4', -16, 16, 0.5, 'db', 0, 'eq', 'band3'),
+    K('band4', 'Band 5', -16, 16, 0.5, 'db', 0, 'eq', 'band4'),
+    K('band5', 'Band 6', -16, 16, 0.5, 'db', 0, 'eq', 'band5'),
+  ],
+  // 5-Band Studio (eq model 5): cut bands are Hz (20 Hz / 20 kHz = off), the rest dB.
+  eq_studio: [
+    K('band0', 'Low Cut', 20, 500, 1, 'hz', 20, 'eq', 'band0'),
+    K('band1', 'Low Shelf', -16, 16, 0.5, 'db', 0, 'eq', 'band1'),
+    K('band2', 'Mid 1', -16, 16, 0.5, 'db', 0, 'eq', 'band2'),
+    K('band3', 'Mid 2', -16, 16, 0.5, 'db', 0, 'eq', 'band3'),
+    K('band4', 'High Shelf', -16, 16, 0.5, 'db', 0, 'eq', 'band4'),
+    K('band5', 'High Cut', 2000, 20000, 50, 'hz', 20000, 'eq', 'band5'),
+  ],
   delay: [
     K('time', 'Time', 20, 2000, 1, 'ms', 360, 'delay', 'time'),
     K('feedback', 'Feedback', 0, 95, 1, 'pct', 35, 'delay', 'feedback', 100),
     K('mix', 'Mix', 0, 100, 1, 'pct', 25, 'delay', 'mix', 100),
+    K('duck_depth', 'Duck Depth', 0, 100, 1, 'pct', 60, 'delay', 'duck_depth', 100),
   ],
   reverb: [
     K('decay', 'Decay', 0, 100, 1, 'pct', 50, 'reverb', 'decay', 100),
     K('mix', 'Mix', 0, 100, 1, 'pct', 20, 'reverb', 'mix', 100),
     K('tone', 'Tone', 0, 100, 1, 'pct', 50, 'reverb', 'tone', 100),
+    K('duck_depth', 'Duck Depth', 0, 100, 1, 'pct', 50, 'reverb', 'duck_depth', 100),
   ],
   output: [
     K('volume', 'Master', 0, 150, 1, 'pct', 100, 'master', 'volume', 100),
@@ -198,6 +228,7 @@ function visibleBlocks() {
 
 function knobsForBlock(id) {
   if (id === 'amp') return state.nam ? KNOB_SETS.amp_nam : KNOB_SETS.amp_dsp;
+  if (id === 'eq' && (state.live?.eq?.model_id ?? 5) === 5) return KNOB_SETS.eq_studio;
   return KNOB_SETS[id] || [];
 }
 
@@ -209,6 +240,7 @@ function blockEnabled(id) {
   if (id === 'drive') return c.screamer ? !!c.screamer.enabled : false;
   if (id === 'amp') return state.nam ? !!state.nam.enabled : (c.amp ? !!c.amp.enabled : true);
   if (id === 'cab') return c.cab ? !!c.cab.enabled : true;
+  if (id === 'eq') return c.eq ? !!c.eq.enabled : false;
   if (id === 'delay') return c.delay ? !!c.delay.enabled : false;
   if (id === 'reverb') return c.reverb ? !!c.reverb.enabled : false;
   return true;
@@ -245,11 +277,14 @@ function blockSubtitle(id) {
   if (id === 'amp') {
     if (state.nam) {
       const title = state.namTitle || (state.nam.stages || []).map((s) => s.title).filter(Boolean).join(' + ');
-      return 'NAM · ' + shortText(title || 'capture', 15);
+      return shortText(state.nam.includes_cab ? 'NAM · AMP+CAB' : 'NAM · ' + (title || 'capture'), 20);
     }
-    return 'DSP · ' + shortText(c.amp?.model || 'Amp', 12);
+    return shortText(c.amp?.model || 'DSP Amp', 20);
   }
-  if (id === 'cab') return shortText(c.cab?.ir_name || 'IR', 16);
+  if (id === 'cab') {
+    if (state.nam?.includes_cab) return 'IN CAPTURE · BYPASSED';
+    return shortText(c.cab?.ir_name || 'IR', 20);
+  }
   if (id === 'delay') return Math.round(Number(c.delay?.time || 0.36) * 1000) + ' ms';
   if (id === 'reverb') {
     const type = String(c.reverb?.type || 'plate');
@@ -287,6 +322,19 @@ function readServer(kd) {
   else if (kd.section === 'screamer') v = c.screamer?.[kd.param];
   else if (kd.section === 'amp') v = c.amp?.[kd.param];
   else if (kd.section === 'cab') v = c.cab?.[kd.param];
+  else if (kd.section === 'eq') {
+    if (kd.param.startsWith('band')) {
+      const idx = parseInt(kd.param.replace('band', ''), 10);
+      v = (c.eq?.bands || [])[idx];
+      if ((c.eq?.model_id ?? 5) === 5) {
+        // Unset cut bands (0) mean "off": show the knob at its off end.
+        if (idx === 0 && !(v >= 20)) v = 20;
+        if (idx === 5 && !(v >= 2000)) v = 20000;
+      }
+    } else {
+      v = c.eq?.[kd.param];
+    }
+  }
   else if (kd.section === 'delay') {
     v = c.delay?.[kd.param];
     if (kd.param === 'time') v = Number(v || 0) * 1000;
@@ -418,7 +466,6 @@ function makeKnob(kd, initialUi, opts = {}) {
     knob,
     value: initialUi,
     dragging: false,
-    surface: opts.surface || 'panel',
     blockId: opts.blockId || null,
     setValue(v, silent = false) {
       let val = clamp(Number(v), kd.min, kd.max);
@@ -480,13 +527,11 @@ function makeKnob(kd, initialUi, opts = {}) {
 }
 
 function syncKnobs() {
-  ['panel', 'face'].forEach((surface) => {
-    state.knobControllers[surface].forEach((ctrl) => {
-      if (ctrl.dragging) return;
-      const server = readServer(ctrl.kd);
-      const ui = toUi(ctrl.kd, server);
-      if (Math.abs(ui - ctrl.value) > 0.001) ctrl.setValue(ui, true);
-    });
+  state.knobControllers.panel.forEach((ctrl) => {
+    if (ctrl.dragging) return;
+    const server = readServer(ctrl.kd);
+    const ui = toUi(ctrl.kd, server);
+    if (Math.abs(ui - ctrl.value) > 0.001) ctrl.setValue(ui, true);
   });
 }
 
@@ -514,7 +559,42 @@ function mappedPresets() {
     gain: Number(p.gain ?? 0.6),
     raw: p,
   }));
-  return [...t3k, ...builtins];
+  const mooer = (state.mooerPresets || []).map((p, idx) => ({
+    id: 'mooer_' + (p.name || idx),
+    type: 'mooer',
+    name: p.name || ('MOOER ' + idx),
+    category: 'MOOER GE150',
+    author: p.author || 'MOOER',
+    amp: p.settings?.amp?.model || 'Mooer Amp',
+    cab: p.settings?.cab?.ir_name || '',
+    gain: Number(p.settings?.amp?.gain ?? 0.6),
+    raw: p,
+  }));
+  const cortex = (state.cortexPresets || []).map((p) => ({
+    id: p.id,
+    type: 'cortex',
+    name: p.name || p.id,
+    category: 'Quad Cortex',
+    author: p.author || 'Neural DSP',
+    amp: p.base_settings?.amp?.model || 'Cortex Amp',
+    cab: p.base_settings?.cab?.ir_name || '',
+    gain: Number(p.base_settings?.amp?.gain ?? 0.65),
+    raw: p,
+  }));
+  const kemper = (state.kemperRigs || []).map((r) => ({
+    id: 'kemper_' + r.pack + '_' + r.id,
+    type: 'kemper',
+    name: r.name,
+    category: r.category || 'KEMPER',
+    author: r.author || 'KEMPER',
+    amp: r.amp?.amp_name || 'Kemper Profile',
+    cab: r.amp?.cab_name || '',
+    gain: Number(r.params?.gain ?? 0.5),
+    pack_path: r.pack_path,
+    rig_id: r.id,
+    raw: r,
+  }));
+  return [...t3k, ...mooer, ...cortex, ...kemper, ...builtins];
 }
 
 function favKey(item) {
@@ -525,6 +605,9 @@ function filteredPresets() {
   let list = mappedPresets();
   if (state.filter === 'mine') list = list.filter((p) => p.type === 'preset' && (p.author === 'User' || String(p.id).startsWith('user_')));
   else if (state.filter === 't3k') list = list.filter((p) => p.type === 't3k');
+  else if (state.filter === 'kemper') list = list.filter((p) => p.type === 'kemper');
+  else if (state.filter === 'cortex') list = list.filter((p) => p.type === 'cortex');
+  else if (state.filter === 'mooer') list = list.filter((p) => p.type === 'mooer');
   else if (state.filter === 'fav') list = list.filter((p) => state.favorites.has(favKey(p)));
   const q = state.query.trim().toLowerCase();
   if (q) {
@@ -535,8 +618,11 @@ function filteredPresets() {
 
 const LIB_DEFS = [
   { id: 'all', label: 'ทั้งหมด', icon: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>' },
-  { id: 'mine', label: 'ของฉัน', icon: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20v-1a6 6 0 0 1 12 0v1"/><circle cx="10" cy="8" r="4"/><path d="M17 11l1.5 3 3 .5-2.2 2.2.5 3-2.8-1.5-2.8 1.5.5-3L13 13.5l3-.5z"/></svg>' },
+  { id: 'kemper', label: 'KEMPER Rigs', icon: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><circle cx="7" cy="8" r="1.5"/><circle cx="12" cy="8" r="1.5"/><circle cx="17" cy="8" r="1.5"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>' },
+  { id: 'cortex', label: 'Quad Cortex', icon: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><circle cx="6" cy="8" r="1.5"/><circle cx="10" cy="8" r="1.5"/><circle cx="14" cy="8" r="1.5"/><circle cx="18" cy="8" r="1.5"/><circle cx="6" cy="14" r="1.5"/><circle cx="10" cy="14" r="1.5"/><circle cx="14" cy="14" r="1.5"/><circle cx="18" cy="14" r="1.5"/></svg>' },
+  { id: 'mooer', label: 'MOOER GE150', icon: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="2" width="18" height="20" rx="3"/><circle cx="12" cy="7" r="2.5"/><rect x="7" y="13" width="10" height="6" rx="1"/></svg>' },
   { id: 't3k', label: 'จาก TONE3000', icon: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c3 3.5 3 12.5 0 16M12 4c-3 3.5-3 12.5 0 16"/></svg>' },
+  { id: 'mine', label: 'ของฉัน', icon: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20v-1a6 6 0 0 1 12 0v1"/><circle cx="10" cy="8" r="4"/><path d="M17 11l1.5 3 3 .5-2.2 2.2.5 3-2.8-1.5-2.8 1.5.5-3L13 13.5l3-.5z"/></svg>' },
   { id: 'fav', label: 'ชื่นชอบ', icon: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z"/></svg>' },
 ];
 
@@ -548,6 +634,9 @@ function renderLib() {
     all: all.length,
     mine: all.filter((p) => p.type === 'preset' && (p.author === 'User' || String(p.id).startsWith('user_'))).length,
     t3k: all.filter((p) => p.type === 't3k').length,
+    kemper: all.filter((p) => p.type === 'kemper').length,
+    cortex: all.filter((p) => p.type === 'cortex').length,
+    mooer: all.filter((p) => p.type === 'mooer').length,
     fav: all.filter((p) => state.favorites.has(favKey(p))).length,
   };
   el.innerHTML = LIB_DEFS.map((d) => `
@@ -623,14 +712,19 @@ function renderTable() {
   body.querySelectorAll('[data-fav]').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const key = btn.dataset.fav;
-      if (state.favorites.has(key)) state.favorites.delete(key);
-      else state.favorites.add(key);
-      localStorage.setItem('tone.favorites', JSON.stringify([...state.favorites]));
-      renderLib();
-      renderTable();
+      toggleFavorite(list.find((item) => favKey(item) === btn.dataset.fav));
     });
   });
+}
+
+function toggleFavorite(item) {
+  if (!item) return;
+  const key = favKey(item);
+  if (state.favorites.has(key)) state.favorites.delete(key);
+  else state.favorites.add(key);
+  localStorage.setItem('tone.favorites', JSON.stringify([...state.favorites]));
+  renderLib();
+  renderTable();
 }
 
 function findItemByKey(key) {
@@ -648,6 +742,31 @@ function updateTopPreset(item) {
 
 function drow(k, v, mono = false) {
   return `<div class="d-row"><span class="k">${esc(k)}</span><span class="v ${mono ? 'mono' : ''}">${esc(v)}</span></div>`;
+}
+
+function gearBayHTML(item) {
+  const p = item.raw || {};
+  const live = item.type === 't3k-live' ? state.t3kLoaded : null;
+  const image = live?.image || p.image || '';
+  const amp = live?.model || p.amp_name || p.amp_model || item.amp || 'NAM capture';
+  const cab = p.cab_name || p.cab_model || p.cab_fallback || item.cab || 'Cabinet not specified';
+  const preview = state.irPreview;
+  const irAvailable = item.type === 't3k-live'
+    ? !!live?.includes_cab || !!preview?.available
+    : item.type === 't3k' ? !!p.has_real_ir : !!preview?.available;
+  const irName = item.type === 't3k-live'
+    ? (live?.includes_cab ? 'Cabinet included in capture' : preview?.name || 'No embedded cabinet IR')
+    : (item.type === 't3k' && p.has_real_ir ? cab : preview?.name || cab);
+  const waveform = preview?.available && irAvailable
+    ? `<svg class="gear-wave" viewBox="0 0 192 36" role="img" aria-label="IR waveform preview"><path d="${preview.waveform.map((v, i) => `M${i * 2} 18v${Math.max(1, v * 16)}`).join(' ')}"/></svg>`
+    : '';
+  const picture = image
+    ? `<img class="gear-image" src="${esc(image)}" alt="${esc(item.name)} gear image" loading="lazy" referrerpolicy="no-referrer" onerror="this.hidden=true">`
+    : `<div class="gear-no-image" aria-label="ไม่มีภาพจริงของอุปกรณ์">NO IMAGE</div>`;
+  return `<div class="gear-bay" aria-label="แอมป์และตู้ลำโพง">
+    <div class="gear-card">${picture}<div class="gear-info"><span class="gear-label">AMP / CAPTURE</span><strong>${esc(amp)}</strong><span>${esc(live?.gear ? t3kGearLabel(live.gear) : p.ir_mic ? 'Mic · ' + p.ir_mic : 'Gear name')}</span></div></div>
+    <div class="gear-card gear-ir"><div class="gear-info"><span class="gear-label">CABINET / IR</span><strong>${esc(irName)}</strong><span>${irAvailable && preview?.sample_rate ? `${Number(preview.sample_rate).toLocaleString()} Hz · ${preview.duration_ms} ms` : irAvailable ? 'IR included' : 'Synthetic / unavailable'}</span>${waveform}</div></div>
+  </div>`;
 }
 
 function renderDetails(item) {
@@ -732,6 +851,14 @@ function renderDetails(item) {
       </div>`;
   }
 
+  sections = gearBayHTML(item) + sections;
+  if (!state.irPreview) {
+    api('/api/cab/ir-preview').then((preview) => {
+      state.irPreview = preview;
+      if (state.selectedKey === favKey(item) || item.type === 't3k-live') renderDetails(item);
+    }).catch(() => {});
+  }
+
   el.innerHTML = `
     <div class="d-label">${typeLabel}</div>
     <div class="d-name">${esc(item.name)}</div>
@@ -753,12 +880,18 @@ function bindDetailActions() {
 // ── load / save presets ──────────────────────────────────────────────
 async function loadPresetLibrary() {
   try {
-    const [p, t] = await Promise.all([
-      api('/api/presets'),
-      api('/api/tone3000/presets'),
+    const [p, t, m, c, k] = await Promise.all([
+      api('/api/presets').catch(() => ({ presets: [] })),
+      api('/api/tone3000/presets').catch(() => ({ presets: [] })),
+      api('/api/mooer/presets').catch(() => ({ presets: [] })),
+      api('/api/cortex/presets').catch(() => ({ presets: [] })),
+      api('/api/kemper/search?limit=100&include_amp=true').catch(() => ({ results: [] })),
     ]);
     state.presets = p.presets || [];
     state.t3kPresets = t.presets || [];
+    state.mooerPresets = m.presets || [];
+    state.cortexPresets = c.presets || [];
+    state.kemperRigs = k.results || [];
     renderLib();
     renderTable();
     if (state.selectedKey) {
@@ -785,6 +918,29 @@ async function loadPreset(item, opts = {}) {
         body: { id: item.id },
       });
       state.t3kLoaded = null;
+    } else if (item.type === 'mooer') {
+      data = await api('/api/mooer/preset/load', {
+        method: 'POST',
+        body: { preset_name: item.name },
+      });
+      state.t3kLoaded = null;
+    } else if (item.type === 'cortex') {
+      data = await api('/api/cortex/preset/load', {
+        method: 'POST',
+        body: { id: item.id },
+      });
+      state.t3kLoaded = null;
+      if (data.cortex) {
+        state.cortex = data.cortex;
+        renderCortexScenes(state.cortex);
+        updateGigView(state.cortex);
+      }
+    } else if (item.type === 'kemper') {
+      data = await api('/api/kemper/load', {
+        method: 'POST',
+        body: { name: item.name, author: item.author, pack_path: item.pack_path, rig_id: item.rig_id },
+      });
+      state.t3kLoaded = null;
     } else {
       data = await api('/api/preset/load', {
         method: 'POST',
@@ -809,7 +965,6 @@ async function loadPreset(item, opts = {}) {
     renderDetails(item);
     renderChain();
     renderPanel();
-    renderFaceStrip();
     if (!opts.silent) showToast('โหลด “' + item.name + '” แล้ว');
   } catch (err) {
     showToast('โหลดพรีเซ็ตไม่สำเร็จ: ' + err.message, true);
@@ -852,6 +1007,23 @@ async function savePreset(asNew) {
 }
 
 // ── chain / panel ────────────────────────────────────────────────────
+function chainGearVisual(id) {
+  const image = id === 'amp' ? (state.t3kLoaded?.image || '') : '';
+  if (image) return `<img class="cb-gear-image" src="${esc(image)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.hidden=true">`;
+  if (id === 'cab' && state.nam?.includes_cab) {
+    return '<span class="cb-gear-state included" title="Cabinet อยู่ใน NAM capture แล้ว">CAB<br>INCLUDED</span>';
+  }
+  if (id === 'amp' && state.nam) {
+    return `<span class="cb-gear-state">${namGearType() === 'amp-cab' ? 'AMP+CAB' : 'NAM CAPTURE'}</span>`;
+  }
+  if (id === 'cab' && state.irPreview?.waveform?.length) {
+    const bars = state.irPreview.waveform.map((v) => `<i style="height:${Math.max(3, Math.round(v * 24))}px"></i>`).join('');
+    return `<span class="cb-ir-wave" aria-label="IR waveform preview" title="${esc(state.irPreview.name || 'Cabinet IR')}">${bars}</span>`;
+  }
+  if (id === 'cab') return '<span class="cb-gear-state">NO IR PREVIEW</span>';
+  return '';
+}
+
 function renderChain() {
   const chain = $('chain');
   if (!chain) return;
@@ -870,8 +1042,10 @@ function renderChain() {
       ? `<span class="cb-power ${enabled ? '' : 'off'}" data-power="${b.id}" role="button" aria-label="เปิด/ปิด ${blockEn(b.id)}"><i></i></span>`
       : '';
     const t3kBadge = (b.id === 'amp' && state.t3kLoaded) ? '<span class="cb-t3k">T3K</span>' : '';
-    const gearBadge = (b.id === 'amp' && state.nam) ? `<span class="cb-gear">${namGearType() === 'amp-cab' ? 'AMP+CAB' : 'NAM'}</span>` : '';
-    btn.innerHTML = `${power}${t3kBadge}<span class="cb-icon">${blockIcon(b.id)}</span><span class="cb-en">${blockEn(b.id)}</span><span class="cb-sub">${esc(blockSubtitle(b.id))}</span>${gearBadge}`;
+    const visual = b.id === 'amp' || b.id === 'cab' ? chainGearVisual(b.id) : '';
+    btn.classList.toggle('gear-block', b.id === 'amp' || b.id === 'cab');
+    btn.classList.toggle('cab-included', b.id === 'cab' && !!state.nam?.includes_cab);
+    btn.innerHTML = `${power}${t3kBadge}<span class="cb-gear-visual">${visual}</span><span class="cb-icon">${blockIcon(b.id)}</span><span class="cb-en">${blockEn(b.id)}</span><span class="cb-sub">${esc(blockSubtitle(b.id))}</span>`;
     chain.appendChild(btn);
   });
 
@@ -933,7 +1107,7 @@ function renderPanel() {
     knobs.innerHTML = '<div class="t3k-empty">บล็อกนี้ไม่มีพารามิเตอร์ให้ปรับ</div>';
   } else {
     defs.forEach((kd) => {
-      const ctrl = makeKnob(kd, toUi(kd, readServer(kd)), { surface: 'panel', blockId: b.id });
+      const ctrl = makeKnob(kd, toUi(kd, readServer(kd)), { blockId: b.id });
       knobs.appendChild(ctrl.root);
       state.knobControllers.panel.push(ctrl);
     });
@@ -1018,25 +1192,115 @@ function renderPanelSide() {
     return;
   }
   if (b.id === 'cab') {
+    const cab = state.live?.cab || {};
+    const center = Math.round(cab.center ?? 50);
+    const dist = Math.round(cab.distance ?? 20);
+    const tube = (cab.tube || 'OFF').toUpperCase();
+    const mic = (cab.mic || 'SM57').toUpperCase();
+
     side.innerHTML = `
-      <div class="ps-title">IR CAB · PER-BLOCK EQ</div>
-      <div class="ps-file">${esc(state.live?.cab?.ir_name || 'Default IR')}</div>
-      <div class="ps-note">Low Cut / High Cut เป็นparametric EQ ประจำบล็อก IR CAB ตามแนวคิดปลั๊กอิน TONE3000 ปรับได้โดยไม่กระทบเสียงรวม</div>
-      ${drow('Low Cut', 'ตัดความถี่ต่ำ / rumble')}
-      ${drow('High Cut', 'ตัดความถี่สูง / fizz')}
-      ${drow('Mix', 'dry / wet ของ IR')}
-      <div class="ps-actions">
+      <div class="ps-title">3D VIRTUAL MIC &amp; TUBE VOICING</div>
+      <div class="ps-file">${esc(cab.ir_name || 'Default IR')}</div>
+      <div class="cab-3d-wrap">
+        <div class="cab-speaker-stage" id="cabSpeakerStage">
+          <div class="speaker-cone-circle" style="width: 150px; height: 150px;"></div>
+          <div class="speaker-cone-circle" style="width: 90px; height: 90px;"></div>
+          <div class="speaker-dust-cap"></div>
+          <div class="draggable-mic" id="draggableMic" style="left: ${center}%; top: ${dist}%;">MIC</div>
+        </div>
+        <div class="cab-controls-grid">
+          <label class="cab-select-label">Power Tube
+            <select id="cabTubeSelect" class="cab-select-input">
+              <option value="OFF" ${tube==='OFF'?'selected':''}>OFF (Pure IR)</option>
+              <option value="6L6" ${tube==='6L6'?'selected':''}>6L6 (American Punch)</option>
+              <option value="EL34" ${tube==='EL34'?'selected':''}>EL34 (British Mid)</option>
+              <option value="EL84" ${tube==='EL84'?'selected':''}>EL84 (Vox Chime)</option>
+              <option value="6V6" ${tube==='6V6'?'selected':''}>6V6 (Vintage Warm)</option>
+              <option value="KT88" ${tube==='KT88'?'selected':''}>KT88 (Modern High-Headroom)</option>
+            </select>
+          </label>
+          <label class="cab-select-label">Microphone
+            <select id="cabMicSelect" class="cab-select-input">
+              <option value="SM57" ${mic.includes('57')?'selected':''}>Shure SM57</option>
+              <option value="MD421" ${mic.includes('421')?'selected':''}>Sennheiser MD421</option>
+              <option value="U87" ${mic.includes('87')?'selected':''}>Neumann U87</option>
+              <option value="R121" ${mic.includes('121')||mic.includes('RIBBON')?'selected':''}>Royer R-121 (Ribbon)</option>
+            </select>
+          </label>
+        </div>
+        <div class="ps-note">ลากจุดแดง MIC บนดอกลำโพง: แนวนอน = Center/Edge · แนวตั้ง = Distance</div>
+      </div>
+      <div class="ps-actions" style="margin-top:8px;">
         <button class="mini-btn" data-action="load-ir">Load IR</button>
         <button class="mini-btn" data-action="open-t3k">TONE3000</button>
       </div>`;
+
+    attachCabMicDrag();
+    return;
+  }
+  if (b.id === 'eq') {
+    const eq = state.live?.eq || {};
+    const modelId = eq.model_id ?? 5;
+    side.innerHTML = `
+      <div class="ps-title">STUDIO PARAMETRIC EQ CURVE</div>
+      <div class="eq-curve-wrap">
+        <svg class="eq-curve-svg" id="eqCurveSvg" viewBox="0 0 300 120" preserveAspectRatio="none">
+          <line x1="0" y1="60" x2="300" y2="60" stroke="#334155" stroke-dasharray="2,2"/>
+          <line x1="100" y1="0" x2="100" y2="120" stroke="#1e293b" stroke-width="0.5"/>
+          <line x1="200" y1="0" x2="200" y2="120" stroke="#1e293b" stroke-width="0.5"/>
+          <path id="eqCurvePath" d="M 0 60 L 300 60" fill="rgba(56, 189, 248, 0.15)" stroke="#38bdf8" stroke-width="2"/>
+        </svg>
+        <div style="display:flex; justify-content:space-between; font-size:9px; color:#64748b; font-family:monospace;">
+          <span>20 Hz</span><span>1 kHz</span><span>20 kHz</span>
+        </div>
+        <div style="display:flex; gap:4px; margin-top:6px;" id="eqModelBtns">
+          <button class="mini-btn ${modelId===5?'active':''}" data-model="5">5-Band Studio</button>
+          <button class="mini-btn ${modelId===1?'active':''}" data-model="1">Mooer G</button>
+          <button class="mini-btn ${modelId===2?'active':''}" data-model="2">Mooer HM</button>
+        </div>
+      </div>
+      <div class="ps-note">EQ กราฟิกจำลองจาก Quad Cortex globalEQ ตอบสนองความถี่แม่นยำระดับสตูดิโอ</div>`;
+
+    drawEqCurve(eq.curve);
+    attachEqEvents();
+    return;
+  }
+  if (b.id === 'delay') {
+    const ducking = !!state.live?.delay?.ducking;
+    side.innerHTML = `
+      <div class="ps-title">DYNAMIC DUCKING DELAY</div>
+      <div class="ps-note">เมื่อเปิด Ducking หาง Delay จะหลบลงอัตโนมัติขณะดีดโน้ตเร็วๆ ทำให้ยินหัวโน้ตชัดเป๊ะ และพวยพุ่งขึ้นมาเมื่อหยุดดีด</div>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px; background:#141a24; padding:8px; border-radius:6px; border:1px solid #232d3d;">
+        <span style="font-size:11px; font-weight:600; color:#cbd5e1;">เปิด Ducking (หลบเสียงดีด)</span>
+        <input type="checkbox" id="chkDelayDuck" ${ducking?'checked':''} style="width:18px; height:18px; cursor:pointer;">
+      </div>`;
+    $('chkDelayDuck')?.addEventListener('change', (e) => {
+      api('/api/parameter', { method: 'POST', body: { section: 'delay', param: 'ducking', value: e.target.checked } });
+    });
     return;
   }
   if (b.id === 'reverb') {
+    const ducking = !!state.live?.reverb?.ducking;
+    const rtype = String(state.live?.reverb?.type || 'plate').toLowerCase();
+    const rtypeOpts = ['room', 'hall', 'plate', 'cathedral', 'spring']
+      .map((t) => `<option value="${t}" ${rtype === t ? 'selected' : ''}>${t.charAt(0).toUpperCase() + t.slice(1)}</option>`)
+      .join('');
     side.innerHTML = `
-      <div class="ps-title">REVERB · SPACE</div>
-      <div class="ps-note">ปรับ decay, mix และ tone ของห้อง reverberation แบบเรียลไทม์</div>
-      ${drow('Type', state.live?.reverb?.type || 'plate')}
-      ${drow('Tip', 'ใช้ Mix ต่ำ ๆ สำหรับ rhythm')}`;
+      <div class="ps-title">DYNAMIC DUCKING REVERB</div>
+      <label class="cab-select-label">Type
+        <select id="reverbTypeSelect" class="cab-select-input">${rtypeOpts}</select>
+      </label>
+      <div class="ps-note">เมื่อเปิด Ducking มวล Reverb จะลดระดับลงชั่วขณะในระหว่างดีดริฟฟ์เร็วๆ ไม่ทำให้เสียงตีกันเละ (Muddy)</div>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px; background:#141a24; padding:8px; border-radius:6px; border:1px solid #232d3d;">
+        <span style="font-size:11px; font-weight:600; color:#cbd5e1;">เปิด Ducking (หลบเสียงดีด)</span>
+        <input type="checkbox" id="chkReverbDuck" ${ducking?'checked':''} style="width:18px; height:18px; cursor:pointer;">
+      </div>`;
+    $('reverbTypeSelect')?.addEventListener('change', (e) => {
+      api('/api/parameter', { method: 'POST', body: { section: 'reverb', param: 'type', value: e.target.value } });
+    });
+    $('chkReverbDuck')?.addEventListener('change', (e) => {
+      api('/api/parameter', { method: 'POST', body: { section: 'reverb', param: 'ducking', value: e.target.checked } });
+    });
     return;
   }
   if (b.id === 'output') {
@@ -1046,59 +1310,6 @@ function renderPanelSide() {
       ${drow('Tip', 'ถ้าเสียงแตกเกิน ให้ลดที่ AMP Volume ก่อน')}`;
     return;
   }
-}
-
-function renderFaceStrip() {
-  const fs = $('faceStrip');
-  if (!fs) return;
-  fs.innerHTML = '';
-  state.knobControllers.face = [];
-
-  const groups = [];
-  groups.push({ block: 'input', keys: ['trim'] });
-  groups.push({ block: 'gate', keys: ['threshold'] });
-  if (state.showPitch) groups.push({ block: 'pitch', keys: ['semitones', 'glide'] });
-  if (state.nam) groups.push({ block: 'amp', keys: ['input_gain'] });
-  else groups.push({ block: 'amp', keys: ['bass', 'mid', 'treble'] });
-  groups.push({ block: 'cab', keys: ['lowcut', 'highcut'] });
-  groups.push({ block: 'output', keys: ['volume'] });
-
-  let first = true;
-  groups.forEach((g) => {
-    const b = blockById(g.block);
-    const defs = knobsForBlock(g.block).filter((kd) => g.keys.includes(kd.key));
-    if (!defs.length) return;
-    if (!first) {
-      const sep = document.createElement('div');
-      sep.className = 'fs-sep';
-      fs.appendChild(sep);
-    }
-    first = false;
-    const grp = document.createElement('div');
-    grp.className = 'fs-group';
-    grp.dataset.block = g.block;
-
-    defs.forEach((kd, index) => {
-      const wrap = document.createElement('div');
-      wrap.className = 'fs-knob';
-      if (index === 0) {
-        const name = document.createElement('div');
-        name.className = 'fs-block-name';
-        name.textContent = blockEn(g.block);
-        wrap.appendChild(name);
-      }
-      const ctrl = makeKnob(kd, toUi(kd, readServer(kd)), { surface: 'face', blockId: g.block });
-      wrap.appendChild(ctrl.root);
-      grp.appendChild(wrap);
-      state.knobControllers.face.push(ctrl);
-    });
-
-    grp.addEventListener('click', (e) => {
-      if (e.target.closest('.knob')) return;
-      selectBlock(g.block);
-    });
-    fs.appendChild(grp);
-  });
 }
 
 // ── toggle block / status ────────────────────────────────────────────
@@ -1113,7 +1324,6 @@ async function toggleBlock(id) {
     if (id === 'pitch' && !state.showPitch) state.showPitch = true;
     renderChain();
     renderPanel();
-    renderFaceStrip();
   }
 }
 
@@ -1134,6 +1344,49 @@ function buildMeter(el, count = 16) {
   el.innerHTML = Array.from({ length: count }, () => '<i></i>').join('');
 }
 
+// ── audio path helpers ───────────────────────────────────────────────
+// The engine reports the driver's real round-trip latency.  The block
+// deadline (block/sample rate) is only ~2.7 ms and is NOT what the player
+// feels -- showing it alone made a 106 ms fallback path look fast.
+function shortHostApi(name) {
+  if (!name) return '—';
+  if (/wasapi/i.test(name)) return 'WASAPI';
+  if (/asio/i.test(name)) return 'ASIO';
+  if (/wdm-ks/i.test(name)) return 'WDM-KS';
+  if (/directsound/i.test(name)) return 'DSOUND';
+  if (/mme/i.test(name)) return 'MME';
+  return String(name);
+}
+
+function shortenDevice(name, max = 26) {
+  if (!name) return 'system default';
+  const clean = String(name).replace(/\s*\(Line 6[^)]*\)/i, '').trim();
+  return clean.length > max ? clean.slice(0, max - 1) + '…' : clean;
+}
+
+function audioLatencyLevel(ms) {
+  if (ms == null) return '';
+  if (ms <= 15) return 'lat-good';
+  if (ms <= 60) return 'lat-ok';
+  return 'lat-bad';
+}
+
+function audioPathWarning(path) {
+  if (!path || !path.warning) return '';
+  if (path.warning === 'fallback') {
+    const err = path.error ? ' — UX1 เปิดไม่สำเร็จ' : '';
+    return `กำลังใช้การ์ดเสียงเริ่มต้นแทน UX1${err} (หน่วง ${Number(path.reported_io_ms ?? 0).toFixed(0)} ms) เปิด Settings เพื่อเลือกอุปกรณ์`;
+  }
+  if (path.warning === 'dsp_over_budget') {
+    const dsp = Number(path.dsp_avg_ms ?? 0).toFixed(1);
+    return `DSP ใช้ ${dsp} ms/block เกินงบ ${Number(path.buffer_ms ?? 0).toFixed(1)} ms — เสี่ยงเสียงแตก ลองเพิ่ม buffer เป็น 256`;
+  }
+  if (path.warning === 'high_latency') {
+    return `ความหน่วงสูง ${Number(path.reported_io_ms ?? 0).toFixed(0)} ms — ตรวจอุปกรณ์/buffer ใน Settings`;
+  }
+  return '';
+}
+
 function updateStatus(server) {
   state.lastServer = server;
   const sr = Number(server.sample_rate || 48000);
@@ -1141,22 +1394,50 @@ function updateStatus(server) {
   const stats = server.audio_stats || {};
   const deadline = Number(stats.deadline_ms || (bs / sr * 1000));
   const hw = stats.stream_latency || {};
+  const path = server.audio_path || {};
   const sys = server.system || {};
-  const hwLabel = hw.reported_io_ms == null ? 'HW I/O —' : `HW I/O ${Number(hw.reported_io_ms).toFixed(2)} ms`;
+  const ioMs = path.reported_io_ms ?? hw.reported_io_ms;
+  const hwLabel = ioMs == null ? 'HW I/O —' : `HW I/O ${Number(ioMs).toFixed(1)} ms`;
+  const apiShort = shortHostApi(path.output?.hostapi || path.input?.hostapi);
 
-  if ($('spec-sr')) $('spec-sr').textContent = (sr / 1000).toFixed(1) + ' kHz';
-  if ($('spec-block')) $('spec-block').textContent = bs + ' smp';
-  if ($('spec-lat')) $('spec-lat').textContent = hw.reported_io_ms == null ? deadline.toFixed(2) + ' ms' : Number(hw.reported_io_ms).toFixed(2) + ' ms';
+  if ($('spec-path')) {
+    const pathEl = $('spec-path');
+    pathEl.textContent = !server.is_running ? '—' : (path.using_fallback ? 'FALLBACK' : apiShort);
+    pathEl.className = path.using_fallback ? 'lat-bad' : '';
+  }
+  const warnText = audioPathWarning(path);
+  if ($('se-audio-warn')) {
+    $('se-audio-warn').textContent = warnText;
+    $('se-audio-warn').classList.toggle('hidden', !warnText);
+  }
+  if ($('status-audio-warn')) {
+    $('status-audio-warn').textContent = warnText || '';
+    $('status-audio-warn').classList.toggle('hidden', !warnText);
+  }
+  if (warnText && server.is_running && state.lastAudioWarning !== warnText) {
+    state.lastAudioWarning = warnText;
+    showToast(warnText, true);
+  }
+  if (!warnText) state.lastAudioWarning = '';
+
   if ($('status-audio-perf')) {
-    $('status-audio-perf').textContent = `SR ${sr.toLocaleString()} Hz · Buffer ${bs} (${deadline.toFixed(2)} ms) · ${hwLabel} · Max CB ${stats.callback_ms_max ?? 0} ms · XRuns ${Object.values(stats.xruns || {}).reduce((a, b) => a + Number(b || 0), 0)}`;
+    // Short enough to stay on one line at 1280; the full breakdown (device
+    // names, block deadline, max callback) lives in the tooltip.
+    const cbTxt = stats.callback_ms_avg == null
+      ? ''
+      : ` · DSP ${Number(stats.callback_ms_avg).toFixed(2)} ms`;
+    const xruns = Object.values(stats.xruns || {}).reduce((a, b) => a + Number(b || 0), 0);
+    const perf = $('status-audio-perf');
+    perf.textContent = `${hwLabel}${cbTxt} · XRUN ${xruns}`;
+    perf.title = [
+      `SR ${sr.toLocaleString()} Hz`,
+      `block ${bs} smp (${deadline.toFixed(2)} ms)`,
+      path.output?.name ? `${shortenDevice(path.input?.name, 40)} -> ${shortenDevice(path.output?.name, 40)}` : '',
+      stats.callback_ms_max != null ? `max callback ${Number(stats.callback_ms_max).toFixed(2)} ms` : '',
+    ].filter(Boolean).join(' · ');
   }
   if ($('status-system-telemetry')) {
     $('status-system-telemetry').textContent = `CPU ${sys.cpu_percent ?? 0}% · RAM ${sys.ram_mb ?? 0} MB`;
-  }
-  if ($('status-engine-text')) {
-    const devIn = server.input_device ?? 'default';
-    const devOut = server.output_device ?? 'default';
-    $('status-engine-text').textContent = `Audio Engine: ${server.is_running ? 'RUNNING' : 'STOPPED'} · ${devIn} → ${devOut}`;
   }
   if ($('side-engine-state')) {
     $('side-engine-state').textContent = server.is_running ? 'RUNNING' : 'STOPPED';
@@ -1171,6 +1452,20 @@ function updateStatus(server) {
   updateMeter($('meterIn'), server.input_meter);
   updateMeter($('meterOut'), server.output_meter);
   updateTuner(server);
+  if (server.chain) {
+    const previousIrName = state.irPreview?.name;
+    if (!state.irPreview || previousIrName !== server.chain.cab?.ir_name) {
+      api('/api/cab/ir-preview').then((preview) => {
+        state.irPreview = preview;
+        renderChain();
+      }).catch(() => {});
+    }
+  }
+
+  // Gig View meter & tuner mirrors
+  if ($('gigMeterIn')) $('gigMeterIn').style.width = Math.min(100, Math.max(0, server.input_meter || 0)) + '%';
+  if ($('gigMeterOut')) $('gigMeterOut').style.width = Math.min(100, Math.max(0, server.output_meter || 0)) + '%';
+  updateGigTuner(server);
 
   const badge = $('engine-badge');
   if (badge) badge.textContent = state.nam ? ('NAM A' + (state.namArch || '2')) : 'DSP AMP';
@@ -1184,17 +1479,45 @@ function applyServerState(server, opts = {}) {
   state.namKey = state.nam
     ? ((state.nam.stages || []).map((s) => s.title || '').join('|') + '|' + (state.nam.enabled ? '1' : '0') + '|' + (state.nam.includes_cab ? 'cab' : ''))
     : 'none';
+  if (server.t3k_last_load) state.t3kLoaded = server.t3k_last_load;
   state.isRunning = !!server.is_running;
+  if (server.sample_rate !== undefined) state.sampleRate = Number(server.sample_rate);
+  if (server.block_size !== undefined) state.bufferSize = Number(server.block_size);
   if (server.input_device !== undefined) state.selectedIn = server.input_device;
   if (server.output_device !== undefined) state.selectedOut = server.output_device;
+
+  if (server.cortex) {
+    // While a scene click is in flight, keep the optimistic selection so a poll
+    // that raced the request cannot flip the LED back.
+    state.cortex = state.pendingScene == null
+      ? server.cortex
+      : { ...server.cortex, active_scene_index: state.pendingScene };
+    renderCortexScenes(state.cortex);
+    updateGigView(state.cortex, server);
+  }
 
   if (prevNamKey !== state.namKey || opts.forceRender) {
     renderChain();
     renderPanel();
-    renderFaceStrip();
   } else {
     updateChainLive();
     syncKnobs();
+  }
+  if (server.morph && $('morphSlider') && !$('morphSlider').matches(':active')) {
+    const m = server.morph;
+    $('morphSlider').value = Math.round((m.morph_pos || 0) * 100);
+    if ($('morphReadout')) $('morphReadout').textContent = `${Math.round((m.morph_pos || 0) * 100)}% (${(m.morph_pos || 0) < 0.5 ? 'A' : 'B'})`;
+  }
+  if (server.chain?.parallel) {
+    const p = server.chain.parallel;
+    $('btn-parallel-toggle')?.classList.toggle('active', !!p.enabled);
+    if ($('parallelBlendSlider') && !$('parallelBlendSlider').matches(':active')) {
+      $('parallelBlendSlider').value = Math.round((p.blend || 0.3) * 100);
+      if ($('parallelBlendReadout')) $('parallelBlendReadout').textContent = `${Math.round((p.blend || 0.3) * 100)}%`;
+    }
+  }
+  if (state.block === 'eq' && server.chain?.eq?.curve) {
+    drawEqCurve(server.chain.eq.curve);
   }
   updateStatus(server);
 }
@@ -1243,14 +1566,40 @@ async function toggleTuner() {
 }
 
 // ── settings / devices ───────────────────────────────────────────────
+function deviceOptionLabel(d) {
+  const api = shortHostApi(d.hostapi_name);
+  const ch = Number(d.inputs) > 0 ? `${d.inputs} in` : `${d.outputs} out`;
+  const star = /UX1|Line 6/i.test(d.name || '') ? '★ ' : '';
+  return `${star}${d.name} · ${api} · ${ch}`;
+}
+
 function fillSettingsDevices() {
   const inSel = $('modal-select-in');
   const outSel = $('modal-select-out');
   if (!inSel || !outSel) return;
   const inputs = state.devices.inputs || [];
   const outputs = state.devices.outputs || [];
-  inSel.innerHTML = inputs.map((d) => `<option value="${d.id}" ${d.id === state.selectedIn ? 'selected' : ''}>${esc(d.name)}</option>`).join('') || '<option value="">— none —</option>';
-  outSel.innerHTML = outputs.map((d) => `<option value="${d.id}" ${d.id === state.selectedOut ? 'selected' : ''}>${esc(d.name)}</option>`).join('') || '<option value="">— none —</option>';
+  inSel.innerHTML = inputs.map((d) => `<option value="${d.id}" ${d.id === state.selectedIn ? 'selected' : ''}>${esc(deviceOptionLabel(d))}</option>`).join('') || '<option value="">— none —</option>';
+  outSel.innerHTML = outputs.map((d) => `<option value="${d.id}" ${d.id === state.selectedOut ? 'selected' : ''}>${esc(deviceOptionLabel(d))}</option>`).join('') || '<option value="">— none —</option>';
+  updateSettingsAudioNote();
+}
+
+function updateSettingsAudioNote() {
+  const el = $('modal-audio-path-note');
+  if (!el) return;
+  const path = state.lastServer?.audio_path || {};
+  const io = path.reported_io_ms;
+  const api = shortHostApi(path.output?.hostapi || path.input?.hostapi);
+  const rows = [];
+  if (path.using_fallback) {
+    rows.push('<b class="lat-bad">FALLBACK</b> — กำลังใช้การ์ดเสียงเริ่มต้น ไม่ใช่ UX1');
+  } else if (io != null) {
+    rows.push(`สตรีมปัจจุบัน: <b>${esc(api)}</b> · <b class="${audioLatencyLevel(io)}">${Number(io).toFixed(1)} ms</b> round trip`);
+  } else {
+    rows.push('สตรีมยังไม่เปิด — เลือกอุปกรณ์แล้วกด Apply');
+  }
+  if (path.buffer_ms != null) rows.push(`block ${esc(String(state.lastServer?.block_size ?? ''))} smp = ${Number(path.buffer_ms).toFixed(2)} ms`);
+  el.innerHTML = rows.join('<br>');
 }
 
 async function loadDevices() {
@@ -1270,10 +1619,29 @@ async function loadDevices() {
 function openSettings() {
   fillSettingsDevices();
   if ($('sw-show-pitch')) $('sw-show-pitch').checked = state.showPitch;
+
+  // Set sample rate & buffer size from live engine state
+  const curSr = state.sampleRate || Number(state.lastServer?.sample_rate) || 48000;
+  if ($('modal-select-sr')) $('modal-select-sr').value = String(curSr);
+
+  const curBuf = state.bufferSize || Number(state.lastServer?.block_size) || 128;
+  if ($('modal-select-buf')) $('modal-select-buf').value = String(curBuf);
+
+  // Set Input Trim
+  const curTrim = state.live?.chain?.input?.trim_db ?? 0.0;
+  if ($('modal-input-trim')) $('modal-input-trim').value = curTrim;
+  if ($('modal-trim-readout')) $('modal-trim-readout').textContent = (curTrim >= 0 ? '+' : '') + Number(curTrim).toFixed(1) + ' dB';
+
+  // Set Master Volume
+  const curVol = Math.round((state.live?.chain?.master_volume ?? 1.0) * 100);
+  if ($('modal-master-vol')) $('modal-master-vol').value = curVol;
+  if ($('modal-vol-readout')) $('modal-vol-readout').textContent = curVol + '%';
+
   const lite = $('btn-quality-lite');
   const full = $('btn-quality-full');
   if (lite) lite.classList.toggle('active', state.namQuality === 'lite');
   if (full) full.classList.toggle('active', state.namQuality === 'full');
+  updateSettingsAudioNote();
   $('modal-settings')?.classList.remove('hidden');
 }
 
@@ -1284,14 +1652,30 @@ function closeSettings() {
 async function applySettings() {
   const inId = $('modal-select-in')?.value;
   const outId = $('modal-select-out')?.value;
+  const sr = Number($('modal-select-sr')?.value || 48000);
+  const buf = Number($('modal-select-buf')?.value || 128);
+
   try {
-    const data = await api('/api/start', {
+    const data = await api('/api/settings', {
       method: 'POST',
-      body: { input_id: inId === '' ? null : Number(inId), output_id: outId === '' ? null : Number(outId) },
+      body: {
+        input_id: inId === '' ? null : Number(inId),
+        output_id: outId === '' ? null : Number(outId),
+        sample_rate: sr,
+        buffer_size: buf,
+      },
     });
+    state.sampleRate = sr;
+    state.bufferSize = buf;
+    localStorage.setItem('tone.sampleRate', sr);
+    localStorage.setItem('tone.bufferSize', buf);
     if (data.state) applyServerState(data.state, { forceRender: true });
     closeSettings();
-    showToast(data.success ? 'เริ่มเสียงเอ็นจินด้วยอุปกรณ์ใหม่แล้ว' : (data.message || 'เริ่มเอ็นจินไม่สำเร็จ'), !data.success);
+    const realMs = data.state?.audio_path?.reported_io_ms;
+    const latTxt = realMs == null
+      ? `${(buf / sr * 1000).toFixed(1)} ms (buffer)`
+      : `${Number(realMs).toFixed(1)} ms round trip`;
+    showToast(data.success ? `บันทึกแล้ว: ${sr.toLocaleString()} Hz · ${buf} samples · ${latTxt}` : (data.message || 'บันทึกไม่สำเร็จ'), !data.success);
   } catch (err) {
     showToast('Apply settings ไม่สำเร็จ: ' + err.message, true);
   }
@@ -1318,7 +1702,6 @@ function setShowPitch(on) {
   }
   renderChain();
   renderPanel();
-  renderFaceStrip();
 }
 
 // ── local files / context menu ───────────────────────────────────────
@@ -1390,7 +1773,6 @@ async function uploadNAM(file) {
     if (data.state) applyServerState(data.state, { forceRender: true });
     renderChain();
     renderPanel();
-    renderFaceStrip();
     showToast('โหลด NAM “' + file.name + '” เข้า NAM AMP แล้ว');
   } catch (err) {
     showToast(err.message, true);
@@ -1406,9 +1788,9 @@ async function uploadIR(file) {
     if (!res.ok) throw new Error(data.detail || 'อัปโหลด IR ไม่สำเร็จ');
     state.block = 'cab';
     if (data.state) applyServerState(data.state, { forceRender: true });
+    await loadIrPreview();
     renderChain();
     renderPanel();
-    renderFaceStrip();
     showToast('โหลด IR “' + file.name + '” เข้า IR CAB แล้ว');
   } catch (err) {
     showToast(err.message, true);
@@ -1423,7 +1805,7 @@ async function clearBlockFile(blockId) {
       state.namFile = '';
       state.t3kLoaded = null;
       if (data.state) applyServerState(data.state, { forceRender: true });
-      renderChain(); renderPanel(); renderFaceStrip();
+      renderChain(); renderPanel();
       showToast('ล้าง NAM model แล้ว');
     } else if (blockId === 'cab') {
       const data = await sendParamNow('cab', 'ir_name', 'Celestion V30 4x12');
@@ -1444,6 +1826,7 @@ async function pollOnce() {
   try {
     const data = await api('/api/status');
     applyServerState(data);
+    await loadIrPreview();
   } catch (err) {
     /* transient */
   } finally {
@@ -1463,7 +1846,17 @@ function bindEvents() {
       if (state.isRunning) {
         await api('/api/stop', { method: 'POST' });
       } else {
-        const d = await api('/api/start', { method: 'POST', body: {} });
+        const savedSr = state.sampleRate || Number(localStorage.getItem('tone.sampleRate')) || 48000;
+        const savedBuf = state.bufferSize || Number(localStorage.getItem('tone.bufferSize')) || 128;
+        const d = await api('/api/start', {
+          method: 'POST',
+          body: {
+            sample_rate: savedSr,
+            buffer_size: savedBuf,
+            input_id: state.selectedIn,
+            output_id: state.selectedOut
+          }
+        });
         if (d.state) applyServerState(d.state);
       }
       await pollOnce();
@@ -1474,6 +1867,10 @@ function bindEvents() {
   $('btn-tuner-close')?.addEventListener('click', () => { if (state.tunerActive) toggleTuner(); });
 
   $('btn-settings-open')?.addEventListener('click', openSettings);
+  $('btn-refresh-devices')?.addEventListener('click', async () => {
+    await loadDevices();
+    showToast('รีเฟรชรายการอุปกรณ์เสียงแล้ว');
+  });
   $('btn-close-settings')?.addEventListener('click', closeSettings);
   $('btn-apply-settings')?.addEventListener('click', applySettings);
   $('modal-settings')?.addEventListener('click', (e) => { if (e.target.id === 'modal-settings') closeSettings(); });
@@ -1481,8 +1878,40 @@ function bindEvents() {
   $('btn-quality-lite')?.addEventListener('click', () => setNamQuality('lite'));
   $('btn-quality-full')?.addEventListener('click', () => setNamQuality('full'));
 
+  $('modal-input-trim')?.addEventListener('input', (e) => {
+    const v = Number(e.target.value);
+    if ($('modal-trim-readout')) $('modal-trim-readout').textContent = (v >= 0 ? '+' : '') + v.toFixed(1) + ' dB';
+    sendParamNow('input', 'trim', v);
+  });
+
+  $('modal-master-vol')?.addEventListener('input', (e) => {
+    const v = Number(e.target.value);
+    if ($('modal-vol-readout')) $('modal-vol-readout').textContent = v + '%';
+    sendParamNow('master', 'volume', v / 100.0);
+  });
+
   $('btn-save-preset')?.addEventListener('click', () => savePreset(false));
   $('btn-save-as-preset')?.addEventListener('click', () => savePreset(true));
+  $('btn-import-preset')?.addEventListener('click', () => $('universal-file-input')?.click());
+  $('universal-file-input')?.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      showToast(`กำลังนำเข้า ${file.name}...`);
+      const res = await fetch('/api/preset/import', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.detail || 'นำเข้าไม่สำเร็จ');
+      showToast(`นำเข้าสำเร็จ: ${data.name || file.name}`);
+      await loadPresetLibrary();
+      const server = await api('/api/status');
+      applyServerState(server, { forceRender: true });
+    } catch (err) {
+      showToast('นำเข้าไม่สำเร็จ: ' + err.message, true);
+    }
+  });
   $('prevPreset')?.addEventListener('click', stepPreset);
   $('nextPreset')?.addEventListener('click', stepPresetNext);
   $('btn-refresh-lib')?.addEventListener('click', async () => { await loadPresetLibrary(); showToast('รีเฟรชคลังแล้ว'); });
@@ -1592,12 +2021,13 @@ async function boot() {
   buildMeter($('meterOut'));
   bindEvents();
   initT3K();
+  initCortex();
+  initMorphAndParallel();
   renderLib();
   renderTable();
   renderDetails(null);
   renderChain();
   renderPanel();
-  renderFaceStrip();
 
   await loadDevices();
   await loadPresetLibrary();
@@ -2065,11 +2495,11 @@ function renderT3KPager() {
   const total = t3kState.totalPages;
   const first = Math.max(1, page - 2);
   const last = Math.min(total, first + 4);
-  let html = `<button class="t3k-page-btn" data-page="${page - 1}" ${page <= 1 ? 'disabled' : ''}>‹</button>`;
+  let html = `<button class="t3k-page-btn" data-page="${page - 1}" ${page <= 1 ? 'disabled' : ''}><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M15 5l-7 7 7 7\"/></svg></button>`;
   for (let p = first; p <= last; p++) {
     html += `<button class="t3k-page-btn ${p === page ? 'active' : ''}" data-page="${p}">${p}</button>`;
   }
-  html += `<button class="t3k-page-btn" data-page="${page + 1}" ${page >= total ? 'disabled' : ''}>›</button>`;
+  html += `<button class="t3k-page-btn" data-page="${page + 1}" ${page >= total ? 'disabled' : ''}><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M9 5l7 7-7 7\"/></svg></button>`;
   pager.innerHTML = html;
 
   pager.querySelectorAll('.t3k-page-btn').forEach(btn => {
@@ -2148,7 +2578,7 @@ function renderT3KDetail() {
             </select>
           </label>
           <button id="btn-t3k-load" class="t3k-primary" ${models.length ? '' : 'disabled'}>
-            ⚡ โหลดเข้า NAM AMP
+            โหลดเข้า NAM AMP
           </button>
         </div>
         <div class="t3k-detail-note">
@@ -2186,7 +2616,7 @@ async function loadT3KFromBrowser() {
     setTimeout(closeT3K, 900);
   } catch (err) {
     t3kToast(err.message, true);
-    if (btn) { btn.disabled = false; btn.textContent = '⚡ โหลดเข้า NAM AMP'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'โหลดเข้า NAM AMP'; }
   }
 }
 
@@ -2194,6 +2624,17 @@ async function loadT3KFromBrowser() {
 function applyT3KLoad(load, refreshState) {
   if (!load) return;
   state.t3kLoaded = load;
+  state.irPreview = null;
+  api('/api/cab/ir-preview').then((preview) => {
+    state.irPreview = preview;
+    if (state.selectedType === 't3k-live' || state.selectedType === 't3k') {
+      const current = state.selectedKey ? findItemByKey(state.selectedKey) : {
+        type: 't3k-live', id: 't3k-live', name: load.title || 'TONE3000 Tone',
+        category: t3kGearLabel(load.gear), author: load.creator || 'TONE3000', raw: load,
+      };
+      if (current) renderDetails(current);
+    }
+  }).catch(() => {});
   state.namTitle = load.title || load.model || 'TONE3000 capture';
   state.namFile = load.model || '';
   state.namArch = load.fallback_a1 ? '1' : String(load.architecture || '2');
@@ -2222,7 +2663,6 @@ function applyT3KLoad(load, refreshState) {
   renderDetails(item);
   renderChain();
   renderPanel();
-  renderFaceStrip();
 
   // Auto-saved on the server: refresh library so the new T3K preset appears
   // in "ทั้งหมด" / "จาก TONE3000" and mark it as saved (not dirty).
@@ -2306,6 +2746,460 @@ function initT3K() {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && backdrop && !backdrop.classList.contains('hidden')) closeT3K();
   });
+}
+
+
+// ===================================================================
+// NEURAL DSP QUAD CORTEX — SCENE ARCHITECTURE & GIG VIEW
+// ===================================================================
+
+let cortexPresetsList = [];
+
+async function initCortex() {
+  try {
+    const res = await api('/api/cortex/presets');
+    if (res && res.presets) {
+      cortexPresetsList = res.presets;
+      populateCortexPresetSelect(res.presets);
+    }
+  } catch (err) {
+    console.warn('Failed loading Cortex presets:', err);
+  }
+
+  $('cortexPresetSelect')?.addEventListener('change', async (e) => {
+    const presetId = e.target.value;
+    if (!presetId) return;
+    try {
+      const data = await api('/api/cortex/preset/load', {
+        method: 'POST',
+        body: { id: presetId }
+      });
+      if (data.state) applyServerState(data.state, { forceRender: true });
+      showToast(`Loaded Cortex preset: ${data.cortex?.preset_name || presetId}`);
+    } catch (err) {
+      showToast('Error loading Cortex preset: ' + err.message, true);
+    }
+  });
+
+  $('btn-gig-view')?.addEventListener('click', openGigView);
+  $('btn-gig-close')?.addEventListener('click', closeGigView);
+  $('btn-gig-tuner')?.addEventListener('click', toggleGigTuner);
+  $('btn-gig-tuner-off')?.addEventListener('click', toggleGigTuner);
+
+  // Global Keyboard shortcuts: keys 1-8 or A-H to switch scenes, Esc to close Gig View
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    // In Gig View reserve 1–8/A–H for scenes. The editor uses arrows to
+    // navigate presets and F to toggle the selected preset's favourite.
+    if (state.gigViewOpen) {
+      if (e.key === 'Escape') {
+        closeGigView();
+        return;
+      }
+    } else {
+      if (e.key === 'ArrowLeft') { e.preventDefault(); stepPreset(); return; }
+      if (e.key === 'ArrowRight') { e.preventDefault(); stepPresetNext(); return; }
+      if (e.key.toLowerCase() === 'f') {
+        const item = state.selectedKey ? findItemByKey(state.selectedKey) : null;
+        if (item) { e.preventDefault(); toggleFavorite(item); }
+        return;
+      }
+      return;
+    }
+    // Number keys 1-8
+    const num = parseInt(e.key, 10);
+    if (!isNaN(num) && num >= 1 && num <= 8) {
+      selectCortexScene(num - 1);
+      return;
+    }
+    // Letters a-h or A-H
+    const keyLower = e.key.toLowerCase();
+    if (keyLower >= 'a' && keyLower <= 'h' && keyLower.length === 1) {
+      const idx = keyLower.charCodeAt(0) - 97;
+      selectCortexScene(idx);
+    }
+  });
+}
+
+function populateCortexPresetSelect(presets) {
+  const sel = $('cortexPresetSelect');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">-- Cortex Presets --</option>' +
+    presets.map(p => `<option value="${esc(p.id)}">${esc(p.name)} (${esc(p.category || 'Multi-Scene')})</option>`).join('');
+}
+
+// Scene buttons are rebuilt only when labels/colours change; a selection change
+// just moves the .active class, so a click is never swallowed by a re-render.
+const sceneStructSig = (c) =>
+  JSON.stringify([c.preset_name, (c.scenes || []).map((s) => [s.index, s.label])]);
+
+function syncActiveClass(container, selector, attr, activeIdx) {
+  container.querySelectorAll(selector).forEach((el) => {
+    el.classList.toggle('active', parseInt(el.dataset[attr], 10) === activeIdx);
+  });
+}
+
+function renderCortexScenes(cortex) {
+  if (!cortex || !cortex.scenes) return;
+  const container = $('cortexScenesContainer');
+  const nameEl = $('cortexPresetName');
+  if (nameEl) nameEl.textContent = cortex.preset_name || 'Cortex Multi-Scene';
+
+  if (!container) return;
+  const activeIdx = cortex.active_scene_index ?? 0;
+  const sig = sceneStructSig(cortex);
+
+  if (container.dataset.sig !== sig) {
+    container.dataset.sig = sig;
+    container.innerHTML = cortex.scenes.map(sc => `
+      <button class="csb-btn"
+              data-scene-idx="${sc.index}"
+              title="Switch to Scene ${sc.badge}: ${esc(sc.label)}">
+        <span class="csb-led"></span>
+        <span class="csb-badge">${sc.badge}</span>
+        <span class="csb-label">${esc(sc.label)}</span>
+      </button>`).join('');
+  }
+  if (!container.dataset.bound) {
+    container.dataset.bound = '1';
+    container.addEventListener('click', (e) => {
+      const btn = e.target.closest('.csb-btn');
+      if (btn) selectCortexScene(parseInt(btn.dataset.sceneIdx, 10));
+    });
+  }
+  syncActiveClass(container, '.csb-btn', 'sceneIdx', activeIdx);
+}
+
+async function selectCortexScene(idx) {
+  const prev = state.cortex;
+  state.pendingScene = idx;
+  if (prev && prev.scenes) {
+    state.cortex = { ...prev, active_scene_index: idx };
+    renderCortexScenes(state.cortex);
+    updateGigView(state.cortex);
+  }
+  try {
+    const data = await api('/api/cortex/scene/select', {
+      method: 'POST',
+      body: { index: idx }
+    });
+    if (data.state) {
+      applyServerState({ ...data.state, cortex: data.cortex }, { forceRender: true });
+    }
+    const sc = data.active_scene;
+    showToast(`Scene ${sc.badge} activated: ${sc.label}`);
+  } catch (err) {
+    if (state.pendingScene === idx && prev && prev.scenes) {
+      state.cortex = prev;
+      renderCortexScenes(prev);
+      updateGigView(prev);
+    }
+    showToast('Failed switching scene: ' + err.message, true);
+  } finally {
+    if (state.pendingScene === idx) state.pendingScene = null;
+  }
+}
+
+function openGigView() {
+  state.gigViewOpen = true;
+  const modal = $('modal-gig-view');
+  if (modal) modal.classList.remove('hidden');
+  renderGigFootswitches();
+  updateGigTuner(state.lastServer);
+}
+
+function closeGigView() {
+  state.gigViewOpen = false;
+  const modal = $('modal-gig-view');
+  if (modal) modal.classList.add('hidden');
+}
+
+function renderGigFootswitches() {
+  const container = $('gigFootswitches');
+  if (!container || !state.cortex || !state.cortex.scenes) return;
+
+  const scenes = state.cortex.scenes;
+  const activeIdx = state.cortex.active_scene_index ?? 0;
+
+  if ($('gigPresetTitle')) $('gigPresetTitle').textContent = state.cortex.preset_name || 'Cortex Preset';
+  const activeSc = scenes[activeIdx];
+  if ($('gigActiveSceneBadge') && activeSc) {
+    $('gigActiveSceneBadge').textContent = `SCENE ${activeSc.badge} · ${activeSc.label}`;
+  }
+
+  const sig = sceneStructSig(state.cortex);
+  if (container.dataset.sig !== sig) {
+    container.dataset.sig = sig;
+    container.innerHTML = scenes.map(sc => `
+      <div class="gig-fs"
+           data-fs-idx="${sc.index}">
+        <div class="gig-fs-top">
+          <span class="gig-fs-badge">${sc.badge}</span>
+          <div class="gig-fs-ring"></div>
+        </div>
+        <div class="gig-fs-label">${esc(sc.label)}</div>
+      </div>`).join('');
+  }
+  if (!container.dataset.bound) {
+    container.dataset.bound = '1';
+    container.addEventListener('click', (e) => {
+      const el = e.target.closest('.gig-fs');
+      if (el) selectCortexScene(parseInt(el.dataset.fsIdx, 10));
+    });
+  }
+  syncActiveClass(container, '.gig-fs', 'fsIdx', activeIdx);
+}
+
+function updateGigView(cortex, server) {
+  if (!state.gigViewOpen) return;
+  renderGigFootswitches();
+}
+
+// Gig View tuner: big centre read-out shown while the engine tuner is active.
+function updateGigTuner(server) {
+  const tuner = server ? server.tuner : null;
+  const on = !!tuner;
+  const cents = Number(tuner?.cents || 0);
+  const hasNote = on && !!tuner.note && tuner.note !== '--';
+  const inTune = hasNote && Math.abs(cents) <= 5;
+  const set = (id, text) => { const el = $(id); if (el) el.textContent = text; };
+
+  $('gigTunerPanel')?.classList.toggle('hidden', !on);
+  $('btn-gig-tuner')?.classList.toggle('active', on);
+  set('gigTunerNote', hasNote ? tuner.note : '--');
+  set('gigTunerStatus', !on ? 'TUNER OFF' : (hasNote ? `${cents > 0 ? '+' : ''}${cents}c` : 'PLAY STRING'));
+  set('gigTunerBigNote', hasNote ? tuner.note : '--');
+  set('gigTunerBigFreq', on ? Number(tuner.freq || 0).toFixed(1) + ' Hz' : '0.0 Hz');
+  set('gigTunerBigStatus', !hasNote ? 'PLAY STRING' : (inTune ? 'IN TUNE' : (cents > 0 ? 'SHARP' : 'FLAT')));
+  const needle = $('gigTunerNeedle');
+  if (needle) needle.style.left = clamp(50 + cents, 0, 100) + '%';
+  $('gigTunerPanel')?.classList.toggle('in-tune', inTune);
+}
+
+async function toggleGigTuner() {
+  await toggleTuner();
+  updateGigTuner(state.tunerActive ? { tuner: { note: '--', cents: 0, freq: 0 } } : null);
+}
+
+// ===================================================================
+// 3D CAB, STUDIO EQ, MORPHING & PARALLEL ROUTING HELPERS
+// ===================================================================
+
+// Trailing-edge throttle: fires at most once per `ms`, and always delivers the
+// last value so a drag ends on the exact position the user released at.
+function throttle(fn, ms) {
+  let last = 0;
+  let timer = null;
+  let pending = null;
+  return (...args) => {
+    pending = args;
+    const wait = ms - (Date.now() - last);
+    if (wait <= 0) {
+      if (timer) { clearTimeout(timer); timer = null; }
+      last = Date.now();
+      fn(...args);
+    } else if (!timer) {
+      timer = setTimeout(() => {
+        timer = null;
+        last = Date.now();
+        fn(...pending);
+      }, wait);
+    }
+  };
+}
+
+function postParam(section, param, value) {
+  return api('/api/parameter', { method: 'POST', body: { section, param, value } }).catch(() => null);
+}
+
+function attachCabMicDrag() {
+  const stage = $('cabSpeakerStage');
+  const mic = $('draggableMic');
+  if (!stage || !mic) return;
+
+  const sendMic = throttle((center, dist) => {
+    postParam('cab', 'center', center);
+    postParam('cab', 'distance', dist);
+  }, 40);
+
+  function updatePos(e) {
+    const rect = stage.getBoundingClientRect();
+    const x = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+    const y = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
+    const center = Math.round((x / rect.width) * 100);
+    const dist = Math.round((y / rect.height) * 100);
+    mic.style.left = center + '%';
+    mic.style.top = dist + '%';
+    sendMic(center, dist);
+  }
+
+  let dragging = false;
+  stage.addEventListener('pointerdown', (e) => {
+    dragging = true;
+    stage.setPointerCapture(e.pointerId);
+    updatePos(e);
+  });
+  stage.addEventListener('pointermove', (e) => {
+    if (dragging) updatePos(e);
+  });
+  stage.addEventListener('pointerup', () => { dragging = false; });
+  stage.addEventListener('pointercancel', () => { dragging = false; });
+
+  $('cabTubeSelect')?.addEventListener('change', (e) => postParam('cab', 'tube', e.target.value));
+  $('cabMicSelect')?.addEventListener('change', (e) => postParam('cab', 'mic', e.target.value));
+}
+
+function drawEqCurve(curve) {
+  const path = $('eqCurvePath');
+  if (!path || !curve || !curve.length) return;
+  const w = 300;
+  const h = 120;
+  const midY = 60;
+  const maxDb = 16.0;
+
+  let d = `M 0 ${midY} `;
+  curve.forEach((pt, i) => {
+    const x = (i / (curve.length - 1)) * w;
+    const y = midY - (pt.db / maxDb) * (midY - 10);
+    const clampedY = Math.max(5, Math.min(h - 5, y));
+    d += `L ${x.toFixed(1)} ${clampedY.toFixed(1)} `;
+  });
+  d += `L ${w} ${midY} Z`;
+  path.setAttribute('d', d);
+}
+
+function attachEqEvents() {
+  document.querySelectorAll('#eqModelBtns button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const model = parseInt(btn.dataset.model, 10);
+      api('/api/parameter', { method: 'POST', body: { section: 'eq', param: 'model_id', value: model } })
+        .then(res => { if (res && res.state) applyServerState(res.state, { forceRender: true }); })
+        .catch((err) => showToast('เปลี่ยนโมเดล EQ ไม่สำเร็จ: ' + err.message, true));
+    });
+  });
+}
+
+function initMorphAndParallel() {
+  const slider = $('morphSlider');
+  const readout = $('morphReadout');
+  function updateMorphUI(morph) {
+    if (!morph) return;
+    if (slider && Number.isFinite(Number(morph.morph_pos))) {
+      slider.value = String(Math.round(Number(morph.morph_pos) * 100));
+    }
+    if (readout) {
+      const percent = slider ? slider.value : Math.round(Number(morph.morph_pos) * 100);
+      const pos = Number(percent) / 100;
+      readout.textContent = `${percent}% (${pos < 0.5 ? 'A' : 'B'})`;
+      if (slider) slider.setAttribute('aria-valuetext', `${percent} percent, Slot ${pos < 0.5 ? 'A' : 'B'}`);
+    }
+    ['A', 'B'].forEach((slot) => {
+      const badge = $(`morphSlot${slot}Btn`);
+      const values = morph[`slot_${slot.toLowerCase()}`];
+      const isCaptured = morph.captured?.[slot] === true;
+      if (badge && values) {
+        badge.classList.toggle('captured', isCaptured);
+        badge.setAttribute('aria-label', isCaptured
+          ? `Replace saved Morph Slot ${slot}`
+          : `Capture current rig into Morph Slot ${slot}`);
+        badge.title = isCaptured
+          ? `Saved · Gain ${Number(values.amp_gain).toFixed(2)} · Master ${Number(values.amp_master).toFixed(2)}`
+          : `Empty · click to capture current rig into Slot ${slot}`;
+        badge.textContent = isCaptured ? `SAVED ${slot}` : `SAVE ${slot}`;
+      }
+    });
+  };
+  let morphReady = false;
+  const morphReadyPromise = api('/api/morph').then((morph) => {
+    updateMorphUI(morph);
+    morphReady = true;
+    return morph;
+  }).catch((err) => {
+    showToast('โหลดสถานะ Morph ไม่สำเร็จ: ' + err.message, true);
+    return null;
+  });
+  if (slider) {
+    let requestSequence = 0;
+    let pendingPosition = null;
+    let sending = false;
+    const flushMorph = async () => {
+      if (sending || pendingPosition === null) return;
+      if (!morphReady) {
+        await morphReadyPromise;
+        if (!morphReady) return;
+      }
+      sending = true;
+      const position = pendingPosition;
+      pendingPosition = null;
+      const sequence = ++requestSequence;
+      try {
+        const res = await api('/api/morph/set', { method: 'POST', body: { pos: position } });
+        if (sequence === requestSequence && pendingPosition === null) updateMorphUI(res.morph);
+      } catch (err) {
+        if (sequence === requestSequence) showToast('Morph failed: ' + err.message, true);
+      } finally {
+        sending = false;
+        if (pendingPosition !== null) flushMorph();
+      }
+    };
+    slider.addEventListener('input', (e) => {
+      const val = Number(e.target.value) / 100.0;
+      if (readout) readout.textContent = `${e.target.value}% (${val < 0.5 ? 'A' : 'B'})`;
+      slider.setAttribute('aria-valuetext', `${e.target.value} percent, Slot ${val < 0.5 ? 'A' : 'B'}`);
+      pendingPosition = val;
+      flushMorph();
+    });
+  }
+
+  ['A', 'B'].forEach((slot) => {
+    $(`morphSlot${slot}Btn`)?.addEventListener('click', async () => {
+      try {
+        const morph = await morphReadyPromise;
+        if (!morphReady) throw new Error('Morph state is unavailable');
+        if (morph.captured?.[slot] && !window.confirm(`Replace saved Morph Slot ${slot}?`)) return;
+        const res = await api('/api/morph/capture', { method: 'POST', body: { slot } });
+        updateMorphUI(res.morph);
+        showToast(`💾 Saved current rig into Morph Slot ${slot} (${slot === 'A' ? 'Heel' : 'Toe'})`);
+      } catch (err) {
+        showToast(`Could not capture Morph Slot ${slot}: ${err.message}`, true);
+      }
+    });
+    $(`morphSlot${slot}Clear`)?.addEventListener('click', async () => {
+      try {
+        const morph = await morphReadyPromise;
+        if (!morphReady) throw new Error('Morph state is unavailable');
+        if (!morph.captured?.[slot]) return;
+        if (!window.confirm(`Clear saved Morph Slot ${slot}? This will not change the live sound.`)) return;
+        const res = await api(`/api/morph/${slot}`, { method: 'DELETE' });
+        updateMorphUI(res.morph);
+        showToast(`Cleared Morph Slot ${slot}`);
+      } catch (err) {
+        showToast(`Could not clear Morph Slot ${slot}: ${err.message}`, true);
+      }
+    });
+  });
+
+  const pBtn = $('btn-parallel-toggle');
+  if (pBtn) {
+    pBtn.addEventListener('click', () => {
+      const active = !pBtn.classList.contains('active');
+      pBtn.classList.toggle('active', active);
+      postParam('parallel', 'enabled', active);
+      showToast(`Parallel Dual Path: ${active ? 'ENABLED' : 'DISABLED'}`);
+    });
+  }
+
+  const pSlider = $('parallelBlendSlider');
+  const pReadout = $('parallelBlendReadout');
+  if (pSlider) {
+    const sendBlend = throttle((val) => postParam('parallel', 'blend', val), 40);
+    pSlider.addEventListener('input', (e) => {
+      const val = Number(e.target.value) / 100.0;
+      if (pReadout) pReadout.textContent = `${e.target.value}%`;
+      sendBlend(val);
+    });
+  }
 }
 
 

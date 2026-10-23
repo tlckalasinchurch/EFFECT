@@ -4,10 +4,13 @@ from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel
 import html
+import json
 import os
 import re
 import logging
 import threading
+import time
+import uvicorn
 import webbrowser
 
 import config
@@ -15,6 +18,7 @@ import t3k_fastapi as t3k
 from setup_logging import get_logger
 
 from engine.audio import AudioEngine
+from engine import param_access
 from engine.presets import get_all_presets, save_preset
 from urllib.parse import quote
 from engine import user_library
@@ -28,22 +32,41 @@ from engine.kemper_importer import (
     get_rig,
     get_rig_for_export,
     find_pack_path,
+    read_single_kipr,
+    get_custom_kipr_files,
 )
 from engine.tone3000_importer import list_tone3000_presets, get_real_cab_ir, get_nam_chain
+from engine.mooer_models import MODULE_CATALOG, AMP_MODELS, CAB_MODELS, DS_MODELS, EQ_MODELS, MOD_MODELS
+from engine.mooer_preset import parse_mo_preset, export_mo_preset, mo_to_workstation_preset, FACTORY_GE150_PRESETS, get_all_mooer_presets
+from engine.cortex_models import SCENE_COLORS, DEFAULT_SCENE_LABELS, FACTORY_CORTEX_PRESETS
+from engine.cortex_scenes import CortexSceneManager
+from engine.midi_in import MidiSceneListener
+from engine.morph import MorphController
 
 # Setup logger
 logger = get_logger(__name__)
 
 app = FastAPI(title="กดจนหลอนTone")
-engine = AudioEngine()
+engine = AudioEngine(
+    sample_rate=config.SAMPLE_RATE,
+    block_size=config.BUFFER_SIZE,
+    preferred_input=config.DEFAULT_INPUT_DEVICE,
+    preferred_output=config.DEFAULT_OUTPUT_DEVICE,
+    preferred_input_name=config.DEFAULT_INPUT_NAME,
+    preferred_output_name=config.DEFAULT_OUTPUT_NAME,
+)
+cortex_mgr = CortexSceneManager()
+morph_mgr = MorphController(db_path=str(config.DB_PATH))
 
 WEB_DIR = config.WEB_DIR
 
-# Guards engine state that the realtime audio thread reads while an
-# HTTP handler writes it.
+# Serialises HTTP/MIDI handlers that write engine state against each other.
+# The audio callback takes neither this lock nor _CAB_IR_LOCK, so they do NOT
+# protect what it reads; several writers (e.g. /api/parameter) take no lock.
 ENGINE_STATE_LOCK = threading.RLock()
 
-# A cab IR swap must not race the audio callback that reads cab.ir_data / cab.zi.
+# Serialises cab IR swaps against the IR upload endpoints (writer vs writer).
+# The audio callback does not take it.
 _CAB_IR_LOCK = threading.RLock()
 
 class ParamUpdate(BaseModel):
@@ -62,7 +85,10 @@ class PresetSave(BaseModel):
 
 @app.get("/api/status")
 def get_status():
-    return engine.get_state()
+    st = engine.get_state()
+    st["cortex"] = cortex_mgr.get_state()
+    st["morph"] = morph_mgr.get_state()
+    return st
 
 @app.get("/api/devices")
 def get_devices():
@@ -73,12 +99,90 @@ def get_devices():
         "is_running": engine.is_running
     }
 
+@app.get("/api/settings")
+def get_audio_settings():
+    path = engine.audio_path_info()
+    # ``latency_ms`` is the real driver-reported round trip, not just the
+    # block deadline: the deadline alone (2.67 ms at 48k/128) made a 106 ms
+    # fallback path look fast in the UI.
+    latency_ms = path.get("reported_io_ms")
+    if latency_ms is None:
+        latency_ms = round((engine.block_size / engine.sample_rate) * 1000, 2)
+    return {
+        "sample_rate": engine.sample_rate,
+        "buffer_size": engine.block_size,
+        "input_device": engine.input_device,
+        "output_device": engine.output_device,
+        "latency_ms": latency_ms,
+        "buffer_ms": path.get("buffer_ms"),
+        "audio_path": path,
+    }
+
+
+def persist_audio_path():
+    """Store sample rate, buffer and the *user's* device pair.
+
+    Names are stored alongside the PortAudio indices because the indices are
+    not stable.  The fallback pair is never saved: while ``using_fallback`` is
+    set, ``audio_path_info()`` describes the system default devices, so saving
+    them would replace the user's real choice with whatever Windows picked --
+    one UX1 dropout would pin the 107 ms path permanently.
+    """
+    path = engine.audio_path_info()
+    devices = {}
+    if not path["using_fallback"]:
+        devices = {
+            "input_device": path["input"]["id"],
+            "output_device": path["output"]["id"],
+            "input_name": path["input"]["name"],
+            "output_name": path["output"]["name"],
+        }
+    config.save_audio_settings(
+        sample_rate=engine.sample_rate,
+        buffer_size=engine.block_size,
+        **devices,
+    )
+
+@app.post("/api/settings")
+def update_audio_settings(data: dict):
+    sr = data.get("sample_rate")
+    buf = data.get("buffer_size", data.get("block_size"))
+    in_id = data.get("input_id")
+    out_id = data.get("output_id")
+
+    if sr:
+        with ENGINE_STATE_LOCK:
+            engine.apply_sample_rate(int(sr))
+    if buf:
+        engine.block_size = int(buf)
+    if in_id is not None or out_id is not None:
+        engine.select_devices(in_id, out_id)
+
+    if engine.is_running:
+        success, msg = engine.start(
+            input_id=engine.input_device,
+            output_id=engine.output_device,
+            sample_rate=engine.sample_rate,
+            block_size=engine.block_size
+        )
+        persist_audio_path()
+        return {"success": success, "message": msg, "state": engine.get_state()}
+
+    persist_audio_path()
+    return {"success": True, "message": f"Settings saved: {engine.sample_rate}Hz / {engine.block_size} samples", "state": engine.get_state()}
+
 @app.post("/api/start")
 def start_engine(data: dict = None):
     data = data or {}
     in_id = data.get("input_id", data.get("input_device"))
     out_id = data.get("output_id", data.get("output_device"))
-    success, msg = engine.start(input_id=in_id, output_id=out_id)
+    sr = data.get("sample_rate")
+    buf = data.get("buffer_size", data.get("block_size"))
+
+    success, msg = engine.start(input_id=in_id, output_id=out_id, sample_rate=sr, block_size=buf)
+    # Persist what actually opened: start() may have resolved a stale index or
+    # replaced the pair with the detected UX1.
+    persist_audio_path()
     return {"success": success, "message": msg, "state": engine.get_state()}
 
 @app.post("/api/stop")
@@ -92,77 +196,42 @@ def toggle_tuner(data: dict):
     engine.tuner_active = active
     return {"tuner_active": engine.tuner_active}
 
+def _is_known_parameter(section: str, param: str) -> bool:
+    """True when engine/params.py declares this (section, parameter) pair."""
+    try:
+        param_access.resolve(section, param)
+    except (KeyError, param_access.ServerOwnedParameter):
+        return False
+    return True
+
+
 @app.post("/api/parameter")
 def update_parameter(req: ParamUpdate):
-    sec = req.section
-    p = req.param
-    val = req.value
+    try:
+        sec = req.section
+        p = req.param
+        val = req.value
     
-    chain = engine.chain
-    if sec == "master":
-        if p == "volume": chain.master_volume = float(val)
-    elif sec == "input":
-        if p == "trim":
-            chain.input_trim_db = max(-24.0, min(24.0, float(val)))
-    elif sec == "gate":
-        if p == "enabled": chain.noise_gate.enabled = bool(val)
-        elif p == "threshold": chain.noise_gate.threshold_db = float(val)
-        elif p == "hold": chain.noise_gate.hold_ms = float(val)
-        elif p == "range": chain.noise_gate.range_db = float(val)
-        elif p == "release":
-            chain.noise_gate.release_ms = float(val)
-            chain.noise_gate.set_timing(chain.noise_gate.attack_ms, chain.noise_gate.release_ms)
-    elif sec == "screamer":
-        if p == "enabled": chain.screamer.enabled = bool(val)
-        elif p == "drive": chain.screamer.drive = float(val)
-        elif p == "tone": 
-            chain.screamer.tone = float(val)
-            chain.screamer._update_filter()
-        elif p == "level": chain.screamer.level = float(val)
-    elif sec == "amp":
-        if p == "enabled": chain.amp.enabled = bool(val)
-        elif p == "gain": chain.amp.gain = float(val)
-        elif p == "bass": chain.amp.bass = float(val)
-        elif p == "mid": chain.amp.mid = float(val)
-        elif p == "treble": chain.amp.treble = float(val)
-        elif p == "presence": chain.amp.presence = float(val)
-        elif p == "master": chain.amp.master = float(val)
-        elif p in ("model", "tone_stack"): chain.amp.model = str(val)
-        elif p == "bright": chain.amp.bright = bool(val)
-    elif sec == "cab":
-        if p == "enabled": chain.cab.enabled = bool(val)
-        elif p == "level": chain.cab.level = float(val)
-        elif p == "lowcut": chain.cab.set_cutoffs(lowcut_hz=float(val))
-        elif p == "highcut": chain.cab.set_cutoffs(highcut_hz=float(val))
-        elif p == "mix": chain.cab.mix = max(0.0, min(1.0, float(val)))
-        elif p == "ir_name":
-            with _CAB_IR_LOCK:
-                chain.cab.select_cab(str(val))
-    elif sec == "delay":
-        if p == "enabled": chain.delay.enabled = bool(val)
-        elif p == "time": chain.delay.time_sec = float(val)
-        elif p == "feedback": chain.delay.feedback = float(val)
-        elif p == "mix": chain.delay.mix = float(val)
-    elif sec == "reverb":
-        if p == "enabled": chain.reverb.enabled = bool(val)
-        elif p == "decay": chain.reverb.decay = float(val)
-        elif p == "mix": chain.reverb.mix = float(val)
-        elif p == "tone": chain.reverb.tone = float(val)
-        elif p == "type": chain.reverb.reverb_type = str(val)
-    elif sec == "pitch":
-        if p == "enabled": chain.pitch_shifter.enabled = bool(val)
-        elif p == "semitones": chain.pitch_shifter.set_semitones(float(val))
-        elif p == "cents": chain.pitch_shifter.cents = float(val)
-        elif p == "glide": chain.pitch_shifter.set_glide(float(val))
-        elif p == "mix": chain.pitch_shifter.mix = float(val)
-    elif sec == "nam":
-        global _NAM_QUALITY
-        if p == "quality" and str(val) in ("lite", "full"):
-            _NAM_QUALITY = str(val)
-        elif p == "enabled" and chain.nam is not None:
-            chain.nam.enabled = bool(val)
-        elif p == "input_gain" and chain.nam is not None:
-            chain.nam.set_input_gain_db(float(val))
+        chain = engine.chain
+        if sec == "nam":
+            # NAM is optional and its build quality is not a DSP value at all, so it
+            # keeps the guarded branch the registry cannot express.
+            global _NAM_QUALITY
+            if p == "quality" and str(val) in ("lite", "full"):
+                _NAM_QUALITY = str(val)
+            elif chain.nam is not None and _is_known_parameter(sec, p):
+                param_access.set(chain, sec, p, val)
+        elif _is_known_parameter(sec, p):
+            if sec == "cab" and p == "ir_name":
+                # The IR swap is the one write that must hold the same lock as the IR
+                # upload endpoints, which live in this module rather than in the DSP.
+                param_access.set(chain, sec, p, val, lock=_CAB_IR_LOCK)
+            else:
+                param_access.set(chain, sec, p, val)
+        # A section or parameter the registry does not know has always been a silent
+        # no-op here; keep that instead of turning a stray knob into a 500.
+    except param_access.NonFiniteValue as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     return {"success": True, "state": engine.get_state()}
 
@@ -264,6 +333,317 @@ def create_preset(req: PresetSave):
         curr_state["_t3k"] = _t3k_metadata(last_load)
     save_preset(req.id, req.name, req.category, req.author, curr_state)
     return {"success": True, "message": "Preset saved"}
+
+
+# ---------------------------------------------------------------------------
+# MOOER GE150 Reverse-Engineered Endpoints
+# ---------------------------------------------------------------------------
+@app.get("/api/mooer/models")
+def get_mooer_models():
+    """Returns the complete 9-stage GE150 model catalog cloned from factory specs."""
+    return {"catalog": MODULE_CATALOG}
+
+@app.get("/api/mooer/presets")
+def get_mooer_presets():
+    """Returns factory and installed MOOER GE150 presets."""
+    all_mo = get_all_mooer_presets()
+    formatted = [mo_to_workstation_preset(p) for p in all_mo]
+    return {"presets": formatted}
+
+@app.post("/api/mooer/preset/load")
+def load_mooer_preset(data: dict):
+    """Loads a factory or user MOOER preset by name or index into the live audio engine."""
+    all_mo = get_all_mooer_presets()
+    name = data.get("name") or data.get("preset_name")
+    target = next((p for p in all_mo if p.get("preset_name") == name or p.get("name") == name), None)
+    if not target and "index" in data:
+        idx = int(data["index"])
+        if 0 <= idx < len(all_mo):
+            target = all_mo[idx]
+    if not target:
+        raise HTTPException(status_code=404, detail="MOOER preset not found")
+
+    with ENGINE_STATE_LOCK:
+        engine.chain.nam = None
+        engine.chain.apply_mooer_preset(target)
+    return {"success": True, "preset": mo_to_workstation_preset(target), "state": engine.get_state()}
+
+@app.post("/api/mooer/import")
+async def import_mooer_preset_file(file: UploadFile = File(...)):
+    """Upload, save, and load a .mo preset file directly from MOOER GE150."""
+    content = await file.read()
+    try:
+        mo_doc = parse_mo_preset(content.decode("utf-8"))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid .mo preset format: {e}")
+
+    # Persist to custom_mooer folder
+    safe_name = re.sub(r"[^\w\-. ]", "_", mo_doc.get("preset_name") or "custom_mo").strip()
+    save_path = config.CUSTOM_MOOER_DIR / f"{safe_name}.mo"
+    try:
+        save_path.write_bytes(content)
+    except Exception as e:
+        logger.warning(f"Could not persist uploaded .mo to disk: {e}")
+
+    with ENGINE_STATE_LOCK:
+        engine.chain.nam = None
+        engine.chain.apply_mooer_preset(mo_doc)
+    return {"success": True, "preset": mo_to_workstation_preset(mo_doc), "state": engine.get_state()}
+
+@app.get("/api/mooer/export")
+def export_current_to_mooer(name: str = "Custom Preset"):
+    """Export current workstation chain state to a valid .mo GE150 JSON file."""
+    state = engine.get_state()["chain"]
+    mo_json = export_mo_preset(name, state)
+    return JSONResponse(
+        content=json.loads(mo_json),
+        headers={"Content-Disposition": f'attachment; filename="{name[:16]}.mo"'}
+    )
+
+
+# ---------------------------------------------------------------------------
+# Neural DSP Quad Cortex Scene Architecture Endpoints
+# ---------------------------------------------------------------------------
+def _midi_select_scene(idx: int):
+    with ENGINE_STATE_LOCK:
+        cortex_mgr.set_active_scene(idx, chain=engine.chain)
+
+
+_midi_listener = MidiSceneListener(_midi_select_scene)
+
+
+@app.on_event("startup")
+def _start_midi():
+    _midi_listener.start()
+
+
+@app.on_event("shutdown")
+def _stop_midi():
+    _midi_listener.stop()
+
+
+@app.get("/api/cortex/scenes")
+def get_cortex_scenes():
+    """Returns the 8 scenes (A to H), active scene, and color palette."""
+    return cortex_mgr.get_state()
+
+
+@app.post("/api/cortex/scene/select")
+def select_cortex_scene(data: dict):
+    """Seamlessly switch between Scene A through H with zero audio glitch."""
+    idx = int(data.get("index", 0))
+    with ENGINE_STATE_LOCK:
+        active = cortex_mgr.set_active_scene(idx, chain=engine.chain)
+    return {"success": True, "active_scene": active, "state": engine.get_state(), "cortex": cortex_mgr.get_state()}
+
+
+@app.post("/api/cortex/scene/update")
+def update_cortex_scene(data: dict):
+    """Update label, color, block bypasses, or parameter overrides for a specific scene."""
+    idx = int(data.get("index", 0))
+    label = data.get("label")
+    color = data.get("color")
+    bypasses = data.get("bypasses")
+    param_overrides = data.get("param_overrides")
+    with ENGINE_STATE_LOCK:
+        updated = cortex_mgr.update_scene(
+            idx,
+            label=label,
+            color_hex=color,
+            bypasses=bypasses,
+            param_overrides=param_overrides,
+            chain=engine.chain
+        )
+    return {"success": True, "scene": updated, "cortex": cortex_mgr.get_state()}
+
+
+@app.get("/api/cortex/presets")
+def get_cortex_presets():
+    """Returns all factory and multi-scene Cortex presets."""
+    return {"presets": cortex_mgr.get_presets()}
+
+
+@app.post("/api/cortex/preset/load")
+def load_cortex_preset_endpoint(data: dict):
+    """Loads a multi-scene Cortex preset and activates its default scene."""
+    preset_id = data.get("id") or data.get("preset_id")
+    target = next((p for p in cortex_mgr.get_presets() if p["id"] == preset_id or p["name"] == preset_id), None)
+    if not target and "index" in data:
+        idx = int(data["index"])
+        presets = cortex_mgr.get_presets()
+        if 0 <= idx < len(presets):
+            target = presets[idx]
+    if not target:
+        raise HTTPException(status_code=404, detail="Cortex preset not found")
+
+    with ENGINE_STATE_LOCK:
+        engine.chain.nam = None
+        cortex_state = cortex_mgr.load_preset(target, chain=engine.chain)
+    return {"success": True, "cortex": cortex_state, "state": engine.get_state()}
+
+
+@app.get("/api/cortex/export")
+def export_cortex_preset(name: str = "Cortex Preset"):
+    """Export current scenes and workstation chain state into a Cortex-compatible multi-scene JSON format."""
+    state = engine.get_state()["chain"]
+    doc = {
+        "id": f"cortex_{name.lower().replace(' ', '_')}",
+        "name": name,
+        "author": "NAM Workstation",
+        "category": "Custom Multi-Scene",
+        "default_scene": cortex_mgr.active_scene_index,
+        "base_settings": state,
+        "scenes": cortex_mgr.get_scenes(),
+    }
+    return JSONResponse(
+        content=doc,
+        headers={"Content-Disposition": f'attachment; filename="{name[:20]}.cortex.json"'}
+    )
+
+
+@app.post("/api/cortex/import")
+async def import_cortex_preset_file(file: UploadFile = File(...)):
+    """Upload, save, and load a Quad Cortex multi-scene preset file (.cortex.json)."""
+    content = await file.read()
+    try:
+        doc = json.loads(content.decode("utf-8"))
+        if not isinstance(doc, dict) or "name" not in doc or "scenes" not in doc:
+            raise ValueError("Cortex preset must contain 'name' and 'scenes'")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid .cortex.json format: {e}")
+
+    safe_name = re.sub(r"[^\w\-. ]", "_", doc.get("name") or "custom_cortex").strip()
+    save_path = config.CUSTOM_CORTEX_DIR / f"{safe_name}.cortex.json"
+    try:
+        save_path.write_bytes(content)
+    except Exception as e:
+        logger.warning(f"Could not persist uploaded cortex preset: {e}")
+
+    with ENGINE_STATE_LOCK:
+        engine.chain.nam = None
+        cortex_state = cortex_mgr.load_preset(doc, chain=engine.chain)
+    return {"success": True, "cortex": cortex_state, "state": engine.get_state()}
+
+
+@app.post("/api/kemper/import")
+async def import_kemper_file(file: UploadFile = File(...)):
+    """Upload a Kemper .rigpack or .kipr file, saving to custom_rigs and loading immediately."""
+    filename = file.filename or "uploaded.kipr"
+    content = await file.read()
+    safe_name = re.sub(r"[^\w\-. ]", "_", filename).strip()
+    save_path = config.CUSTOM_RIGS_DIR / safe_name
+    save_path.write_bytes(content)
+
+    if filename.lower().endswith(".kipr"):
+        info = read_single_kipr(str(save_path))
+        if not info:
+            raise HTTPException(status_code=400, detail="Failed to decode .kipr SysEx data")
+        
+        # Load into engine
+        chain = engine.chain
+        with ENGINE_STATE_LOCK:
+            chain.nam = None
+            params = info.get("params") or {}
+            for field, value in params.items():
+                if hasattr(chain.amp, field):
+                    setattr(chain.amp, field, value)
+        return {
+            "success": True,
+            "type": "kipr",
+            "name": info["name"],
+            "author": info["author"],
+            "amp": info["amp"],
+            "state": engine.get_state(),
+        }
+    elif filename.lower().endswith(".rigpack"):
+        return {
+            "success": True,
+            "type": "rigpack",
+            "filename": safe_name,
+            "message": "RigPack imported successfully into library.",
+        }
+    else:
+        raise HTTPException(status_code=400, detail="Expected .rigpack or .kipr file")
+
+
+@app.post("/api/preset/import")
+async def universal_preset_import(file: UploadFile = File(...)):
+    """
+    Universal importer that automatically detects file extension:
+    .mo          -> MOOER GE150 preset
+    .rigpack     -> KEMPER RigPack
+    .kipr        -> KEMPER Rig profile
+    .cortex.json -> Quad Cortex multi-scene preset
+    .nam         -> Neural Amp Modeler model
+    .wav         -> Cabinet Impulse Response
+    """
+    filename = (file.filename or "").lower()
+    if filename.endswith(".mo"):
+        return await import_mooer_preset_file(file)
+    elif filename.endswith(".cortex.json") or (filename.endswith(".json") and "cortex" in filename):
+        return await import_cortex_preset_file(file)
+    elif filename.endswith(".rigpack") or filename.endswith(".kipr"):
+        return await import_kemper_file(file)
+    elif filename.endswith(".nam"):
+        return await upload_nam_model(file)
+    elif filename.endswith(".wav"):
+        return await load_custom_ir(file)
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported format: {file.filename}. Supported: .mo, .rigpack, .kipr, .cortex.json, .nam, .wav"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Kemper Rig Morphing & Studio EQ Endpoints
+# ---------------------------------------------------------------------------
+@app.get("/api/morph")
+def get_morph_state():
+    """Returns current morph position, Slot A, and Slot B parameters."""
+    return morph_mgr.get_state()
+
+
+@app.post("/api/morph/set")
+def set_morph_position(data: dict):
+    """Sets continuous morph position (0.0 Heel to 1.0 Toe)."""
+    try:
+        pos = float(data.get("pos", data.get("position", 0.0)))
+        with ENGINE_STATE_LOCK:
+            st = morph_mgr.set_morph(pos, chain=engine.chain)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"success": True, "morph": st, "state": engine.get_state()}
+
+
+@app.post("/api/morph/capture")
+def capture_morph_slot(data: dict):
+    """Captures live chain state into Slot A or Slot B."""
+    slot = str(data.get("slot", "A"))
+    try:
+        with ENGINE_STATE_LOCK:
+            st = morph_mgr.capture_slot(slot, chain=engine.chain)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"success": True, "morph": st}
+
+
+@app.delete("/api/morph/{slot}")
+def clear_morph_slot(slot: str):
+    """Clear a saved A/B snapshot without changing the live audio chain."""
+    try:
+        with ENGINE_STATE_LOCK:
+            st = morph_mgr.clear_slot(slot)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"success": True, "morph": st}
+
+
+@app.get("/api/eq/curve")
+def get_eq_curve():
+    """Returns composite 64-point frequency response curve for display."""
+    curve = engine.chain.eq.get_curve_points() if hasattr(engine.chain.eq, "get_curve_points") else []
+    return {"curve": curve}
 
 class KemperRigLoad(BaseModel):
     name: str
@@ -592,6 +972,34 @@ class Tone3000Load(BaseModel):
 @app.get("/api/tone3000/presets")
 def get_tone3000_presets():
     return {"presets": list_tone3000_presets()}
+
+
+@app.get("/api/cab/ir-preview")
+def get_cab_ir_preview():
+    """Return a compact, read-only view of the currently loaded cabinet IR."""
+    cab = engine.chain.cab
+    samples = getattr(cab, "ir_data", None)
+    if samples is None or len(samples) == 0:
+        return {"available": False, "name": getattr(cab, "ir_name", "")}
+
+    import numpy as np
+    values = np.asarray(samples, dtype=np.float32).reshape(-1)
+    # Peak-envelope decimation: bounded payload and useful transient shape.
+    bins = 96
+    edges = np.linspace(0, len(values), bins + 1, dtype=np.int64)
+    envelope = [float(np.max(np.abs(values[edges[i]:max(edges[i] + 1, edges[i + 1])])))
+                for i in range(bins)]
+    peak = max(envelope) or 1.0
+    waveform = [round(value / peak, 4) for value in envelope]
+    rate = int(getattr(cab, "sample_rate", config.SAMPLE_RATE))
+    return {
+        "available": True,
+        "name": str(getattr(cab, "ir_name", "Cabinet IR")),
+        "sample_rate": rate,
+        "samples": int(len(values)),
+        "duration_ms": round(len(values) * 1000 / rate, 2) if rate else None,
+        "waveform": waveform,
+    }
 
 
 @app.post("/api/tone3000/load")
@@ -1223,35 +1631,91 @@ def _t3k_result_page(ok: bool, title: str, message: str, info: dict | None = Non
 </body></html>"""
 
 
+_SERVER_CALLBACK_CACHE: dict[str, tuple[float, HTMLResponse]] = {}
+_SERVER_CALLBACK_LOCK = threading.RLock()
+_SERVER_CALLBACK_IN_FLIGHT: dict[str, threading.Event] = {}
+
+
 @app.get("/api/t3k/callback", response_class=HTMLResponse)
 def t3k_callback(request: Request):
     query = {k: v for k, v in request.query_params.items()}
+    code = query.get("code")
+    state = query.get("state")
+    cache_key = str(code).strip() if code else (str(state).strip() if state else None)
+
+    # Prevent duplicate callback invocations from consuming single-use authorization code twice
+    if cache_key:
+        with _SERVER_CALLBACK_LOCK:
+            now = time.time()
+            for k in list(_SERVER_CALLBACK_CACHE.keys()):
+                if _SERVER_CALLBACK_CACHE[k][0] < now - 900:
+                    _SERVER_CALLBACK_CACHE.pop(k, None)
+
+            if cache_key in _SERVER_CALLBACK_CACHE:
+                logger.info("Serving cached callback HTML response for key: %s", cache_key)
+                return _SERVER_CALLBACK_CACHE[cache_key][1]
+
+            in_flight = _SERVER_CALLBACK_IN_FLIGHT.get(cache_key)
+
+        if in_flight is not None:
+            in_flight.wait(timeout=30)
+            with _SERVER_CALLBACK_LOCK:
+                if cache_key in _SERVER_CALLBACK_CACHE:
+                    return _SERVER_CALLBACK_CACHE[cache_key][1]
+
+    event = threading.Event()
+    if cache_key:
+        with _SERVER_CALLBACK_LOCK:
+            _SERVER_CALLBACK_IN_FLIGHT[cache_key] = event
+
     try:
-        result = t3k.handle_callback(query)
-    except t3k.T3KError as exc:
-        logger.warning("TONE3000 callback rejected: %s", exc)
-        return HTMLResponse(_t3k_result_page(False, "เชื่อมต่อไม่สำเร็จ", str(exc)), status_code=400)
+        try:
+            result = t3k.handle_callback(query)
+        except t3k.T3KError as exc:
+            upstream_detail = getattr(exc, "response_text", None) or getattr(exc, "details", None)
+            if upstream_detail:
+                logger.warning("TONE3000 callback rejected: %s (upstream: %s)", exc, upstream_detail)
+            else:
+                logger.warning("TONE3000 callback rejected: %s", exc)
+            return HTMLResponse(_t3k_result_page(False, "เชื่อมต่อไม่สำเร็จ", str(exc)), status_code=400)
 
-    if result["canceled"] and not result["tone_id"]:
-        _T3K_STATE["cancel_seq"] += 1
-        return HTMLResponse(_t3k_result_page(
-            True, "ยกเลิกแล้ว", "ยังไม่ได้เลือกเสียง — เปิด TONE3000 แล้วเลือกใหม่ได้ทุกเมื่อ"))
+        if result["canceled"] and not result["tone_id"]:
+            _T3K_STATE["cancel_seq"] += 1
+            resp = HTMLResponse(_t3k_result_page(
+                True, "ยกเลิกแล้ว", "ยังไม่ได้เลือกเสียง — เปิด TONE3000 แล้วเลือกใหม่ได้ทุกเมื่อ"))
+            if cache_key:
+                with _SERVER_CALLBACK_LOCK:
+                    _SERVER_CALLBACK_CACHE[cache_key] = (time.time(), resp)
+            return resp
 
-    if not result["tone_id"]:
-        return HTMLResponse(_t3k_result_page(
-            False, "ไม่พบเสียง", "TONE3000 ไม่ได้ส่ง tone_id กลับมา"), status_code=400)
+        if not result["tone_id"]:
+            return HTMLResponse(_t3k_result_page(
+                False, "ไม่พบเสียง", "TONE3000 ไม่ได้ส่ง tone_id กลับมา"), status_code=400)
 
-    try:
-        info = _install_t3k_tone(result["tone_id"])
-    except t3k.T3KError as exc:
-        logger.warning("TONE3000 download failed: %s", exc)
-        return HTMLResponse(_t3k_result_page(False, "โหลดเสียงไม่สำเร็จ", str(exc)), status_code=502)
-    except ValueError as exc:
-        return HTMLResponse(_t3k_result_page(False, "โหลดเสียงไม่สำเร็จ", str(exc)), status_code=400)
+        try:
+            info = _install_t3k_tone(result["tone_id"])
+        except t3k.T3KError as exc:
+            upstream_detail = getattr(exc, "response_text", None) or getattr(exc, "details", None)
+            if upstream_detail:
+                logger.warning("TONE3000 download failed: %s (upstream: %s)", exc, upstream_detail)
+            else:
+                logger.warning("TONE3000 download failed: %s", exc)
+            return HTMLResponse(_t3k_result_page(False, "โหลดเสียงไม่สำเร็จ", str(exc)), status_code=502)
+        except ValueError as exc:
+            return HTMLResponse(_t3k_result_page(False, "โหลดเสียงไม่สำเร็จ", str(exc)), status_code=400)
 
-    return HTMLResponse(_t3k_result_page(
-        True, "โหลดเสียงเรียบร้อย",
-        "เสียงถูกติดตั้งเข้า NAM AMP ในแท็บที่เปิดแอปอยู่แล้ว", info))
+        resp = HTMLResponse(_t3k_result_page(
+            True, "โหลดเสียงเรียบร้อย",
+            "เสียงถูกติดตั้งเข้า NAM AMP ในแท็บที่เปิดแอปอยู่แล้ว", info))
+        if cache_key:
+            with _SERVER_CALLBACK_LOCK:
+                _SERVER_CALLBACK_CACHE[cache_key] = (time.time(), resp)
+        return resp
+    finally:
+        if cache_key:
+            event.set()
+            with _SERVER_CALLBACK_LOCK:
+                _SERVER_CALLBACK_IN_FLIGHT.pop(cache_key, None)
 
 
 # Serve frontend
@@ -1268,4 +1732,4 @@ def manus_routes():
     return FileResponse(os.path.join(WEB_DIR, "manus-routes.json"), media_type="application/json")
 
 if __name__ == "__main__":
-    uvicorn.run("server:app", host="127.0.0.1", port=8000, reload=False)
+    uvicorn.run(app, host="127.0.0.1", port=8000)

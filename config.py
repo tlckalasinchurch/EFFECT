@@ -5,6 +5,14 @@ Centralized configuration for audio settings, paths, and application behavior.
 """
 
 import os
+import sys
+
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, 'reconfigure'):
+        try:
+            _stream.reconfigure(encoding='utf-8', errors='replace')
+        except Exception:
+            pass
 from pathlib import Path
 from typing import Optional
 
@@ -20,18 +28,114 @@ DOCS_DIR = PROJECT_ROOT / "docs"
 DB_PATH = PROJECT_ROOT / "presets.db"
 USER_LIBRARY_PATH = PROJECT_ROOT / "user_library.json"
 EXPORT_DIR = PROJECT_ROOT / "exports"
+CUSTOM_RIGS_DIR = PROJECT_ROOT / "custom_rigs"
+CUSTOM_MOOER_DIR = PROJECT_ROOT / "custom_mooer"
+CUSTOM_CORTEX_DIR = PROJECT_ROOT / "custom_cortex"
+CUSTOM_IR_DIR = PROJECT_ROOT / "custom_irs"
 
-# Audio Configuration
+for _d in (EXPORT_DIR, CUSTOM_RIGS_DIR, CUSTOM_MOOER_DIR, CUSTOM_CORTEX_DIR, CUSTOM_IR_DIR):
+    _d.mkdir(parents=True, exist_ok=True)
+
+# Audio Settings File (Persistent user configuration)
+SETTINGS_FILE = PROJECT_ROOT / "audio_settings.json"
+
+# Audio Configuration Defaults
 SAMPLE_RATE = int(os.getenv("SAMPLE_RATE", "48000"))
-BUFFER_SIZE = int(os.getenv("BUFFER_SIZE", "512"))
+BUFFER_SIZE = int(os.getenv("BUFFER_SIZE", "128"))
 BLOCK_SIZE = BUFFER_SIZE
 
-# Line 6 UX1 Default Devices (WASAPI)
-DEFAULT_INPUT_DEVICE = int(os.getenv("AUDIO_INPUT_DEVICE", "17"))
-DEFAULT_OUTPUT_DEVICE = int(os.getenv("AUDIO_OUTPUT_DEVICE", "15"))
+# Line 6 UX1 Default Devices (WASAPI).
+#
+# These used to be hard-coded to 17/15.  PortAudio device indices are not
+# stable: they shift whenever Windows adds or removes an endpoint, and on this
+# machine 17 is now a SteelSeries virtual input while 15 has no outputs at all.
+# Leaving them unset lets AudioEngine.detect_ux1_pair() choose the real UX1.
+def _env_device(name):
+    raw = os.getenv(name)
+    if not raw:
+        return None
+    try:
+        return int(raw)
+    except ValueError:
+        return None
 
-# Latency calculation
-LATENCY_MS = (BUFFER_SIZE / SAMPLE_RATE) * 1000
+
+DEFAULT_INPUT_DEVICE = _env_device("AUDIO_INPUT_DEVICE")
+DEFAULT_OUTPUT_DEVICE = _env_device("AUDIO_OUTPUT_DEVICE")
+DEFAULT_INPUT_NAME = None
+DEFAULT_OUTPUT_NAME = None
+
+def load_audio_settings():
+    """Load persistent audio settings from json if available."""
+    global SAMPLE_RATE, BUFFER_SIZE, BLOCK_SIZE, DEFAULT_INPUT_DEVICE, DEFAULT_OUTPUT_DEVICE, LATENCY_MS
+    global DEFAULT_INPUT_NAME, DEFAULT_OUTPUT_NAME
+    if SETTINGS_FILE.exists():
+        try:
+            import json
+            with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if "sample_rate" in data and int(data["sample_rate"]) > 0:
+                SAMPLE_RATE = int(data["sample_rate"])
+            if "buffer_size" in data and int(data["buffer_size"]) > 0:
+                BUFFER_SIZE = int(data["buffer_size"])
+                BLOCK_SIZE = BUFFER_SIZE
+            if "input_device" in data and data["input_device"] is not None:
+                DEFAULT_INPUT_DEVICE = int(data["input_device"])
+            if "output_device" in data and data["output_device"] is not None:
+                DEFAULT_OUTPUT_DEVICE = int(data["output_device"])
+            DEFAULT_INPUT_NAME = data.get("input_device_name")
+            DEFAULT_OUTPUT_NAME = data.get("output_device_name")
+        except Exception:
+            pass
+    LATENCY_MS = (BUFFER_SIZE / SAMPLE_RATE) * 1000
+
+def save_audio_settings(sample_rate=None, buffer_size=None, input_device=None, output_device=None,
+                        input_name=None, output_name=None):
+    """Persist audio settings to disk.
+
+    Names are stored alongside the PortAudio indices because the indices are
+    not stable across device changes; the name is what the user recognises.
+    """
+    global SAMPLE_RATE, BUFFER_SIZE, BLOCK_SIZE, DEFAULT_INPUT_DEVICE, DEFAULT_OUTPUT_DEVICE, LATENCY_MS
+    global DEFAULT_INPUT_NAME, DEFAULT_OUTPUT_NAME
+    if sample_rate is not None and int(sample_rate) > 0:
+        SAMPLE_RATE = int(sample_rate)
+    if buffer_size is not None and int(buffer_size) > 0:
+        BUFFER_SIZE = int(buffer_size)
+        BLOCK_SIZE = BUFFER_SIZE
+    if input_device is not None:
+        try:
+            DEFAULT_INPUT_DEVICE = int(input_device)
+        except (ValueError, TypeError):
+            pass
+    if output_device is not None:
+        try:
+            DEFAULT_OUTPUT_DEVICE = int(output_device)
+        except (ValueError, TypeError):
+            pass
+    if input_name is not None:
+        DEFAULT_INPUT_NAME = str(input_name)
+    if output_name is not None:
+        DEFAULT_OUTPUT_NAME = str(output_name)
+
+    LATENCY_MS = (BUFFER_SIZE / SAMPLE_RATE) * 1000
+
+    import json
+    data = {
+        "sample_rate": SAMPLE_RATE,
+        "buffer_size": BUFFER_SIZE,
+        "input_device": DEFAULT_INPUT_DEVICE,
+        "output_device": DEFAULT_OUTPUT_DEVICE,
+        "input_device_name": DEFAULT_INPUT_NAME,
+        "output_device_name": DEFAULT_OUTPUT_NAME
+    }
+    try:
+        with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+    except Exception:
+        pass
+
+load_audio_settings()
 
 # Kemper Rig Packs
 KEMPER_PACK_DIR = r"C:\Program Files\Kemper Amps\Rig Manager\Rig Packs"
@@ -111,11 +215,11 @@ def validate_config() -> bool:
     errors = []
     
     # Validate sample rate
-    if SAMPLE_RATE not in [44100, 48000, 96000]:
+    if SAMPLE_RATE not in [44100, 48000, 88200, 96000]:
         errors.append(f"Invalid sample rate: {SAMPLE_RATE} Hz")
     
     # Validate buffer size
-    if BUFFER_SIZE not in [256, 512, 1024, 2048]:
+    if BUFFER_SIZE not in [64, 128, 256, 512, 1024, 2048]:
         errors.append(f"Invalid buffer size: {BUFFER_SIZE}")
     
     # Validate paths

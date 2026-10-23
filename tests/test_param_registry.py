@@ -1,10 +1,12 @@
-"""Prove engine/params.py matches the six places that still declare parameters.
+"""Prove engine/params.py matches the layers that still declare parameters.
 
-Phase 2A installs the registry without rewiring anything, so these tests read
-the real sources -- server.py, engine/audio.py, engine/cortex_scenes.py,
-engine/morph.py, engine/dsp.py and web/app.js -- and assert that every
-(section, parameter) pair they use resolves to the same attribute the registry
-claims. They are the guard against the registry becoming a seventh copy.
+Phase 2B routes the two write paths (server.update_parameter and
+apply_mooer_preset) through the registry; the read side and the other four
+declarations still carry their own copies. These tests read the real sources --
+server.py, engine/audio.py, engine/cortex_scenes.py, engine/morph.py,
+engine/mooer_preset.py and web/app.js -- and assert that what they use resolves
+to the same attribute the registry claims. They are the guard against the
+registry becoming a seventh copy.
 
 A failure here means one of the two sides drifted: either add the parameter to
 the registry, or fix the call site. Do not weaken the assertion.
@@ -23,7 +25,7 @@ from engine.cortex_scenes import BLOCK_ATTRS, PARAM_ALIASES
 ROOT = Path(__file__).parents[1]
 SRC = {
     name: (ROOT / name).read_text(encoding="utf-8")
-    for name in ("server.py", "engine/audio.py", "engine/dsp.py", "web/app.js")
+    for name in ("server.py", "engine/audio.py", "web/app.js")
 }
 
 
@@ -31,69 +33,11 @@ SRC = {
 # Extractors: read the *actual* source, never a second copy of the mapping
 # ---------------------------------------------------------------------------
 
-def _literal_params(test):
-    """Parameters a `p == "x"` / `p in ("x", "y")` guard accepts, else None."""
-    if isinstance(test, ast.BoolOp):
-        for value in test.values:
-            found = _literal_params(value)
-            if found:
-                return found
-        return None
-    if not isinstance(test, ast.Compare):
-        return None
-    left, op, right = test.left, test.ops[0], test.comparators[0]
-    if ast.unparse(left) != "p":
-        return None
-    if isinstance(op, ast.Eq) and isinstance(right, ast.Constant) and isinstance(right.value, str):
-        return [right.value]
-    if isinstance(op, ast.In) and isinstance(right, ast.Tuple):
-        return [e.value for e in right.elts if isinstance(e, ast.Constant) and isinstance(e.value, str)]
-    return None
-
-
-def _action(node):
-    """Describe what a statement does: ('assign', dotted target) or ('call', name)."""
-    if isinstance(node, ast.Assign):
-        return ("assign", [ast.unparse(t) for t in node.targets])
-    if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
-        return ("call", [ast.unparse(node.value.func)])
-    return None
-
-
-def server_parameter_map():
-    """{(section, param): [(kind, target), ...]} from server.update_parameter."""
+def server_handler_body():
+    """The AST body of server.update_parameter."""
     tree = ast.parse(SRC["server.py"])
-    fn = next(n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == "update_parameter")
-    found = {}
-
-    def record(section, param, node):
-        action = _action(node)
-        if action:
-            found.setdefault((section, param), []).append(action)
-
-    def walk(stmts, section):
-        for st_node in stmts:
-            if isinstance(st_node, ast.If):
-                test = ast.unparse(st_node.test)
-                if test.startswith("sec =="):
-                    walk(st_node.body, ast.literal_eval(st_node.test.comparators[0]))
-                else:
-                    accepted = _literal_params(st_node.test)
-                    if accepted is None:
-                        walk(st_node.body, section)
-                    else:
-                        for param in accepted:
-                            for inner in st_node.body:
-                                record(section, param, inner)
-                                if isinstance(inner, (ast.With, ast.For)):
-                                    for deep in inner.body:
-                                        record(section, param, deep)
-                walk(st_node.orelse, section)
-            elif section is not None:
-                record(section, None, st_node)
-
-    walk(fn.body, None)
-    return {k: v for k, v in found.items() if k[0] is not None}
+    return next(n for n in ast.walk(tree)
+                if isinstance(n, ast.FunctionDef) and n.name == "update_parameter").body
 
 
 def state_chain_blocks():
@@ -117,25 +61,46 @@ def state_chain_blocks():
 
 
 def mooer_settings_pairs():
-    """{(block, param)} read by GuitarSignalChain.apply_mooer_preset."""
-    tree = ast.parse(SRC["engine/dsp.py"])
-    cls = next(n for n in ast.walk(tree) if isinstance(n, ast.ClassDef) and n.name == "GuitarSignalChain")
-    fn = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == "apply_mooer_preset")
+    """{(block, param)} in the settings dict ``mo_to_workstation_preset`` builds.
+
+    The chain no longer walks this dict key by key -- ``apply_mooer_preset``
+    hands each block to ``engine.param_access`` -- so the producer is what has to
+    stay resolvable against the registry.
+    """
+    tree = ast.parse((ROOT / "engine" / "mooer_preset.py").read_text(encoding="utf-8"))
+    fn = next(n for n in ast.walk(tree)
+              if isinstance(n, ast.FunctionDef) and n.name == "mo_to_workstation_preset")
+    literal = next(
+        node for node in ast.walk(fn)
+        if isinstance(node, ast.Assign) and isinstance(node.value, ast.Dict)
+        and any(isinstance(t, ast.Name) and t.id == "settings" for t in node.targets)
+    )
     pairs = set()
+    for block, value in zip(literal.value.keys, literal.value.values):
+        if isinstance(block, ast.Constant) and isinstance(value, ast.Dict):
+            for key in value.keys:
+                if isinstance(key, ast.Constant):
+                    pairs.add((block.value, key.value))
+    # Fields added after the literal, e.g. settings["cab"]["ir_name"] = ...
     for node in ast.walk(fn):
-        # s["block"]["param"]
         if (isinstance(node, ast.Subscript) and isinstance(node.value, ast.Subscript)
-                and ast.unparse(node.value.value) == "s"
+                and ast.unparse(node.value.value) == "settings"
                 and isinstance(node.value.slice, ast.Constant)
                 and isinstance(node.slice, ast.Constant)):
             pairs.add((node.value.slice.value, node.slice.value))
-        # s["block"].get("param")
-        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
-                and node.func.attr == "get" and isinstance(node.func.value, ast.Subscript)
-                and isinstance(node.func.value.slice, ast.Constant) and node.args
-                and isinstance(node.args[0], ast.Constant)):
-            pairs.add((node.func.value.slice.value, node.args[0].value))
     return pairs
+
+
+#: Fields a MOOER export carries that this engine deliberately maps itself: the
+#: model ids and display names pick a GE150 model, which the DSP amp does not
+#: emulate, so apply_mooer_preset keeps the user's amp model.
+MOOER_IGNORED = {
+    ("screamer", "model_id"),
+    ("amp", "model_id"),
+    ("amp", "model_name"),
+    ("cab", "model_id"),
+    ("cab", "cab_name"),
+}
 
 
 KNOB_RE = re.compile(
@@ -215,54 +180,42 @@ class RegistryMatchesEngineTests(unittest.TestCase):
                 self.assertTrue(hasattr(target, p.setter), f"{mod.name}.{p.key} -> {p.setter}")
                 self.assertTrue(callable(getattr(target, p.setter)))
 
-    def test_server_parameter_handler_targets_the_registry_attribute(self):
-        mapping = server_parameter_map()
-        self.assertGreater(len(mapping), 40, "extractor found too few parameters")
-        for (section, param), actions in mapping.items():
-            with self.subTest(section=section, param=param):
-                mod = params.module(section)
-                if param is None:
-                    # server.py's dynamic eq band branch: chain.eq.gains[idx]
-                    for kind, targets in actions:
-                        for target in targets:
-                            if "." not in target:
-                                continue  # local helper: idx = int(p[4:])
-                            self.assertTrue(
-                                target.startswith(f"chain.{mod.attr}.gains")
-                                or target == f"chain.{mod.attr}._design_filters",
-                                f"unexpected dynamic-eq target {target}",
-                            )
-                    continue
+    def test_update_parameter_has_no_hardcoded_chain_writes(self):
+        """The handler must delegate; a hardcoded `chain.x.y = val` may not grow back.
 
-                p = mod.param(param)
-                if p.owner == "server":
-                    self.assertEqual([t for _, ts in actions for t in ts], [p.attr])
-                    continue
+        Phase 2B replaced the if/elif tree with one call into engine.param_access,
+        so the old assertion -- every branch targets the registry attribute -- is
+        now a property of the accessor (tests/test_param_access.py) and of the
+        recorded endpoint behaviour (tests/test_registry_wiring.py). What is left
+        to guard here is the shape: no per-parameter attribute writes in server.py.
+        """
+        direct = []
+        for node in ast.walk(ast.Module(body=server_handler_body(), type_ignores=[])):
+            if isinstance(node, ast.Assign):
+                direct += [ast.unparse(t) for t in node.targets if ast.unparse(t).startswith("chain.")]
+            elif isinstance(node, ast.Call):
+                name = ast.unparse(node.func)
+                if name.startswith("chain."):
+                    direct.append(name)
+        self.assertEqual(direct, [], "update_parameter writes the chain directly again")
 
-                prefix = f"chain.{mod.attr}." if mod.attr else "chain."
-                for kind, targets in actions:
-                    if kind == "assign":
-                        self.assertEqual(targets, [prefix + p.attr])
-                    else:
-                        self.assertEqual(targets, [prefix + p.setter])
-                        self.assertIsNotNone(p.setter, f"{section}.{param} is set by a method, not an attribute")
+    def test_every_settable_parameter_passes_the_handler_guard(self):
+        from server import _is_known_parameter
 
-    def test_every_registry_param_is_reachable_from_the_server(self):
-        mapping = server_parameter_map()
-        reachable = {(s, q) for (s, q) in mapping if q}
-        has_dynamic_index = any(q is None for (s, q) in mapping)
         for mod in params.MODULES:
+            if mod.name == "nam":
+                continue  # installed per-preset; the handler guards on chain.nam
             for p in mod.params:
-                if p.read_only or mod.name == "nam":
-                    continue  # nam is installed per-preset; the handler guards on chain.nam
-                if p.index_template:
-                    self.assertTrue(has_dynamic_index, f"{mod.name}.{p.key} needs an index template")
+                if p.read_only or p.owner == "server":
                     continue
-                keys = {p.key, *p.aliases}
-                self.assertTrue(
-                    any((mod.name, k) in reachable for k in keys),
-                    f"{mod.name}.{p.key} is not settable through /api/parameter",
-                )
+                with self.subTest(module=mod.name, param=p.key):
+                    self.assertTrue(_is_known_parameter(mod.name, p.key))
+                    for alias in p.aliases:
+                        self.assertTrue(_is_known_parameter(mod.name, alias))
+        self.assertTrue(_is_known_parameter("drive", "drive"), "section alias")
+        self.assertTrue(_is_known_parameter("eq", "band0"), "index-addressed parameter")
+        self.assertFalse(_is_known_parameter("gate", "not_a_parameter"))
+        self.assertFalse(_is_known_parameter("not_a_block", "gain"))
 
 
 class RegistryMatchesOtherLayersTests(unittest.TestCase):
@@ -305,7 +258,8 @@ class RegistryMatchesOtherLayersTests(unittest.TestCase):
     def test_mooer_preset_settings_resolve(self):
         pairs = mooer_settings_pairs()
         self.assertGreater(len(pairs), 10, "extractor found too few mooer parameters")
-        for block, param in pairs:
+        self.assertTrue(MOOER_IGNORED <= pairs, "the ignore list has gone stale")
+        for block, param in pairs - MOOER_IGNORED:
             with self.subTest(block=block, param=param):
                 params.resolve(block, param)  # raises if either side drifted
 

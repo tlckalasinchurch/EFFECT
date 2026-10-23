@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Futuristic Rig Manager mockup</title>
+<style>
+  :root { --bg:#06080c; --panel:#0d1219; --panel2:#111823; --line:#1b2636; --txt:#e6edf6; --mut:#7d8ca3; --cy:#22d3ee; --vi:#a78bfa; --ok:#34d399; --hot:#fb7185; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#020306; font-family:'Segoe UI',Inter,system-ui,sans-serif; color:var(--txt); padding:18px; }
+  h2.t { font-size:18px; margin:0 0 4px; } p.s { margin:0 0 14px; color:var(--mut); font-size:13px; }
+  .app { background:radial-gradient(1200px 500px at 70% -10%, #0f2236 0%, transparent 60%), var(--bg); border:1px solid var(--line); border-radius:14px; overflow:hidden; font-size:12px; box-shadow:0 20px 80px rgba(34,211,238,.08); }
+  .top { display:flex; align-items:center; gap:14px; padding:10px 16px; border-bottom:1px solid var(--line); background:rgba(13,18,25,.7); backdrop-filter:blur(6px); }
+  .logo { font-weight:800; letter-spacing:.08em; background:linear-gradient(90deg,var(--cy),var(--vi)); -webkit-background-clip:text; color:transparent; }
+  .pill { padding:4px 10px; border-radius:999px; background:var(--panel2); border:1px solid var(--line); color:var(--mut); }
+  .pill b { color:var(--ok); } .sp { margin-left:auto; display:flex; gap:8px; }
+  .btn { padding:6px 12px; border-radius:8px; background:var(--panel2); border:1px solid var(--line); color:var(--txt); }
+  .btn.pri { border-color:var(--cy); box-shadow:0 0 14px rgba(34,211,238,.25); color:var(--cy); }
+
+  .perf { display:grid; grid-template-columns:repeat(8,1fr); gap:8px; padding:12px 16px; }
+  .sc { position:relative; padding:9px 10px; border-radius:10px; background:var(--panel); border:1px solid var(--line); overflow:hidden; }
+  .sc .k { font-size:15px; font-weight:800; } .sc .n { color:var(--mut); font-size:10.5px; margin-top:2px; }
+  .sc::after { content:''; position:absolute; left:0; right:0; bottom:0; height:3px; background:var(--c); opacity:.45; }
+  .sc.on { border-color:var(--c); background:linear-gradient(180deg, color-mix(in srgb,var(--c) 22%, #0d1219), #0d1219); box-shadow:0 0 22px color-mix(in srgb,var(--c) 45%, transparent); }
+  .sc.on::after { opacity:1; box-shadow:0 0 12px var(--c); }
+
+  .mid { display:grid; grid-template-columns:200px 1fr 250px; gap:10px; padding:0 16px 12px; height:230px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px; overflow:hidden; }
+  .card h4 { margin:0 0 8px; font-size:10.5px; letter-spacing:.12em; color:var(--mut); text-transform:uppercase; }
+  .tree div { padding:5px 8px; border-radius:6px; color:var(--mut); display:flex; justify-content:space-between; }
+  .tree .a { background:rgba(34,211,238,.1); color:var(--cy); }
+  table { width:100%; border-collapse:collapse; } th { text-align:left; color:var(--mut); font-weight:600; font-size:10.5px; padding:4px 6px; border-bottom:1px solid var(--line); }
+  td { padding:6px; border-bottom:1px solid #0f1621; } tr.sel td { background:linear-gradient(90deg,rgba(34,211,238,.16),transparent); } tr.sel td:first-child { border-left:2px solid var(--cy); }
+  .g { display:flex; gap:2px; align-items:flex-end; height:12px; } .g i { width:4px; background:#233146; border-radius:1px; } .g i.f { background:linear-gradient(var(--vi),var(--cy)); }
+  .kv { display:grid; grid-template-columns:70px 1fr; gap:5px 8px; } .kv span:nth-child(odd){ color:var(--mut); }
+
+  .chain { display:flex; align-items:center; gap:0; padding:12px 16px; border-top:1px solid var(--line); border-bottom:1px solid var(--line); background:rgba(13,18,25,.6); }
+  .io { color:var(--mut); font-size:10px; text-align:center; width:46px; }
+  .wire { flex:0 0 14px; height:2px; background:linear-gradient(90deg,transparent,var(--cy),transparent); background-size:200% 100%; animation:flow 1.4s linear infinite; opacity:.8; }
+  @keyframes flow { from{background-position:200% 0} to{background-position:-200% 0} }
+  .blk { flex:1; text-align:center; padding:9px 4px 7px; border-radius:10px; background:var(--panel2); border:1px solid var(--line); position:relative; margin:0 2px; }
+  .blk .ic { font-size:18px; line-height:1; } .blk .nm { font-size:10.5px; margin-top:4px; color:var(--mut); }
+  .blk .led { position:absolute; top:5px; right:6px; width:6px; height:6px; border-radius:50%; background:#2a3547; }
+  .blk.on .led { background:var(--ok); box-shadow:0 0 8px var(--ok); } .blk.on .nm { color:var(--txt); }
+  .blk.sel { border-color:var(--cy); box-shadow:0 0 18px rgba(34,211,238,.35), inset 0 0 14px rgba(34,211,238,.1); }
+  .blk.sel .nm { color:var(--cy); font-weight:700; }
+
+  .ed { display:flex; gap:14px; padding:14px 16px; }
+  .pw { width:78px; display:flex; flex-direction:column; align-items:center; gap:10px; border-right:1px solid var(--line); padding-right:14px; }
+  .pw .big { width:44px; height:44px; border-radius:50%; border:2px solid var(--ok); box-shadow:0 0 16px rgba(52,211,153,.5); display:grid; place-items:center; color:var(--ok); font-size:18px; }
+  .rows { flex:1; display:flex; flex-direction:column; gap:12px; }
+  .row { display:flex; justify-content:space-around; }
+  .kn { text-align:center; width:74px; } .kn svg { display:block; margin:0 auto; } .kn .l { color:var(--mut); font-size:10.5px; margin-top:2px; } .kn .v { color:var(--cy); font-family:Consolas,monospace; font-size:11px; }
+  .bot { display:flex; align-items:center; gap:14px; padding:8px 16px; border-top:1px solid var(--line); background:rgba(13,18,25,.7); }
+  .bar { width:120px; height:6px; background:#18212f; border-radius:3px; overflow:hidden; } .bar i { display:block; height:100%; background:linear-gradient(90deg,var(--ok),#fbbf24 80%,var(--hot)); }
+  .morph { width:200px; height:8px; border-radius:4px; background:linear-gradient(90deg,var(--vi),var(--cy)); position:relative; } .morph::after { content:''; position:absolute; left:38%; top:-4px; width:6px; height:16px; background:#fff; border-radius:3px; box-shadow:0 0 10px #fff; }
+</style>
+</head>
+<body>
+<h2 class="t">โครง Kemper Rig Manager + หน้าตาแบบล้ำ ๆ</h2>
+<p class="s">โครง 4 โซนเหมือนของจริง (รายการเสียง → chain → ลูกบิด) แต่เปลี่ยนเป็นกระจกมืด + แสงนีออน · แถบซีน A–H อยู่บนสุดแทน Performance · เส้นสัญญาณมีแอนิเมชันไหล</p>
+
+<div class="app">
+  <div class="top">
+    <span class="logo">กดจนหลอนTONE</span>
+    <span class="pill"><b>●</b> เปิดเสียง</span>
+    <span class="pill">หน่วง 4.1 ms</span>
+    <span class="pill">UX1 · 48 kHz</span>
+    <div class="sp"><span class="btn">จูนเนอร์</span><span class="btn">ตั้งค่าเสียง</span><span class="btn pri">โหมดเล่นสด</span></div>
+  </div>
+
+  <div class="perf" id="perf"></div>
+
+  <div class="mid">
+    <div class="card tree"><h4>คลังเสียง</h4>
+      <div class="a"><span>ทั้งหมด</span><span>1,284</span></div>
+      <div><span>★ โปรด</span><span>12</span></div>
+      <div><span>NAM / TONE3000</span><span>8</span></div>
+      <div><span>Kemper Packs</span><span>1,260</span></div>
+      <div><span>ของฉัน</span><span>4</span></div>
+    </div>
+    <div class="card"><h4>รายการเสียง · ค้นหา 🔍</h4>
+      <table>
+        <tr><th>★</th><th>ชื่อ</th><th>แอมป์</th><th>ตู้</th><th>แก็ง</th></tr>
+        <tr class="sel"><td>★</td><td>British Lead 100</td><td>Marshall JCM800</td><td>Greenback 4x12</td><td><div class="g"><i class="f" style="height:5px"></i><i class="f" style="height:7px"></i><i class="f" style="height:9px"></i><i class="f" style="height:11px"></i><i style="height:12px"></i></div></td></tr>
+        <tr><td>☆</td><td>American Clean Twin</td><td>Fender Twin</td><td>Jensen 2x12</td><td><div class="g"><i class="f" style="height:5px"></i><i style="height:7px"></i><i style="height:9px"></i><i style="height:11px"></i><i style="height:12px"></i></div></td></tr>
+        <tr><td>☆</td><td>High Gain Rectifier</td><td>Mesa Rectifier</td><td>Slant 4x12</td><td><div class="g"><i class="f" style="height:5px"></i><i class="f" style="height:7px"></i><i class="f" style="height:9px"></i><i class="f" style="height:11px"></i><i class="f" style="height:12px"></i></div></td></tr>
+        <tr><td>☆</td><td>Marshall Bluesbreaker</td><td>Bluesbreaker</td><td>—</td><td><div class="g"><i class="f" style="height:5px"></i><i class="f" style="height:7px"></i><i style="height:9px"></i><i style="height:11px"></i><i style="height:12px"></i></div></td></tr>
+      </table>
+    </div>
+    <div class="card"><h4>รายละเอียด</h4>
+      <div class="kv"><span>ชื่อ</span><span>British Lead 100</span><span>แอมป์</span><span>JCM800 · NAM</span><span>ตู้</span><span>Greenback 4x12</span><span>หลอด</span><span>EL34</span><span>ไมค์</span><span>SM57 · ขอบ</span><span>หมวด</span><span>Rock / Lead</span></div>
+    </div>
+  </div>
+
+  <div class="chain" id="chain"></div>
+
+  <div class="ed">
+    <div class="pw"><div class="big">⏻</div><div style="color:var(--cy);font-weight:700;letter-spacing:.1em">AMP</div></div>
+    <div class="rows"><div class="row" id="r1"></div><div class="row" id="r2"></div></div>
+  </div>
+
+  <div class="bot">
+    <span style="color:var(--mut)">เข้า</span><div class="bar"><i style="width:42%"></i></div>
+    <span style="color:var(--mut)">ออก</span><div class="bar"><i style="width:63%"></i></div>
+    <span style="margin-left:auto;color:var(--mut)">มอร์ฟ</span><span style="color:var(--vi)">A</span><div class="morph"></div><span style="color:var(--cy)">B</span>
+    <span class="btn">คู่ขนาน: ปิด</span><span class="btn">★ โปรด</span><span class="btn pri">บันทึก</span>
+  </div>
+</div>
+
+<script>
+const scenes=[['A','Clean','#ef4444',1],['B','Crunch','#22d3ee'],['C','Rhythm','#facc15'],['D','Solo','#a78bfa'],['E','Bridge','#34d399'],['F','Ambient','#60a5fa'],['G','Warm','#fb923c'],['H','FX','#f472b6']];
+document.getElementById('perf').innerHTML=scenes.map(s=>`<div class="sc ${s[3]?'on':''}" style="--c:${s[2]}"><div class="k">${s[0]}</div><div class="n">${s[1]}</div></div>`).join('');
+
+const blocks=[['เกต','⛩',1],['ไดรฟ์','⚡',0],['แอมป์','▤',1,1],['ตู้','◉',1],['EQ','≋',0],['มอด','〰',0],['ดีเลย์','◴',0],['รีเวิร์บ','◈',1]];
+document.getElementById('chain').innerHTML='<div class="io">กีตาร์</div><div class="wire"></div>'+blocks.map((b,i)=>`<div class="blk ${b[2]?'on':''} ${b[3]?'sel':''}"><span class="led"></span><div class="ic">${b[1]}</div><div class="nm">${b[0]}</div></div>${i<blocks.length-1?'<div class="wire"></div>':''}`).join('')+'<div class="wire"></div><div class="io">หูฟัง</div>';
+
+function knob(label,val,txt,col){
+  const a0=-135,a1=135,a=a0+(a1-a0)*val,r=22,cx=30,cy=30;
+  const p=(d)=>{const t=(d-90)*Math.PI/180;return [cx+r*Math.cos(t),cy+r*Math.sin(t)]};
+  const arc=(s,e)=>{const [x1,y1]=p(s),[x2,y2]=p(e);return `M${x1} ${y1} A${r} ${r} 0 ${e-s>180?1:0} 1 ${x2} ${y2}`};
+  const [px,py]=p(a);
+  return `<div class="kn"><svg width="60" height="60" viewBox="0 0 60 60"><path d="${arc(a0,a1)}" stroke="#1d2838" stroke-width="4" fill="none" stroke-linecap="round"/><path d="${arc(a0,a)}" stroke="${col||'#22d3ee'}" stroke-width="4" fill="none" stroke-linecap="round" style="filter:drop-shadow(0 0 4px ${col||'#22d3ee'})"/><circle cx="30" cy="30" r="15" fill="#0b1018" stroke="#243247"/><line x1="30" y1="30" x2="${px}" y2="${py}" stroke="#e6edf6" stroke-width="2" stroke-linecap="round"/></svg><div class="l">${label}</div><div class="v">${txt}</div></div>`;
+}
+document.getElementById('r1').innerHTML=[['เกน',.65,'6.5'],['เบส',.55,'5.5'],['กลาง',.6,'6.0'],['แหลม',.65,'6.5'],['ปรีเซนซ์',.6,'6.0'],['ความดัง',.75,'7.5','#a78bfa']].map(k=>knob(...k)).join('');
+document.getElementById('r2').innerHTML=[['นิยาม',.52,'5.2'],['ซัก',.27,'2.7'],['พิค',.5,'0.0'],['คอมเพรส',.1,'0.0'],['ความใส',.08,'0.8'],['ทรงหลอด',.4,'4.0','#a78bfa'],['ไบแอส',.5,'0.0','#a78bfa'],['มิกซ์ตรง',0,'0.0']].map(k=>knob(...k)).join('');
+</script>
+</body>
+</html>

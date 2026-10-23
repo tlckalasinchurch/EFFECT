@@ -28,6 +28,7 @@ import re
 import secrets
 import threading
 import time
+import urllib
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -54,10 +55,13 @@ HTTP_TIMEOUT = 30
 class T3KError(Exception):
     """An error worth showing to the user (bad key, access denied, ...)."""
 
-    def __init__(self, message: str, status: int = 502, code: str | None = None):
+    def __init__(self, message: str, status: int = 502, code: str | None = None,
+                 response_text: str | None = None, details: dict | None = None):
         super().__init__(message)
         self.status = status
         self.code = code
+        self.response_text = response_text
+        self.details = details
 
 
 # ---------------------------------------------------------------------------
@@ -104,33 +108,50 @@ def _http(method: str, url: str, *, headers: dict | None = None,
     if form is not None:
         req.add_header("Content-Type", "application/x-www-form-urlencoded")
     for key, value in (headers or {}).items():
+        if form is not None and key.lower() == "content-type":
+            continue
         req.add_header(key, value)
 
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return resp.status, resp.read(), dict(resp.headers)
     except urllib.error.HTTPError as exc:
-        body = exc.read()
-        detail, code = _error_detail(body)
+        raw_body = exc.read()
+        resp_text = raw_body.decode("utf-8", errors="replace")
+        detail, code, payload = _error_detail(raw_body)
+        error_msg = detail or (resp_text.strip() if resp_text.strip() else f"TONE3000 ตอบกลับ HTTP {exc.code}")
         if exc.code == 401:
-            raise T3KError("TONE3000: ต้องเข้าสู่ระบบใหม่ (token หมดอายุ)", 401, code) from exc
-        raise T3KError(detail or f"TONE3000 ตอบกลับ HTTP {exc.code}", exc.code, code) from exc
+            raise T3KError("TONE3000: ต้องเข้าสู่ระบบใหม่ (token หมดอายุ)", 401, code,
+                           response_text=resp_text, details=payload) from exc
+        raise T3KError(error_msg, exc.code, code,
+                       response_text=resp_text, details=payload) from exc
     except urllib.error.URLError as exc:
         raise T3KError(f"เชื่อมต่อ TONE3000 ไม่ได้: {exc.reason}", 502) from exc
 
 
-def _error_detail(body: bytes) -> tuple[str | None, str | None]:
+def _error_detail(body: bytes) -> tuple[str | None, str | None, dict | None]:
     try:
-        payload = json.loads(body.decode("utf-8"))
+        text = body.decode("utf-8")
+    except UnicodeDecodeError:
+        text = body.decode("latin1", errors="replace")
+
+    try:
+        payload = json.loads(text)
     except (ValueError, UnicodeDecodeError):
-        return None, None
+        stripped = text.strip()
+        return (stripped if stripped else None), None, None
+
     if not isinstance(payload, dict):
-        return None, None
+        stripped = text.strip()
+        return (stripped if stripped else None), None, None
+
     detail = payload.get("error_description") or payload.get("message") or payload.get("detail")
     code = payload.get("error") or payload.get("code")
     if isinstance(detail, list):          # FastAPI-style validation errors
         detail = "; ".join(str(d.get("msg", d)) if isinstance(d, dict) else str(d) for d in detail)
-    return (str(detail) if detail else None), (str(code) if code else None)
+    elif not detail and code:
+        detail = str(code)
+    return (str(detail) if detail else None), (str(code) if code else None), payload
 
 
 def _json_request(method: str, path: str, *, params: dict | None = None,
@@ -140,7 +161,9 @@ def _json_request(method: str, path: str, *, params: dict | None = None,
         clean = {k: v for k, v in params.items() if v not in (None, "", False)}
         if clean:
             url += "?" + urllib.parse.urlencode(clean, doseq=True)
-    headers = {"Content-Type": "application/json"}
+    headers = {}
+    if form is None:
+        headers["Content-Type"] = "application/json"
     if token:
         headers["Authorization"] = f"Bearer {token}"
     _status, body, _hdrs = _http(method, url, headers=headers, form=form)
@@ -149,7 +172,8 @@ def _json_request(method: str, path: str, *, params: dict | None = None,
     try:
         return json.loads(body.decode("utf-8"))
     except (ValueError, UnicodeDecodeError) as exc:
-        raise T3KError("TONE3000 ส่งข้อมูลที่ไม่ใช่ JSON กลับมา", 502) from exc
+        resp_text = body.decode("utf-8", errors="replace")
+        raise T3KError("TONE3000 ส่งข้อมูลที่ไม่ใช่ JSON กลับมา", 502, response_text=resp_text) from exc
 
 
 # ---------------------------------------------------------------------------
@@ -363,14 +387,24 @@ def build_authorize_url(prompt: str = "select_tone", *, tone_id: int | str | Non
     }
 
 
+_CALLBACK_CACHE: dict[str, dict] = {}
+_CALLBACK_LOCK = threading.RLock()
+_CALLBACK_IN_FLIGHT: dict[str, threading.Event] = {}
+
+
 def exchange_code(code: str, verifier: str, redirect_uri: str) -> dict:
     cfg = load_config()
+    code_clean = str(code).strip()
+    verifier_clean = str(verifier).strip()
+    redirect_uri_clean = str(redirect_uri).strip()
+    client_id_clean = str(cfg["client_id"]).strip()
+
     payload = _json_request("POST", "/oauth/token", form={
         "grant_type": "authorization_code",
-        "code": code,
-        "code_verifier": verifier,
-        "redirect_uri": redirect_uri,
-        "client_id": cfg["client_id"],
+        "code": code_clean,
+        "code_verifier": verifier_clean,
+        "redirect_uri": redirect_uri_clean,
+        "client_id": client_id_clean,
     })
     tokens = _store_token_response(payload)
     logger.info("TONE3000 authorization complete")
@@ -383,38 +417,86 @@ def handle_callback(query: dict) -> dict:
 
     `query` is the raw callback query string as a dict (single values).
     Returns {"tone_id", "canceled", "user"}; raises T3KError on failure.
+    Prevents duplicate callback invocations from consuming single-use code twice.
     """
     error = query.get("error")
     if error:
         raise T3KError(query.get("error_description") or f"TONE3000 ปฏิเสธ: {error}", 400, error)
 
-    state = query.get("state") or ""
-    pending = _PENDING.pop(state, None) if state else None
-    if not pending:
-        raise T3KError("state ไม่ตรงหรือหมดอายุ — เริ่มเชื่อมต่อใหม่", 400, "invalid_state")
-    if pending["created"] < time.time() - PENDING_TTL_SECONDS:
-        raise T3KError("คำขอเชื่อมต่อหมดอายุ — เริ่มใหม่", 400, "expired_state")
-
-    canceled = str(query.get("canceled", "")).lower() == "true"
     code = query.get("code")
-    if not code:
-        # The menubar's close button before sign-in redirects with canceled=true
-        # and no code — that is a normal cancel, not an error.
-        if canceled:
-            return {"tone_id": None, "canceled": True, "user": None}
-        raise T3KError("TONE3000 ไม่ได้ส่ง authorization code กลับมา", 400, "missing_code")
+    state = query.get("state") or ""
+    canceled = str(query.get("canceled", "")).lower() == "true"
 
-    exchange_code(code, pending["verifier"], pending["redirect_uri"])
+    if not code and canceled:
+        return {"tone_id": None, "canceled": True, "user": None}
 
-    tone_id = query.get("tone_id")
-    user = None
+    cache_key = str(code).strip() if code else (str(state).strip() if state else None)
+
+    # Check recently completed callbacks to prevent consuming single-use code twice
+    if cache_key:
+        with _CALLBACK_LOCK:
+            now = time.time()
+            for k in list(_CALLBACK_CACHE.keys()):
+                if _CALLBACK_CACHE[k]["created"] < now - PENDING_TTL_SECONDS:
+                    _CALLBACK_CACHE.pop(k, None)
+
+            if cache_key in _CALLBACK_CACHE:
+                logger.info("TONE3000 callback for %s already processed; returning cached result", cache_key)
+                return dict(_CALLBACK_CACHE[cache_key]["result"])
+
+            in_flight = _CALLBACK_IN_FLIGHT.get(cache_key)
+
+        if in_flight is not None:
+            in_flight.wait(timeout=30)
+            with _CALLBACK_LOCK:
+                if cache_key in _CALLBACK_CACHE:
+                    return dict(_CALLBACK_CACHE[cache_key]["result"])
+
+    event = threading.Event()
+    if cache_key:
+        with _CALLBACK_LOCK:
+            _CALLBACK_IN_FLIGHT[cache_key] = event
+
     try:
-        user = get_user()
-        _store_user(user)
-    except T3KError as exc:      # tokens are valid; profile is a nicety
-        logger.warning("TONE3000 user lookup failed: %s", exc)
-    return {"tone_id": int(tone_id) if tone_id and str(tone_id).isdigit() else None,
-            "canceled": canceled, "user": user}
+        with _STORE_LOCK:
+            pending = _PENDING.pop(state, None) if state else None
+
+        if not pending:
+            if not code:
+                raise T3KError("TONE3000 ไม่ได้ส่ง authorization code กลับมา", 400, "missing_code")
+            raise T3KError("state ไม่ตรงหรือหมดอายุ — เริ่มเชื่อมต่อใหม่", 400, "invalid_state")
+        if pending["created"] < time.time() - PENDING_TTL_SECONDS:
+            raise T3KError("คำขอเชื่อมต่อหมดอายุ — เริ่มใหม่", 400, "expired_state")
+
+        if not code:
+            raise T3KError("TONE3000 ไม่ได้ส่ง authorization code กลับมา", 400, "missing_code")
+
+        exchange_code(code, pending["verifier"], pending["redirect_uri"])
+
+        tone_id = query.get("tone_id")
+        user = None
+        try:
+            user = get_user()
+            _store_user(user)
+        except T3KError as exc:
+            logger.warning("TONE3000 user lookup failed: %s", exc)
+
+        result = {
+            "tone_id": int(tone_id) if tone_id and str(tone_id).isdigit() else None,
+            "canceled": canceled,
+            "user": user,
+        }
+
+        if cache_key:
+            with _CALLBACK_LOCK:
+                _CALLBACK_CACHE[cache_key] = {"result": result, "created": time.time()}
+
+        return result
+    finally:
+        if cache_key:
+            event.set()
+            with _CALLBACK_LOCK:
+                _CALLBACK_IN_FLIGHT.pop(cache_key, None)
 
 
 # ---------------------------------------------------------------------------

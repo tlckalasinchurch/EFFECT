@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/style.css?v=20261020">
+  <link rel="stylesheet" href="/static/style.css?v=20261021o">
 </head>
 <body>
 
@@ -38,22 +38,25 @@
         </div>
 
         <div class="preset-nav">
-          <button class="nav-arrow" id="prevPreset" aria-label="พรีเซ็ตก่อนหน้า">‹</button>
+          <button class="nav-arrow" id="prevPreset" aria-label="พรีเซ็ตก่อนหน้า"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
           <div class="cur-preset">
             <div class="cp-name"><span id="curName">—</span><span class="dirty-dot" id="dirtyDot" title="มีการแก้ไขที่ยังไม่บันทึก"></span></div>
             <div class="cp-sub" id="curSub">—</div>
           </div>
-          <button class="nav-arrow" id="nextPreset" aria-label="พรีเซ็ตถัดไป">›</button>
+          <button class="nav-arrow" id="nextPreset" aria-label="พรีเซ็ตถัดไป"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
         </div>
 
         <div class="top-actions">
           <button class="btn power-btn on" id="btn-power" title="เปิด/ปิดเสียงเอ็นจิน">
             <span class="power-led" aria-hidden="true"></span><span id="power-label">POWER</span>
           </button>
+          <button class="btn" id="btn-gig-view" title="Gig View Mode (Quad Cortex Live Performance)">GIG VIEW</button>
           <button class="btn" id="btn-tuner-toggle" title="จูนสาย (Chromatic Tuner)">TUNER</button>
-          <button class="btn icon-only" id="btn-settings-open" title="ตั้งค่าเสียง / UI" aria-label="ตั้งค่า">⚙</button>
-          <button class="btn" id="btn-save-preset" title="บันทึกทับพรีเซ็ตปัจจุบัน">บันทึก</button>
-          <button class="btn" id="btn-save-as-preset" title="บันทึกเป็นพรีเซ็ตใหม่">โคลน</button>
+          <button class="btn icon-only" id="btn-settings-open" title="ตั้งค่าเสียง / UI" aria-label="ตั้งค่า"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z"/></svg></button>
+          <button class="btn text" id="btn-save-preset" title="บันทึกทับพรีเซ็ตปัจจุบัน">บันทึก</button>
+          <button class="btn text" id="btn-save-as-preset" title="บันทึกเป็นพรีเซ็ตใหม่">โคลน</button>
+          <button class="btn accent" id="btn-import-preset" title="นำเข้าไฟล์พรีเซ็ต (.mo, .rigpack, .kipr, .cortex.json, .nam, .wav)">📥 นำเข้าพรีเซ็ต</button>
+          <input type="file" id="universal-file-input" style="display:none;" accept=".mo,.rigpack,.kipr,.cortex.json,.nam,.wav">
           <button class="btn accent" id="btn-t3k-open" title="ค้นหาเสียงจากคลัง TONE3000">
             ค้นหาเสียงจาก TONE3000
           </button>
@@ -67,10 +70,12 @@
           <div id="libList"></div>
 
           <div class="side-engine">
+            <!-- Ownership: this box answers "which path am I on" (engine state
+                 + device path).  SR / buffer / latency / DSP are read out once,
+                 in the status bar. -->
             <div class="se-row"><span>ENGINE</span><b id="side-engine-state">…</b></div>
-            <div class="se-row"><span>SR</span><b id="spec-sr">48.0 kHz</b></div>
-            <div class="se-row"><span>BUFFER</span><b id="spec-block">128 smp</b></div>
-            <div class="se-row"><span>LATENCY</span><b id="spec-lat">2.67 ms</b></div>
+            <div class="se-row"><span>PATH</span><b id="spec-path">—</b></div>
+            <div class="se-warn hidden" id="se-audio-warn"></div>
           </div>
 
           <div class="side-foot">
@@ -85,7 +90,7 @@
               <input type="text" id="rig-search-input" placeholder="ค้นหาพรีเซ็ต หรือชื่อแอมป์…" />
             </label>
             <span class="row-count" id="rowCount"></span>
-            <button class="icon-btn" id="btn-refresh-lib" title="โหลดคลังใหม่" aria-label="โหลดคลังใหม่">↻</button>
+            <button class="icon-btn" id="btn-refresh-lib" title="โหลดคลังใหม่" aria-label="โหลดคลังใหม่"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4.5V11h-6.5"/></svg></button>
           </div>
 
           <div class="t3k-cta hidden" id="t3k-cta">
@@ -117,6 +122,42 @@
 
       <!-- ================= SIGNAL CHAIN ================= -->
       <div class="chain-wrap">
+        <!-- Quad Cortex Scene Selector Bar -->
+        <div class="cortex-scene-bar" id="cortexSceneBar" aria-label="Quad Cortex Scene Selector">
+          <div class="csb-left">
+            <span class="csb-title">SCENE</span>
+            <span class="csb-preset-name" id="cortexPresetName">British Lead 100</span>
+          </div>
+          <div class="csb-scenes" id="cortexScenesContainer"></div>
+          <div class="csb-right">
+            <select id="cortexPresetSelect" class="csb-select" title="เลือก Cortex Multi-Scene Preset">
+              <option value="">-- Cortex Presets --</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Kemper Morphing & Parallel Routing Strip -->
+        <div class="morph-strip" id="morphStrip">
+          <div class="morph-slot-group">
+            <button type="button" class="morph-slot-badge" id="morphSlotABtn" title="บันทึกเสียงปัจจุบันลง Slot A (Heel)" aria-label="Empty Morph Slot A; capture current rig">SAVE A</button>
+            <button type="button" class="morph-slot-clear" id="morphSlotAClear" title="ล้าง Slot A" aria-label="ล้าง Morph Slot A">×</button>
+          </div>
+          <span class="morph-label">MORPH</span>
+          <input type="range" id="morphSlider" min="0" max="100" value="0" class="morph-range" title="มอร์ฟเสียง A <-> B" aria-label="Morph between saved slots A and B" aria-valuetext="0 percent, Slot A">
+          <div class="morph-slot-group">
+            <button type="button" class="morph-slot-badge" id="morphSlotBBtn" title="บันทึกเสียงปัจจุบันลง Slot B (Toe)" aria-label="Empty Morph Slot B; capture current rig">SAVE B</button>
+            <button type="button" class="morph-slot-clear" id="morphSlotBClear" title="ล้าง Slot B" aria-label="ล้าง Morph Slot B">×</button>
+          </div>
+          <span class="morph-readout" id="morphReadout" role="status" aria-live="polite">0% (A)</span>
+          <div class="parallel-toggle-wrap">
+            <button class="parallel-btn" id="btn-parallel-toggle" title="เปิด/ปิดการแยกสัญญาณคู่ขนาน (Parallel Clean + Amp Path)">
+              <span class="p-led"></span>PARALLEL DUAL PATH
+            </button>
+            <input type="range" id="parallelBlendSlider" min="0" max="100" value="30" class="mini-range" title="ความดังสัญญาณคู่ขนาน (Parallel Blend)">
+            <span id="parallelBlendReadout" class="mini-readout">30%</span>
+          </div>
+        </div>
+
         <div class="chain-head">
           <span class="ch-title">Signal Chain</span>
           <span class="ch-note">กดไทล์เพื่อปรับค่า · คลิกขวา/แตะค้างเพื่อ Load File หรือ Load Folder</span>
@@ -280,7 +321,7 @@
                 <option value="custom">Custom</option>
               </select>
             </label>
-            <button id="btn-t3k-save-key" class="t3k-primary">บันทึก Key</button>
+            <button id="btn-t3k-save-key" class="t3k-primary secondary">บันทึก Key</button>
             <div class="t3k-key-hint">
               สร้าง key ที่ tone3000.com → Settings → API Keys แล้วคัดลอก Publishable key มาวาง
             </div>
@@ -291,11 +332,11 @@
       <section id="t3k-browse" class="t3k-browse hidden">
         <div class="t3k-toolbar">
           <label class="t3k-search">
-            <span aria-hidden="true">⌕</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
             <input id="t3k-search-input" type="text" placeholder="ค้นหาเสียง, แอมป์, ผู้สร้าง…">
           </label>
           <button id="btn-t3k-verified" class="t3k-icon-btn" aria-pressed="false"
-                  title="เฉพาะผู้สร้างที่ยืนยันตัวตน">✓</button>
+                  title="เฉพาะผู้สร้างที่ยืนยันตัวตน"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></button>
           <span class="t3k-sep" aria-hidden="true"></span>
           <div class="t3k-pills" id="t3k-pills">
             <button class="t3k-pill active" data-kind="trending">Trending</button>
@@ -354,8 +395,49 @@
   <input type="file" id="nam-file-input" accept=".nam" hidden>
   <input type="file" id="ir-file-input" accept=".wav" hidden>
 
+  <!-- ================= GIG VIEW OVERLAY ================= -->
+  <div id="gig-view" class="gig-view" aria-hidden="true">
+    <header class="gig-header">
+      <div class="gig-brand"><span class="gig-brand-dot"></span>กดจนหลอน<span class="gig-brand-tone">Tone</span></div>
+      <div class="gig-now"><span class="gig-now-label">NOW PLAYING</span><strong id="gig-preset-name">—</strong></div>
+      <button id="btn-gig-close" class="gig-close-btn">CLOSE</button>
+    </header>
+
+    <div class="gig-scenes" id="gigScenes" role="group" aria-label="Scene Footswitches"></div>
+
+    <div class="gig-controls">
+      <div class="gig-morph">
+        <span class="gig-morph-label">MORPH</span>
+        <input type="range" id="gigMorph" min="0" max="100" value="0">
+        <span id="gigMorphValue" class="gig-morph-value">0%</span>
+      </div>
+      <div class="gig-output">
+        <div class="gig-output-head"><span>MASTER OUTPUT</span><span id="gigMasterValue">100%</span></div>
+        <input type="range" id="gigMaster" min="0" max="100" value="100">
+      </div>
+    </div>
+
+    <div class="gig-tuner hidden" id="gigTuner">
+      <div class="gig-tuner-note" id="gigTunerNote">--</div>
+      <div class="gig-tuner-track"><i class="gig-tuner-center"></i><i class="gig-tuner-needle" id="gigTunerNeedle"></i></div>
+        <div class="gig-tuner-hint">TUNE YOUR GUITAR — LIVE PITCH DETECTION</div>
+      </div>
+
+      <!-- Bottom status & meters -->
+      <footer class="gig-footer">
+        <div class="gig-meters">
+          <div class="gm-bar-wrap"><span>IN</span><div class="gm-bar"><div class="gm-fill" id="gigMeterIn"></div></div></div>
+          <div class="gm-bar-wrap"><span>OUT</span><div class="gm-bar"><div class="gm-fill" id="gigMeterOut"></div></div></div>
+        </div>
+        <div class="gig-hint">
+          TAP ANY FOOTSWITCH TO SWITCH SCENE INSTANTLY · KEYBOARD SHORTCUTS 1-8 OR A-H
+        </div>
+      </footer>
+    </div>
+  </div>
+
   <div id="toast" class="toast" role="status"></div>
 
-  <script src="/static/app.js?v=20261020"></script>
+  <script src="/static/app.js?v=20261021f"></script>
 </body>
 </html>

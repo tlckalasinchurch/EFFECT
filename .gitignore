@@ -82,6 +82,10 @@ tone3000_cache/
 # Local tool caches & build artifacts
 .freebuff/
 graphify-out/
+
+# One-off probes / patch scripts / UI screenshots from debugging sessions
+scratch/
+screenshots/
 *.exp
 *.lib
 *.obj

@@ -230,6 +230,14 @@ class CabinetSimulator:
         self.highcut_hz = 20000.0
         self.mix = 1.0
         self._design_cutoffs()
+        # MOOER GE150 Cab Simulator Extensions
+        self.tube = "OFF"
+        self.mic = "SM57"
+        self.center = 50.0
+        self.distance = 20.0
+        self._tube_mic_sections = []  # [[b, a, zi], ...] swapped as one list
+        self._tube_sat = None
+        self._design_tube_mic_filters()
 
     # Per-cabinet voicing. Previously `_generate_synthetic_ir` ignored its
     # `cab_type` argument, so every cabinet produced a byte-identical
@@ -271,7 +279,7 @@ class CabinetSimulator:
 
     DEFAULT_CAB = "v30"
 
-    # TONE3000 presets without an embedded speaker IR report a synthetic cab
+    # TONE3000 & MOOER GE150 presets without an embedded speaker IR report a synthetic cab
     # fallback by real gear name; alias it to the closest voice we have.
     CAB_ALIASES = {
         "matchless 2x12 custom": "greenback",   # Class-A mid-forward crunch
@@ -279,6 +287,33 @@ class CabinetSimulator:
         "ampeg 8x10 svt": "greenback",
         "bogner 4x12 v30": "v30",
         "dumble 2x12 open": "greenback",
+        # MOOER GE150 Factory Cabinets (1-26)
+        "01:us dlx 112": "twin", "us dlx 112": "twin",
+        "02:us twn 212": "twin", "us twn 212": "twin",
+        "03:us bass 410": "twin", "us bass 410": "twin",
+        "04:sonic 112": "twin", "sonic 112": "twin",
+        "05:blues 112": "twin", "blues 112": "twin",
+        "06:1960 412": "greenback", "1960 412": "greenback",
+        "07:eagle p412": "v30", "eagle p412": "v30",
+        "08:eagle s412": "greenback", "eagle s412": "greenback",
+        "09:mark 112": "mesa", "mark 112": "mesa",
+        "10:rec 412": "mesa", "rec 412": "mesa",
+        "11:citrus 412": "v30", "citrus 412": "v30",
+        "12:citrus 212": "v30", "citrus 212": "v30",
+        "13:slow 412": "v30", "slow 412": "v30",
+        "14:dr.zee 112": "greenback", "dr.zee 112": "greenback",
+        "15:dr.zee 212": "greenback", "dr.zee 212": "greenback",
+        "16:jazz 212": "twin", "jazz 212": "twin",
+        "17:uk 212": "greenback", "uk 212": "greenback",
+        "18:hwt 412": "greenback", "hwt 412": "greenback",
+        "19:pv 5050 412": "v30", "pv 5050 412": "v30",
+        "20:regal tone 110": "twin", "regal tone 110": "twin",
+        "21:two stones 212": "twin", "two stones 212": "twin",
+        "22:cardeff 112": "greenback", "cardeff 112": "greenback",
+        "23:ev 5050 412": "v30", "ev 5050 412": "v30",
+        "24:ht 412": "v30", "ht 412": "v30",
+        "25:gas station 412": "mesa", "gas station 412": "mesa",
+        "26:acoustic112": "twin", "acoustic112": "twin",
     }
 
     @classmethod
@@ -353,6 +388,103 @@ class CabinetSimulator:
         self.hp_zi = np.zeros(max(len(self.hp_a), len(self.hp_b)) - 1, dtype=np.float64)
         self.lp_zi = np.zeros(max(len(self.lp_a), len(self.lp_b)) - 1, dtype=np.float64)
 
+    def _peaking_biquad(self, f0, gain_db, Q=1.2):
+        w0 = 2.0 * np.pi * f0 / self.sample_rate
+        A = 10.0 ** (gain_db / 40.0)
+        alpha = np.sin(w0) / (2.0 * Q)
+        b = np.array([1.0 + alpha * A, -2.0 * np.cos(w0), 1.0 - alpha * A], dtype=np.float64)
+        a = np.array([1.0 + alpha / A, -2.0 * np.cos(w0), 1.0 - alpha / A], dtype=np.float64)
+        return b / a[0], a / a[0]
+
+    # Power-tube saturation (drive k, asymmetry a) ahead of the speaker.
+    # Small-signal gain is normalised to 1, so only loud passages are shaped.
+    TUBE_SATURATION = {
+        "6L6": (1.3, 0.08),
+        "EL34": (1.6, 0.15),
+        "EL84": (1.8, 0.20),
+        "6V6": (1.5, 0.25),
+        "KT88": (1.0, 0.04),
+    }
+
+    @staticmethod
+    def _tube_saturate(x, k, a):
+        t0 = np.tanh(a)
+        return ((np.tanh(k * x + a) - t0) / (k * (1.0 - t0 * t0))).astype(np.float32)
+
+    def _design_tube_mic_filters(self):
+        filters = []
+        nyq = self.sample_rate * 0.5
+
+        # 1. Power Tube Voicing
+        tube = (self.tube or "OFF").upper()
+        if tube == "EL34":  # British midrange punch & upper-mid presence
+            filters.append(self._peaking_biquad(1800.0, 2.5, Q=1.2))
+            filters.append(self._peaking_biquad(80.0, -1.2, Q=0.8))
+        elif tube == "EL84":  # Vox chime & tight low-end
+            filters.append(self._peaking_biquad(2800.0, 3.2, Q=1.4))
+            filters.append(self._peaking_biquad(100.0, -2.0, Q=0.8))
+        elif tube == "6L6":  # American punch, scooped mids, tight sub & air
+            filters.append(self._peaking_biquad(650.0, -2.2, Q=1.0))
+            filters.append(self._peaking_biquad(75.0, 2.0, Q=0.9))
+            filters.append(self._peaking_biquad(4800.0, 1.8, Q=1.2))
+        elif tube == "6V6":  # Warm vintage compression & smooth highs
+            filters.append(self._peaking_biquad(250.0, 1.8, Q=1.0))
+            filters.append(self._peaking_biquad(6500.0, -1.8, Q=1.0))
+        elif tube == "KT88":  # Modern punch, massive headroom, deep sub & open highs
+            filters.append(self._peaking_biquad(60.0, 2.5, Q=0.8))
+            filters.append(self._peaking_biquad(500.0, -1.5, Q=1.0))
+            filters.append(self._peaking_biquad(7500.0, 2.2, Q=1.1))
+
+        # 2. Microphone Voicing
+        mic = (self.mic or "SM57").upper()
+        if "57" in mic:  # Shure SM57
+            filters.append(self._peaking_biquad(3800.0, 4.0, Q=1.6))
+            filters.append(self._peaking_biquad(85.0, -2.0, Q=0.7))
+        elif "87" in mic or "47" in mic:  # Condensers U87 / U47
+            filters.append(self._peaking_biquad(8500.0, 1.8, Q=1.0))
+            filters.append(self._peaking_biquad(200.0, 1.2, Q=0.9))
+        elif "421" in mic:  # Sennheiser MD421
+            filters.append(self._peaking_biquad(4200.0, 3.0, Q=1.4))
+            filters.append(self._peaking_biquad(110.0, 2.0, Q=0.9))
+        elif "121" in mic or "RIBBON" in mic:  # Royer R-121 ribbon: warm body, smooth top roll-off
+            filters.append(self._peaking_biquad(450.0, 2.8, Q=1.1))
+            filters.append(self._peaking_biquad(3500.0, -2.0, Q=1.2))
+            filters.append(self._peaking_biquad(8000.0, -3.5, Q=0.9))
+
+        # 3. Center (Off-axis high frequency attenuation: 0 = on-axis, 100 = off-axis)
+        center_norm = max(0.0, min(100.0, float(self.center))) / 100.0
+        if center_norm > 0.05:
+            cut_db = -center_norm * 7.0
+            filters.append(self._peaking_biquad(5000.0, cut_db, Q=0.8))
+
+        # 4. Distance (Proximity bass boost: 0 = right on grille, 100 = far)
+        dist_norm = max(0.0, min(100.0, float(self.distance))) / 100.0
+        prox_db = 3.0 - dist_norm * 4.5
+        if abs(prox_db) > 0.1:
+            filters.append(self._peaking_biquad(120.0, prox_db, Q=0.7))
+
+        # Keep filter history when the section count is unchanged so dragging
+        # the mic does not zero the state (audible click).
+        old = self._tube_mic_sections
+        keep = len(old) == len(filters)
+        self._tube_mic_sections = [
+            [b, a, old[i][2] if keep else np.zeros(max(len(a), len(b)) - 1, dtype=np.float64)]
+            for i, (b, a) in enumerate(filters)
+        ]
+        self._tube_sat = self.TUBE_SATURATION.get(tube)
+
+    def set_tube_and_mic(self, tube=None, mic=None, center=None, distance=None):
+        """Configure GE150 Tube voicing, mic model, center off-axis, and distance."""
+        if tube is not None:
+            self.tube = str(tube)
+        if mic is not None:
+            self.mic = str(mic)
+        if center is not None:
+            self.center = float(center)
+        if distance is not None:
+            self.distance = float(distance)
+        self._design_tube_mic_filters()
+
     def set_cutoffs(self, lowcut_hz=None, highcut_hz=None):
         """Set the IR CAB Low Cut / High Cut without touching the loaded IR."""
         if lowcut_hz is not None:
@@ -365,12 +497,28 @@ class CabinetSimulator:
     def select_cab(self, cab_name: str) -> str:
         """
         Install the factory IR matching a display name and set the name.
-
-        Returns the canonical cabinet name; unknown names fall back to default.
+        Prefers real acoustic studio WAV IRs from custom_irs/ when available.
         """
         key = self.cab_key_for_name(cab_name)
-        ir = self._generate_synthetic_ir(key)
-        self.set_ir_data(ir, self.CAB_PROFILES[key]["name"])
+        real_ir_map = {
+            "v30": "Mesa_Boogie_ST_4x12A_V30.wav",
+            "mesa": "Mesa_Boogie_ST_4x12A_V30.wav",
+            "greenback": "Marshall_Fullstack_1971_Greenback_SM57.wav",
+            "twin": "Fender_Bassman_1970_2x15_CTS.wav",
+        }
+        loaded = False
+        if key in real_ir_map:
+            try:
+                candidate = os.path.join(str(getattr(config, "CUSTOM_IR_DIR", "custom_irs")), real_ir_map[key])
+                if os.path.isfile(candidate):
+                    loaded = self.load_ir_file(candidate)
+                    if loaded:
+                        self.ir_name = self.CAB_PROFILES[key]["name"]
+            except Exception:
+                loaded = False
+        if not loaded:
+            ir = self._generate_synthetic_ir(key)
+            self.set_ir_data(ir, self.CAB_PROFILES[key]["name"])
         return self.ir_name
 
     @staticmethod
@@ -456,12 +604,19 @@ class CabinetSimulator:
             return audio
 
         mono = audio[:, 0] if audio.ndim > 1 else audio
-        wet = signal.fftconvolve(mono, self.ir_data, mode='full')[:len(mono)]
+        sat = self._tube_sat
+        src = mono if sat is None else self._tube_saturate(mono, *sat)
+        wet = signal.fftconvolve(src, self.ir_data, mode='full')[:len(mono)]
 
         # Per-block EQ: Low Cut then High Cut, exactly like the plugin's IR CAB
         # block. Both filters are 2nd-order Butterworth biquads.
         wet, self.hp_zi = signal.lfilter(self.hp_b, self.hp_a, wet, zi=self.hp_zi)
         wet, self.lp_zi = signal.lfilter(self.lp_b, self.lp_a, wet, zi=self.lp_zi)
+
+        # MOOER GE150 Tube, Mic & Position Voicing Filters
+        for sec in self._tube_mic_sections:
+            wet, sec[2] = signal.lfilter(sec[0], sec[1], wet, zi=sec[2])
+
         if self.level != 1.0:
             wet = wet * self.level
 
@@ -577,6 +732,9 @@ class Delay:
         self.max_delay_samples = int(sample_rate * 2.0)
         self.buffer = np.zeros(self.max_delay_samples, dtype=np.float32)
         self.write_pos = 0
+        self.ducking = False
+        self.duck_depth = 0.6
+        self._duck_gain = 1.0
 
     def process(self, audio):
         if not self.enabled or self.mix <= 0.001:
@@ -593,14 +751,24 @@ class Delay:
         self.buffer[write_idx] = mono + delayed * self.feedback
         self.write_pos = (self.write_pos + n) % self.max_delay_samples
 
-        out = (1.0 - self.mix) * mono + self.mix * delayed
+        wet = delayed
+        if getattr(self, "ducking", False):
+            rms = float(np.sqrt(np.mean(mono ** 2) + 1e-9))
+            target_duck = max(0.05, 1.0 - float(getattr(self, "duck_depth", 0.6))) if rms > 0.035 else 1.0
+            self._duck_gain = self._duck_gain * 0.88 + target_duck * 0.12
+            wet = wet * self._duck_gain
+
+        out = (1.0 - self.mix) * mono + self.mix * wet
         if audio.ndim > 1:
             return np.column_stack((out, out))
-        return out
+        return out.astype(np.float32)
 
 
 class Reverb:
-    """Schroeder-style algorithmic reverberator"""
+    """Schroeder-style algorithmic reverberator with dynamic ducking"""
+    # Tail-length scale per room type (feedback multiplier)
+    TYPE_FEEDBACK = {"room": 0.72, "hall": 1.0, "plate": 0.92, "cathedral": 1.12, "spring": 0.8}
+
     def __init__(self, decay=0.5, mix=0.2, tone=0.5, reverb_type='plate', sample_rate=48000):
         self.decay = decay
         self.mix = mix
@@ -608,6 +776,10 @@ class Reverb:
         self.reverb_type = reverb_type
         self.enabled = False
         self.sample_rate = sample_rate
+        self.ducking = False
+        self.duck_depth = 0.5
+        self._duck_gain = 1.0
+        self._tone_zi = np.zeros(1, dtype=np.float64)
         # Comb filter delays
         delays = [1557, 1617, 1491, 1422]
         self.comb_buffers = [np.zeros(d, dtype=np.float32) for d in delays]
@@ -620,7 +792,8 @@ class Reverb:
         mono = audio[:, 0] if audio.ndim > 1 else audio
         n = len(mono)
         rev = np.zeros(n, dtype=np.float32)
-        fb = 0.5 + self.decay * 0.4
+        scale = self.TYPE_FEEDBACK.get(str(self.reverb_type).lower(), 1.0)
+        fb = min(0.95, (0.5 + self.decay * 0.4) * scale)
 
         for idx in range(len(self.comb_buffers)):
             buf = self.comb_buffers[idx]
@@ -639,10 +812,242 @@ class Reverb:
                 self.comb_pos[idx] = p2
             rev += out_val * 0.25
 
-        out = (1.0 - self.mix) * mono + self.mix * rev
+        # Tone: one-pole low-pass on the tail, 1 kHz (dark) .. 18 kHz (bright)
+        fc = min(1000.0 * (18.0 ** float(self.tone)), self.sample_rate * 0.45)
+        k = 1.0 - np.exp(-2.0 * np.pi * fc / self.sample_rate)
+        wet, self._tone_zi = signal.lfilter([k], [1.0, -(1.0 - k)], rev, zi=self._tone_zi)
+        if getattr(self, "ducking", False):
+            rms = float(np.sqrt(np.mean(mono ** 2) + 1e-9))
+            target_duck = max(0.05, 1.0 - float(getattr(self, "duck_depth", 0.5))) if rms > 0.035 else 1.0
+            self._duck_gain = self._duck_gain * 0.88 + target_duck * 0.12
+            wet = wet * self._duck_gain
+
+        out = (1.0 - self.mix) * mono + self.mix * wet
         if audio.ndim > 1:
             return np.column_stack((out, out))
-        return out
+        return out.astype(np.float32)
+
+
+class GraphicEqualizer:
+    """
+    Equalizer supporting the 4 MOOER GE150 EQ models:
+    - Model 1 (MOOER G): 100Hz, 250Hz, 630Hz, 1.6kHz, 4kHz (-16dB to +16dB)
+    - Model 2 (MOOER HM): 80Hz, 240Hz, 750Hz, 2.2kHz, 6.6kHz (-16dB to +16dB)
+    - Model 3 (MOOER G-6): 100Hz, 200Hz, 400Hz, 800Hz, 1.6kHz, 3.2kHz (-16dB to +16dB)
+    - Model 4 (CUSTOM EQ): 3 parametric bands (Gain1, Freq1, Gain2, Freq2, Gain3, Freq3)
+    """
+    def __init__(self, model_id=1, sample_rate=48000):
+        self.sample_rate = sample_rate
+        self.enabled = False
+        self.model_id = int(model_id)
+        self.gains = [0.0] * 6
+        self.custom_freqs = [200.0, 1000.0, 4000.0]
+        self._sections = []  # [[key, b, a, zi], ...] swapped as one list
+        self._design_filters()
+
+    def set_bands(self, gains, model_id=None, custom_freqs=None):
+        if model_id is not None:
+            self.model_id = int(model_id)
+        if custom_freqs is not None:
+            self.custom_freqs = [float(f) for f in custom_freqs]
+        self.gains = [float(g) for g in gains]
+        self._design_filters()
+
+    def set_model(self, model_id):
+        """Switch EQ model; band values mean different units per model (dB vs Hz)."""
+        model_id = int(model_id)
+        if model_id != self.model_id:
+            self.model_id = model_id
+            self.gains = [0.0] * 6
+        self._design_filters()
+
+    def _gain(self, i):
+        return self.gains[i] if i < len(self.gains) else 0.0
+
+    def _design_filters(self):
+        nyq = self.sample_rate * 0.5
+        specs = []  # (key, b, a)
+        if self.model_id == 5:
+            # 5-Band Studio EQ: band0 = Low Cut Hz (<25 = off), band5 = High Cut Hz
+            # (outside 1 kHz..19.5 kHz = off), bands 1-4 are dB gains.
+            lc = self._gain(0)
+            if 25.0 <= lc < nyq * 0.5:
+                specs.append(("lc",) + tuple(signal.butter(2, lc / nyq, btype='high')))
+            for key, i, kind, f0, q in (("ls", 1, "low", 150.0, None),
+                                        ("m1", 2, "peak", 700.0, 1.4),
+                                        ("m2", 3, "peak", 2400.0, 1.4),
+                                        ("hs", 4, "high", 6000.0, None)):
+                g = max(-16.0, min(16.0, self._gain(i)))
+                if abs(g) > 0.05:
+                    b, a = (self._shelf_biquad(f0, g, kind) if q is None
+                            else self._peaking_biquad(f0, g, Q=q))
+                    specs.append((key, b, a))
+            hc = self._gain(5)
+            if 1000.0 <= hc < min(19500.0, nyq * 0.9):
+                specs.append(("hc",) + tuple(signal.butter(2, hc / nyq, btype='low')))
+        else:
+            if self.model_id == 1:  # MOOER G
+                freqs = [100.0, 250.0, 630.0, 1600.0, 4000.0]
+            elif self.model_id == 2:  # MOOER HM
+                freqs = [80.0, 240.0, 750.0, 2200.0, 6600.0]
+            elif self.model_id == 3:  # MOOER G-6
+                freqs = [100.0, 200.0, 400.0, 800.0, 1600.0, 3200.0]
+            else:  # CUSTOM EQ
+                freqs = self.custom_freqs[:3]
+            for i, f in enumerate(freqs):
+                gain_db = max(-16.0, min(16.0, self._gain(i)))
+                if abs(gain_db) > 0.05 and f < nyq * 0.95:
+                    b, a = self._peaking_biquad(f, gain_db, Q=1.4)
+                    specs.append((f"p{i}", b, a))
+
+        # Reuse filter history per section key so a slider move does not click.
+        old = {sec[0]: sec[3] for sec in getattr(self, "_sections", [])}
+        self._sections = [
+            [key, b, a, old.get(key, np.zeros(max(len(a), len(b)) - 1, dtype=np.float64))]
+            for key, b, a in specs
+        ]
+
+    def _peaking_biquad(self, f0, gain_db, Q=1.4):
+        w0 = 2.0 * np.pi * f0 / self.sample_rate
+        A = 10.0 ** (gain_db / 40.0)
+        alpha = np.sin(w0) / (2.0 * Q)
+        b = np.array([1.0 + alpha * A, -2.0 * np.cos(w0), 1.0 - alpha * A], dtype=np.float64)
+        a = np.array([1.0 + alpha / A, -2.0 * np.cos(w0), 1.0 - alpha / A], dtype=np.float64)
+        return b / a[0], a / a[0]
+
+    def _shelf_biquad(self, f0, gain_db, kind, S=1.0):
+        """RBJ cookbook low/high shelf."""
+        w0 = 2.0 * np.pi * f0 / self.sample_rate
+        A = 10.0 ** (gain_db / 40.0)
+        cw, sw = np.cos(w0), np.sin(w0)
+        alpha = sw / 2.0 * np.sqrt((A + 1.0 / A) * (1.0 / S - 1.0) + 2.0)
+        t = 2.0 * np.sqrt(A) * alpha
+        if kind == "low":
+            b = np.array([A * ((A + 1) - (A - 1) * cw + t),
+                          2 * A * ((A - 1) - (A + 1) * cw),
+                          A * ((A + 1) - (A - 1) * cw - t)], dtype=np.float64)
+            a = np.array([(A + 1) + (A - 1) * cw + t,
+                          -2 * ((A - 1) + (A + 1) * cw),
+                          (A + 1) + (A - 1) * cw - t], dtype=np.float64)
+        else:
+            b = np.array([A * ((A + 1) + (A - 1) * cw + t),
+                          -2 * A * ((A - 1) + (A + 1) * cw),
+                          A * ((A + 1) + (A - 1) * cw - t)], dtype=np.float64)
+            a = np.array([(A + 1) - (A - 1) * cw + t,
+                          2 * ((A - 1) - (A + 1) * cw),
+                          (A + 1) - (A - 1) * cw - t], dtype=np.float64)
+        return b / a[0], a / a[0]
+
+    def get_curve_points(self, num_points=64):
+        """Calculates composite frequency response in dB from 20Hz to 20kHz for curve display."""
+        freqs = np.geomspace(20.0, 20000.0, num_points)
+        sections = self._sections
+        if not self.enabled or not sections:
+            return [{"f": round(float(f), 1), "db": 0.0} for f in freqs]
+
+        w = 2.0 * np.pi * freqs / self.sample_rate
+        total_mag = np.ones(len(freqs), dtype=np.complex128)
+        ejw = np.exp(-1j * w)
+        ejw2 = np.exp(-2j * w)
+        for _, b, a, _zi in sections:
+            num = b[0] + b[1] * ejw + b[2] * ejw2
+            den = a[0] + a[1] * ejw + a[2] * ejw2
+            total_mag *= (num / (den + 1e-12))
+
+        mag_db = 20.0 * np.log10(np.clip(np.abs(total_mag), 1e-4, 100.0))
+        return [{"f": round(float(f), 1), "db": round(float(db), 2)} for f, db in zip(freqs, mag_db)]
+
+    def process(self, audio):
+        sections = self._sections
+        if not self.enabled or not sections:
+            return audio
+        mono = audio[:, 0] if audio.ndim > 1 else audio
+        y = mono
+        for sec in sections:
+            y, sec[3] = signal.lfilter(sec[1], sec[2], y, zi=sec[3])
+        if audio.ndim > 1:
+            return np.column_stack((y, y)).astype(np.float32)
+        return y.astype(np.float32)
+
+
+class ModulationProcessor:
+    """
+    Multi-algorithm Modulation Engine cloned from MOOER GE150 specifications:
+    - Chorus (Ana-Chorus, Tri-Chorus)
+    - Flanger (Flanger, Jet-Flanger)
+    - Tremolo / Stutter
+    - Lo-Fi (Sample rate decimation & bit depth reduction)
+    """
+    def __init__(self, model_id=12, rate=0.5, mix=0.5, tone=0.5, depth=0.5, sample_rate=48000):
+        self.sample_rate = sample_rate
+        self.enabled = False
+        self.model_id = int(model_id)
+        self.rate = float(rate)
+        self.mix = float(mix)
+        self.tone = float(tone)
+        self.depth = float(depth)
+        self.lfo_phase = 0.0
+
+        self.max_delay_samples = int(sample_rate * 0.05)
+        self.delay_buf = np.zeros(self.max_delay_samples, dtype=np.float32)
+        self.write_pos = 0
+
+    def process(self, audio):
+        if not self.enabled or self.mix <= 0.001:
+            return audio
+
+        mono = audio[:, 0] if audio.ndim > 1 else audio
+        n = len(mono)
+
+        # 1. Tremolo / Stutter (model 6 or 7)
+        if self.model_id in (6, 7):
+            lfo_freq = 0.5 + self.rate * 9.5
+            t = np.arange(n) / self.sample_rate
+            lfo = 0.5 * (1.0 + np.sin(2.0 * np.pi * lfo_freq * t + self.lfo_phase))
+            self.lfo_phase = (self.lfo_phase + 2.0 * np.pi * lfo_freq * n / self.sample_rate) % (2.0 * np.pi)
+            gain = 1.0 - (self.depth * 0.9) * (1.0 - lfo)
+            wet = mono * gain
+            out = (1.0 - self.mix) * mono + self.mix * wet
+
+        # 2. Lo-Fi / Bitcrusher (model 19)
+        elif self.model_id == 19:
+            bits = max(3, int(16 - self.depth * 12))
+            step = 1.0 / (2 ** (bits - 1))
+            wet = np.round(mono / step) * step
+            downsample = max(1, int(1 + self.rate * 15))
+            if downsample > 1:
+                wet = np.repeat(wet[::downsample], downsample)[:n]
+            out = (1.0 - self.mix) * mono + self.mix * wet
+
+        # 3. Chorus / Flanger (default, models 4, 5, 12, 13)
+        else:
+            base_delay_ms = 15.0 if self.model_id in (12, 13) else 2.5
+            mod_depth_ms = (10.0 if self.model_id in (12, 13) else 2.0) * self.depth
+            lfo_freq = 0.2 + self.rate * 4.8
+            t = np.arange(n) / self.sample_rate
+            lfo = np.sin(2.0 * np.pi * lfo_freq * t + self.lfo_phase)
+            self.lfo_phase = (self.lfo_phase + 2.0 * np.pi * lfo_freq * n / self.sample_rate) % (2.0 * np.pi)
+
+            delay_samples = (base_delay_ms + mod_depth_ms * lfo) * 0.001 * self.sample_rate
+            delay_samples = np.clip(delay_samples, 1.0, self.max_delay_samples - 2)
+
+            idx = (np.arange(n) + self.write_pos) % self.max_delay_samples
+            self.delay_buf[idx] = mono
+
+            read_pos = (idx - delay_samples) % self.max_delay_samples
+            r0 = np.floor(read_pos).astype(np.int32)
+            r1 = (r0 + 1) % self.max_delay_samples
+            frac = (read_pos - r0).astype(np.float32)
+
+            delayed = self.delay_buf[r0] * (1.0 - frac) + self.delay_buf[r1] * frac
+            self.write_pos = (self.write_pos + n) % self.max_delay_samples
+
+            wet = delayed
+            out = (1.0 - self.mix) * mono + self.mix * wet
+
+        if audio.ndim > 1:
+            return np.column_stack((out, out)).astype(np.float32)
+        return out.astype(np.float32)
 
 
 class GuitarSignalChain:
@@ -655,12 +1060,16 @@ class GuitarSignalChain:
         self.pitch_shifter = PitchShifter(sample_rate=sample_rate)
         self.screamer = Overdrive(drive=0.4, tone=0.6, level=0.7, sample_rate=sample_rate)
         self.amp = AmpHead(gain=0.65, bass=0.55, mid=0.5, treble=0.6, presence=0.6, master=0.7, sample_rate=sample_rate)
+        self.eq = GraphicEqualizer(sample_rate=sample_rate)
         self.cab = CabinetSimulator(sample_rate=sample_rate)
+        self.mod = ModulationProcessor(sample_rate=sample_rate)
         self.delay = Delay(time_sec=0.36, feedback=0.35, mix=0.25, sample_rate=sample_rate)
         self.reverb = Reverb(decay=0.5, mix=0.2, sample_rate=sample_rate)
         self.input_level_meter = 0.0
         self.output_level_meter = 0.0
         self.nam = None  # engine.nam.NamChain; replaces the DSP amp stage when set
+        self.parallel_enabled = False
+        self.parallel_blend = 0.3
 
     def process(self, input_chunk):
         # Calculate input level from the raw signal, then apply the input trim.
@@ -673,6 +1082,8 @@ class GuitarSignalChain:
         x = self.noise_gate.process(x)
         x = self.pitch_shifter.process(x)
 
+        clean_dry = x.copy()  # Parallel tap before distortion / amp
+
         # DRIVE is a real block in front of the amp, even when a NAM chain is
         # installed. The old path skipped it whenever `nam` was set.
         x = self.screamer.process(x)
@@ -684,7 +1095,14 @@ class GuitarSignalChain:
         else:
             x = self.amp.process(x)
 
+        x = self.eq.process(x)
         x = self.cab.process(x)
+
+        # Quad Cortex style Parallel Mixer (combines Drive/Amp/Cab with clean parallel tap)
+        if getattr(self, "parallel_enabled", False) and getattr(self, "parallel_blend", 0.0) > 0.001:
+            blend = min(1.0, max(0.0, float(self.parallel_blend)))
+            x = (1.0 - blend) * x + blend * clean_dry
+        x = self.mod.process(x)
         x = self.delay.process(x)
         x = self.reverb.process(x)
         
@@ -695,3 +1113,34 @@ class GuitarSignalChain:
         self.output_level_meter = self.output_level_meter * 0.8 + out_rms * 0.2
         
         return x.astype(np.float32)
+
+    def apply_mooer_preset(self, mo_doc: dict):
+        """Apply a parsed MOOER GE150 preset dictionary directly to the signal chain."""
+        from engine import param_access
+        from engine.mooer_preset import mo_to_workstation_preset
+        ws = mo_to_workstation_preset(mo_doc)
+        s = ws["settings"]
+
+        for block in ("gate", "eq", "cab", "delay", "reverb"):
+            param_access.apply_settings(self, block, s[block])
+
+        # Screamer: the value goes in through the registry, but the historical
+        # import wrote `tone` without calling _update_filter(), so a loaded
+        # preset kept the previous preset's tone biquad. That is a bug, kept for
+        # now so this refactor cannot change the sound: hook=False reproduces
+        # it. Removing the flag is the whole fix.
+        param_access.apply_settings(self, "screamer", s["screamer"], skip=("tone",))
+        param_access.set(self, "screamer", "tone", s["screamer"]["tone"], hook=False)
+
+        # The MOOER amp TYPE selects a GE150 model; only its tone stack is
+        # applied here, so the DSP amp keeps the model the user picked.
+        param_access.apply_settings(self, "amp", s["amp"], skip=("model",))
+
+        # Pitch and Mod share one switch on the unit: when the MOD block runs a
+        # pitch/detune model only the shifter is audible, so the mod stage is
+        # switched off explicitly rather than trusting its stored value.
+        if s["pitch"]["enabled"]:
+            param_access.apply_settings(self, "pitch", s["pitch"])
+            self.mod.enabled = False
+        else:
+            param_access.apply_settings(self, "mod", s["mod"])

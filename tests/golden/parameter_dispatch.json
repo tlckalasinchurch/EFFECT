@@ -1,0 +1,6347 @@
+{
+ "note": "state['chain'] returned by POST /api/parameter on baseline_chain()",
+ "sources": {
+  "server.py": "d53d13a7cced06b61a9b75dc39475432162112030810ecebeccb20e1e1cec3d6",
+  "engine/dsp.py": "21dcda2b7c0996d7a5ea07a3c3f16cb536c1e3a1bc891e684a4ebe93a7e8ceb0"
+ },
+ "probes": [
+  {
+   "section": "gate",
+   "param": "enabled",
+   "value": false,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": false,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "gate",
+   "param": "threshold",
+   "value": -20.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -20.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "gate",
+   "param": "release",
+   "value": 500.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 500.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "gate",
+   "param": "hold",
+   "value": 200.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 200.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "gate",
+   "param": "range",
+   "value": -20.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -20.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "pitch",
+   "param": "enabled",
+   "value": true,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": true,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "pitch",
+   "param": "semitones",
+   "value": 24.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 24.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "pitch",
+   "param": "glide",
+   "value": 100.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 100.0
+    }
+   }
+  },
+  {
+   "section": "pitch",
+   "param": "cents",
+   "value": 100.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 100.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "pitch",
+   "param": "mix",
+   "value": 0.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.0,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "screamer",
+   "param": "enabled",
+   "value": true,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "screamer",
+   "param": "drive",
+   "value": 1.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 1.0,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "screamer",
+   "param": "tone",
+   "value": 1.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 1.0,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "screamer",
+   "param": "level",
+   "value": 1.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 1.0
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "amp",
+   "param": "enabled",
+   "value": false,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": false,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "amp",
+   "param": "gain",
+   "value": 1.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 1.0,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "amp",
+   "param": "bass",
+   "value": 1.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 1.0,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "amp",
+   "param": "mid",
+   "value": 1.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 1.0,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "amp",
+   "param": "treble",
+   "value": 1.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 1.0,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "amp",
+   "param": "presence",
+   "value": 1.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 1.0,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "amp",
+   "param": "master",
+   "value": 1.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 1.0,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "amp",
+   "param": "model",
+   "value": "Twin",
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Twin",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "amp",
+   "param": "bright",
+   "value": true,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": true
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "eq",
+   "param": "enabled",
+   "value": true,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "eq",
+   "param": "model_id",
+   "value": 2,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 2,
+     "bands": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "cab",
+   "param": "enabled",
+   "value": false,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": false,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "cab",
+   "param": "level",
+   "value": 2.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 2.0,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "cab",
+   "param": "ir_name",
+   "value": "greenback",
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "cab",
+   "param": "lowcut",
+   "value": 20000.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 20000.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "cab",
+   "param": "highcut",
+   "value": 10.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 10.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "cab",
+   "param": "mix",
+   "value": 0.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.0,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "cab",
+   "param": "tube",
+   "value": "EL34",
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "EL34",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "cab",
+   "param": "mic",
+   "value": "MD421",
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "MD421",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "cab",
+   "param": "center",
+   "value": 100.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 100.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "cab",
+   "param": "distance",
+   "value": 100.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 100.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "mod",
+   "param": "enabled",
+   "value": true,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "mod",
+   "param": "model_id",
+   "value": 13,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 13,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "mod",
+   "param": "rate",
+   "value": 1.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 1.0,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "mod",
+   "param": "mix",
+   "value": 1.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 1.0,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "mod",
+   "param": "tone",
+   "value": 1.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 1.0,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "mod",
+   "param": "depth",
+   "value": 1.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 1.0
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "delay",
+   "param": "enabled",
+   "value": true,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "delay",
+   "param": "time",
+   "value": 2.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 2.0,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "delay",
+   "param": "feedback",
+   "value": 0.95,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.95,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "delay",
+   "param": "mix",
+   "value": 1.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 1.0,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "delay",
+   "param": "ducking",
+   "value": true,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "delay",
+   "param": "duck_depth",
+   "value": 1.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 1.0
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "reverb",
+   "param": "enabled",
+   "value": true,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "reverb",
+   "param": "decay",
+   "value": 1.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 1.0,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "reverb",
+   "param": "mix",
+   "value": 1.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 1.0,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "reverb",
+   "param": "tone",
+   "value": 1.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 1.0,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "reverb",
+   "param": "type",
+   "value": "room",
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "reverb",
+   "param": "ducking",
+   "value": true,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "reverb",
+   "param": "duck_depth",
+   "value": 1.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 1.0
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "input",
+   "param": "trim",
+   "value": 24.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 24.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "master",
+   "param": "volume",
+   "value": 2.0,
+   "state": {
+    "master_volume": 2.0,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "parallel",
+   "param": "enabled",
+   "value": true,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "parallel",
+   "param": "blend",
+   "value": 1.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 1.0
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "input",
+   "param": "trim",
+   "value": 999.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 24.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "cab",
+   "param": "mix",
+   "value": 5.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 1.0,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "parallel",
+   "param": "blend",
+   "value": -3.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.0
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "gate",
+   "param": "threshold",
+   "value": -200.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -200.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "mod",
+   "param": "model_id",
+   "value": 99,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 99,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "eq",
+   "param": "band0",
+   "value": 2.5,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      2.5,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "eq",
+   "param": "band3",
+   "value": -4.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      -4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
+   "section": "eq",
+   "param": "band7",
+   "value": 1.0,
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0,
+      0.0,
+      1.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  }
+ ]
+}

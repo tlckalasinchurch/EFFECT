@@ -1,8 +1,8 @@
 """Single source of truth for signal-chain modules and their parameters.
 
 This module is **data only**: importing it has no side effects, allocates no DSP
-and reads no files. It exists because the same parameter set is currently
-declared in six places that have already drifted apart:
+and reads no files. It exists because the same parameter set was declared in six
+places that had already drifted apart:
 
     1. server.py  /api/parameter          (section + param -> attribute write)
     2. engine/audio.py get_state()["chain"] (what a preset stores)
@@ -11,10 +11,12 @@ declared in six places that have already drifted apart:
     5. engine/dsp.py apply_mooer_preset   (nested settings dict)
     6. web/app.js BLOCKS + KNOB_SETS
 
-Phase 2A adds it next to those tables without rewiring any call site, so the
-mapping can be proven correct against the running code first
-(tests/test_param_registry.py). Wiring the call sites to read from here is a
-later phase; see docs/SIGNAL_CHAIN_READINESS.md.
+Phase 2B moved the two *writes* onto it through ``engine/param_access.py``:
+``server.update_parameter`` (no per-parameter branch left) and
+``GuitarSignalChain.apply_mooer_preset`` (no per-key assignment left). The other
+four declarations -- ``get_state()``'s shape, ``load_preset``, the cortex/morph
+tables and the UI -- still carry their own copies, pinned to this one by
+``tests/test_param_registry.py``. See docs/SIGNAL_CHAIN_READINESS.md section 10.
 
 Two rules for editing:
 
@@ -51,6 +53,16 @@ class Param:
     owner: str = "block"
     minimum: Optional[float] = None
     maximum: Optional[float] = None
+    #: Clamp the written value to minimum/maximum. Only the three parameters
+    #: that clamped historically set this (input trim, cab mix, parallel
+    #: blend); the rest of the API stores whatever it is given, and turning
+    #: that into a silent clamp would change behaviour instead of describing it.
+    clamp: bool = False
+    #: ``engine.param_access`` assigns ``attr`` before calling the setter. False
+    #: when the setter must own the write: ``set_semitones`` has to see the old
+    #: target so the audible pitch keeps gliding, and ``set_model`` only resets
+    #: the bands when the model actually changes.
+    assign: bool = True
     choices: Tuple[str, ...] = ()
     aliases: Tuple[str, ...] = ()   # accepted on input, never emitted
     ui: bool = True                 # exposed as a knob in web/app.js
@@ -94,7 +106,7 @@ def _p(key, attr, kind, default, **kw):
 
 INPUT = Module(
     name="input", attr=None, in_graph=False,
-    params=(_p("trim", "input_trim_db", "float", 0.0, owner="chain",
+    params=(_p("trim", "input_trim_db", "float", 0.0, owner="chain", clamp=True,
               state_key="trim_db", minimum=-24.0, maximum=24.0),),
 )
 
@@ -108,7 +120,8 @@ PARALLEL = Module(
     name="parallel", attr=None, in_graph=False,
     params=(
         _p("enabled", "parallel_enabled", "bool", False, owner="chain"),
-        _p("blend", "parallel_blend", "float", 0.3, owner="chain", minimum=0.0, maximum=1.0),
+        _p("blend", "parallel_blend", "float", 0.3, owner="chain", clamp=True,
+           minimum=0.0, maximum=1.0),
     ),
 )
 
@@ -137,7 +150,7 @@ PITCH = Module(
         _p("enabled", "enabled", "bool", False),
         # The knob sets the target; the audible value glides toward it.
         _p("semitones", "semitones", "float", 0.0, setter="set_semitones",
-           read_attr="target_semitones", minimum=-24.0, maximum=24.0),
+           read_attr="target_semitones", assign=False, minimum=-24.0, maximum=24.0),
         _p("glide", "glide_pct", "float", 0.0, setter="set_glide", minimum=0.0, maximum=100.0),
         _p("cents", "cents", "float", 0.0, minimum=-100.0, maximum=100.0),
         _p("mix", "mix", "float", 1.0, minimum=0.0, maximum=1.0),
@@ -187,11 +200,14 @@ EQ = Module(
     name="eq", attr="eq",
     params=(
         _p("enabled", "enabled", "bool", False),
-        _p("model_id", "model_id", "int", 1, setter="set_model", minimum=1, maximum=5),
+        # set_model() resets the bands only when the model changes, so it has to
+        # read the previous value itself.
+        _p("model_id", "model_id", "int", 1, setter="set_model", assign=False,
+           minimum=1, maximum=5),
         # List of band gains; the server edits one index and re-designs filters.
         # "data" is the name the MOOER/Cortex importers use for this list.
         _p("bands", "gains", "list", (0.0,) * 6, setter="set_bands", ui=False,
-           aliases=("data",), index_template="band{index}"),
+           assign=False, aliases=("data",), index_template="band{index}"),
         _p("curve", "get_curve_points", "float", (), read_only=True, ui=False),
     ),
 )
@@ -204,7 +220,7 @@ CAB = Module(
         _p("ir_name", "ir_name", "str", "Celestion V30 4x12", setter="select_cab"),
         _p("lowcut", "lowcut_hz", "float", 20.0, setter="set_cutoffs", minimum=10.0, maximum=20000.0),
         _p("highcut", "highcut_hz", "float", 20000.0, setter="set_cutoffs", minimum=10.0, maximum=20000.0),
-        _p("mix", "mix", "float", 1.0, minimum=0.0, maximum=1.0),
+        _p("mix", "mix", "float", 1.0, clamp=True, minimum=0.0, maximum=1.0),
         _p("tube", "tube", "str", "OFF", setter="set_tube_and_mic"),
         _p("mic", "mic", "str", "SM57", setter="set_tube_and_mic"),
         _p("center", "center", "float", 50.0, setter="set_tube_and_mic", minimum=0.0, maximum=100.0),

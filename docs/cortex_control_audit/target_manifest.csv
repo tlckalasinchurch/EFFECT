@@ -1,0 +1,4 @@
+Target_ID,Target_Name,File_Path,File_Size_Bytes,Last_Modified_ISO,SHA256,Signature_Status,PE_Architecture,Subsystem,Version
+TGT-01,Cortex Control Application,"C:\Program Files\Neural DSP\Cortex Control\Cortex Control.exe",67060088,2026-08-18T09:43:58,9be548fb6cbd2e8c80715015c2a2f0f248c9b01a7165004e2b017ffe2b14e65a,Valid (Neural DSP Technologies Oy),PE32+ (AMD64 / x86-64),WINDOWS_GUI (2),4.1.0.0
+TGT-02,Cortex Control Installer,"c:\Users\Administrator\Desktop\Hack-effect\Cortex Control v4.1.0.exe",30286608,2026-10-20T21:35:09,c03942a0631afd195d3d70febf91384bf39cb7101014146f26f5ba65fd73228c,Valid (Neural DSP Technologies Oy),PE32+ (AMD64 / x86-64),WINDOWS_GUI (2),4.1.0.0
+TGT-03,Quad Cortex mini Driver Installer,"c:\Users\Administrator\Desktop\Hack-effect\Neural DSP Quad Cortex mini v5.74.0.exe",6429392,2026-10-20T21:35:17,2340ec672bb6d4d55c9124a1fe2d28b1996f9e839c53bc55113b9543d4b1bb56,Valid (Thesycon / Neural DSP),PE32 (x86 32-bit),WINDOWS_GUI (2),5.74.0.23632
