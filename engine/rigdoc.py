@@ -52,7 +52,9 @@ V1_SCALARS = {"master_volume": ("master", "volume")}
 #: fully wet. Both positions are implicit in the order of the statements, not
 #: declared anywhere, so they are frozen here for the refactor phase: moving
 #: either one changes the sound of every preset with parallel enabled, and
-#: making them configurable is a routing feature, not a refactor.
+#: making them configurable is a routing feature, not a refactor. These strings
+#: are not taken on faith: tests/test_rigdoc.py reads process() and checks that
+#: they name the stages on either side of the tap and blend statements.
 #:
 #: ``PARALLEL_TAP_AFTER`` is the *last* stage included in the tap; gate and pitch
 #: are the only stages before it, so the tap is gate + pitch.
@@ -61,6 +63,10 @@ PARALLEL_BLEND_AFTER = "cab"
 
 #: Declared anchors in nominal (default) order, for callers that validate a chain.
 PARALLEL_ANCHORS = (PARALLEL_TAP_AFTER, PARALLEL_BLEND_AFTER)
+
+#: Stage types that share one slot, mapped to the type that names the slot.
+#: ``nam`` replaces ``amp`` at the same point of the graph.
+SLOT_ALIASES = {"nam": "amp"}
 
 #: One DSP instance per module type in this phase: the engine holds a single
 #: attribute per type and the API addresses a module by (section, param) with
@@ -224,15 +230,47 @@ class RigDocument:
         return PARALLEL_BLEND_AFTER
 
     def parallel_tap_is_reachable(self) -> bool:
-        """True when both anchors exist and sit in tap-then-blend order.
+        """True when every stored stage sits on the engine's side of both
+        parallel boundaries.
 
-        Used by the builder to refuse a reorder that would move a stage across an
-        anchor, which would silently change what the parallel path contains.
+        ``process()`` taps the dry signal after pitch and mixes it back after
+        the cab, which splits the graph into three groups: the tap (gate,
+        pitch), the wet path between the anchors (screamer, amp/nam, eq, cab)
+        and everything after the blend (mod, delay, reverb).
+
+        Reordering *inside* a group is the feature this document exists for and
+        returns True. Moving a stage *across* a boundary returns False: a reverb
+        ahead of the tap would be mixed in dry, a delay inside the wet path
+        would be blended, and a gate moved past the blend would leave the dry
+        signal. A stage whose type has no declared position also returns False,
+        because there is no side to prove it belongs to.
+
+        Absent anchors are not crossings. Most factory presets have no pitch and
+        no cab; each boundary then sits after every stored stage that nominally
+        precedes its anchor, which is where the engine leaves it when the anchor
+        stage is bypassed.
         """
-        order = self.ordered_types()
-        if PARALLEL_TAP_AFTER not in order or PARALLEL_BLEND_AFTER not in order:
-            return False
-        return order.index(PARALLEL_TAP_AFTER) < order.index(PARALLEL_BLEND_AFTER)
+        positions: List[int] = []
+        for type_name in self.ordered_types():
+            index = _nominal_index(type_name)
+            if index is None:
+                return False
+            positions.append(index)
+
+        tap_anchor = params.PROCESS_ORDER.index(PARALLEL_TAP_AFTER)
+        blend_anchor = params.PROCESS_ORDER.index(PARALLEL_BLEND_AFTER)
+
+        # A boundary sits after every stored stage that nominally precedes its
+        # anchor, so an absent anchor still leaves the boundary in place.
+        tap = sum(1 for index in positions if index <= tap_anchor)
+        blend = sum(1 for index in positions if index <= blend_anchor)
+
+        for position, index in enumerate(positions):
+            stored_side = 0 if position < tap else (1 if position < blend else 2)
+            nominal_side = 0 if index <= tap_anchor else (1 if index <= blend_anchor else 2)
+            if stored_side != nominal_side:
+                return False
+        return True
 
     @property
     def errors(self) -> Tuple[Issue, ...]:
@@ -419,11 +457,17 @@ def from_v1(settings: Dict[str, Any], meta: Optional[Dict[str, Any]] = None) -> 
     return doc
 
 
-def _process_index(mod: ModuleConfig) -> Tuple[int, str]:
+def _nominal_index(type_name: str) -> Optional[int]:
+    """Where a stage sits in the engine's declared order, or None if it has no place."""
     try:
-        return (params.PROCESS_ORDER.index(mod.type), mod.slot_id)
+        return params.PROCESS_ORDER.index(SLOT_ALIASES.get(type_name, type_name))
     except ValueError:
-        return (len(params.PROCESS_ORDER), mod.slot_id)
+        return None
+
+
+def _process_index(mod: ModuleConfig) -> Tuple[int, str]:
+    index = _nominal_index(mod.type)
+    return (len(params.PROCESS_ORDER) if index is None else index, mod.slot_id)
 
 
 def _module_from_v1(registry: params.Module, block: Dict[str, Any]) -> Tuple[ModuleConfig, List[Issue]]:
@@ -514,8 +558,8 @@ def _check_slots(doc: RigDocument) -> List[Issue]:
             issues.append(Issue(f"modules[{index}]", DUPLICATE_SLOT,
                                 f"slot_id {mod.slot_id!r} already used by {seen[mod.slot_id]!r}"))
         seen[mod.slot_id] = mod.type
-    installed = {m for m in ("amp", "nam") if any(x.type == m for x in doc.modules)}
-    if len(installed) > 1:
+    present = {m.type for m in doc.modules}
+    if set(SLOT_ALIASES) | set(SLOT_ALIASES.values()) <= present:
         issues.append(Issue("modules", DUPLICATE_SLOT, "amp and nam share one slot but both are present", "error"))
 
     counts: Dict[str, int] = {}

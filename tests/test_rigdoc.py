@@ -7,12 +7,19 @@ is untouched afterwards.
 
 import ast
 import hashlib
+import inspect
 import json
+import re
 import sqlite3
 import unittest
 from pathlib import Path
 
+import numpy as np
+
 from engine import params, rigdoc
+from engine.dsp import GuitarSignalChain
+from tests.test_characterization import SAMPLE_RATE, render, render_input, use_synthetic_cab
+from tests.test_chain_prefix_probe import make_probe
 
 ROOT = Path(__file__).parents[1]
 DB_PATH = ROOT / "presets.db"
@@ -234,6 +241,163 @@ class V2DocumentTests(unittest.TestCase):
                 imported.add(node.module)
         forbidden = {"dsp", "audio", "sounddevice", "scipy", "numpy", "engine.dsp", "engine.audio"}
         self.assertFalse(imported & forbidden, f"rigdoc imports {imported & forbidden}")
+
+
+ATTR_TO_TYPE = {
+    "noise_gate": "gate",
+    "pitch_shifter": "pitch",
+    "screamer": "screamer",
+    "amp": "amp",
+    "nam": "amp",  # nam replaces amp in the same slot
+    "eq": "eq",
+    "cab": "cab",
+    "mod": "mod",
+    "delay": "delay",
+    "reverb": "reverb",
+}
+
+
+class ParallelAnchorBindingTests(unittest.TestCase):
+    """The anchors are strings; this binds them to the statements in process()."""
+
+    def setUp(self):
+        self.source = inspect.getsource(GuitarSignalChain.process)
+
+    def test_stage_calls_follow_the_declared_engine_order(self):
+        """PROCESS_ORDER must be what process() actually applies, nam included."""
+        attrs = re.findall(r"self\.(\w+)\.process\(", self.source)
+        self.assertTrue(attrs, "no stage calls found in process()")
+        stages = []
+        for attr in attrs:
+            self.assertIn(attr, ATTR_TO_TYPE, f"process() calls an undeclared stage: {attr!r}")
+            stage = ATTR_TO_TYPE[attr]
+            if stage in stages:
+                # Only the amp/nam branch may reach its slot twice.
+                self.assertEqual(stage, "amp", f"{stage!r} is processed twice")
+                continue
+            stages.append(stage)
+        self.assertEqual(tuple(stages), params.PROCESS_ORDER)
+
+    def test_tap_statement_sits_between_pitch_and_the_drive_stage(self):
+        tap = self.source.index("clean_dry = x.copy()")
+        self.assertLess(self.source.index("self.pitch_shifter.process("), tap)
+        self.assertLess(tap, self.source.index("self.screamer.process("))
+        self.assertEqual(ATTR_TO_TYPE["pitch_shifter"], rigdoc.PARALLEL_TAP_AFTER)
+
+    def test_blend_statement_sits_between_the_cab_and_modulation(self):
+        blend = self.source.index("blend * clean_dry")
+        self.assertLess(self.source.index("self.cab.process("), blend)
+        self.assertLess(blend, self.source.index("self.mod.process("))
+        self.assertEqual(ATTR_TO_TYPE["cab"], rigdoc.PARALLEL_BLEND_AFTER)
+
+
+class ParallelTapRuntimeTests(unittest.TestCase):
+    def test_blend_at_one_outputs_exactly_the_post_pitch_signal(self):
+        """Proves at runtime that the tap holds gate + pitch and nothing else.
+
+        Every stage after the tap is left enabled and set to do something
+        extreme: at blend 1.0 none of it may reach the output.
+        """
+        x = render_input()
+        dry_path = make_probe("pitch")
+
+        parallel = GuitarSignalChain(sample_rate=SAMPLE_RATE)
+        parallel.master_volume = 1.0
+        parallel.input_trim_db = 0.0
+        parallel.parallel_enabled = True
+        parallel.parallel_blend = 1.0
+        parallel.noise_gate.threshold_db = -60.0
+        parallel.pitch_shifter.enabled = True
+        parallel.pitch_shifter.set_semitones(3.0)
+        parallel.pitch_shifter.mix = 0.6
+        parallel.screamer.enabled = True
+        parallel.screamer.drive = 0.9
+        parallel.screamer._update_filter()
+        parallel.amp.gain = 1.0
+        parallel.eq.enabled = True
+        parallel.eq.set_bands([12.0, -12.0, 12.0, -12.0, 12.0, -12.0], model_id=1)
+        use_synthetic_cab(parallel, "v30")
+
+        blended = render(parallel, x)
+        dry = render(dry_path, x)
+        np.testing.assert_array_equal(blended, dry)
+        self.assertGreater(float(np.max(np.abs(dry))), 0.01)  # a real signal, not silence
+
+
+class ParallelBoundaryTests(unittest.TestCase):
+    def _document(self, order):
+        base = rigdoc.from_v1(FULL_V1)
+        by_type = {m.type: m.to_dict() for m in base.modules}
+        return rigdoc.RigDocument.from_dict({
+            "schema_version": 2,
+            "modules": [by_type[t] for t in order],
+        })
+
+    def test_reordering_inside_a_group_keeps_the_parallel_meaning(self):
+        safe = {
+            "gate and pitch swapped in the tap": ["pitch", "gate", "screamer", "amp", "eq", "cab", "mod", "delay", "reverb"],
+            "eq and cab swapped in the wet path": ["gate", "pitch", "screamer", "amp", "cab", "eq", "mod", "delay", "reverb"],
+            "mod and delay swapped after the blend": ["gate", "pitch", "screamer", "amp", "eq", "cab", "delay", "mod", "reverb"],
+            "delay and reverb reversed after the blend": ["gate", "pitch", "screamer", "amp", "eq", "cab", "reverb", "delay", "mod"],
+        }
+        for label, order in safe.items():
+            with self.subTest(reorder=label):
+                doc = self._document(order)
+                self.assertEqual(list(doc.ordered_types()), order)
+                self.assertTrue(doc.parallel_tap_is_reachable())
+
+    def test_reordering_across_a_boundary_is_refused(self):
+        unsafe = {
+            "reverb moved in front of the tap": ["reverb", "gate", "pitch", "screamer", "amp", "eq", "cab", "mod", "delay"],
+            "delay moved inside the wet path": ["gate", "pitch", "screamer", "delay", "amp", "eq", "cab", "mod", "reverb"],
+            "screamer moved after the blend": ["gate", "pitch", "amp", "eq", "cab", "mod", "delay", "reverb", "screamer"],
+            "pitch moved after the cab": ["gate", "screamer", "amp", "eq", "cab", "pitch", "mod", "delay", "reverb"],
+            "cab moved in front of the tap": ["gate", "cab", "pitch", "screamer", "amp", "eq", "mod", "delay", "reverb"],
+            "gate moved to the end": ["pitch", "screamer", "amp", "eq", "cab", "mod", "delay", "reverb", "gate"],
+        }
+        for label, order in unsafe.items():
+            with self.subTest(reorder=label):
+                self.assertFalse(self._document(order).parallel_tap_is_reachable())
+
+    def test_missing_anchors_are_not_a_crossing(self):
+        """Factory presets omit pitch and cab; that alone must not look unsafe."""
+        factory = rigdoc.from_v1({
+            "gate": {"enabled": True},
+            "screamer": {"enabled": False},
+            "amp": {"enabled": True},
+            "eq": {"enabled": False},
+            "delay": {"enabled": True},
+            "reverb": {"enabled": True},
+        })
+        self.assertEqual(factory.ordered_types(), ("gate", "screamer", "amp", "eq", "delay", "reverb"))
+        self.assertTrue(factory.parallel_tap_is_reachable())
+        self.assertTrue(rigdoc.from_v1({}).parallel_tap_is_reachable())
+
+    def test_a_crossing_is_still_caught_without_the_anchors(self):
+        base = rigdoc.from_v1(FULL_V1)
+        by_type = {m.type: m.to_dict() for m in base.modules}
+        order = ["reverb", "gate", "screamer", "amp", "eq", "mod", "delay"]
+        doc = rigdoc.RigDocument.from_dict({
+            "schema_version": 2,
+            "modules": [by_type[t] for t in order],
+        })
+        self.assertFalse(doc.parallel_tap_is_reachable())
+
+    def test_nam_takes_the_amp_slot(self):
+        base = rigdoc.from_v1(FULL_V1)
+        by_type = {m.type: m.to_dict() for m in base.modules}
+        by_type["nam"] = {"slot_id": "nam", "type": "nam", "enabled": True, "params": {}}
+        order = ["gate", "pitch", "screamer", "nam", "eq", "cab", "mod", "delay", "reverb"]
+        doc = rigdoc.RigDocument.from_dict({
+            "schema_version": 2,
+            "modules": [by_type[t] for t in order],
+        })
+        self.assertTrue(doc.parallel_tap_is_reachable())
+        self.assertEqual(rigdoc._nominal_index("nam"), rigdoc._nominal_index("amp"))
+
+    def test_a_stage_with_no_declared_position_is_refused(self):
+        doc = rigdoc.RigDocument(modules=[rigdoc.ModuleConfig(slot_id="phaser", type="phaser")])
+        self.assertFalse(doc.parallel_tap_is_reachable())
 
 
 class RealPresetAuditTests(unittest.TestCase):
