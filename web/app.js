@@ -2247,6 +2247,10 @@ async function reorderBlock(blockId, delta) {
 }
 
 async function applyQuickScene(name) {
+  const sceneMap = { clean: 0, rhythm: 2, lead: 3 };
+  if (Object.prototype.hasOwnProperty.call(sceneMap, name)) {
+    cppBridge.sendScene(sceneMap[name]);
+  }
   try {
     const res = await api('/api/scenes/quick', { method: 'POST', body: { scene: name } });
     if (res?.state) {
@@ -3688,6 +3692,7 @@ function renderCortexScenes(cortex) {
 }
 
 async function selectCortexScene(idx) {
+  cppBridge.sendScene(idx);
   const prev = state.cortex;
   state.pendingScene = idx;
   if (prev && prev.scenes) {
@@ -4083,7 +4088,8 @@ const cppBridge = {
       ws.addEventListener('open', () => {
         cppBridge.ws = ws;
         cppBridge.connected = true;
-        showToast('⚡ Native C++ ASIO Engine เชื่อมต่อสำเร็จ (17.5 ms UX1)', false);
+        showToast('Native C++ engine WebSocket connected — waiting for live backend/latency from host', false);
+        ws.send(JSON.stringify({ type: 'set_bypass', req_id: String(cppBridge.reqSeq++), global_bypass: false }));
         ws.send(JSON.stringify({ type: 'get_state', req_id: String(cppBridge.reqSeq++) }));
       });
       ws.addEventListener('close', () => {
@@ -4119,6 +4125,26 @@ const cppBridge = {
         block,
         param,
         value: Number(value)
+      }));
+    } catch (e) { /* ignore */ }
+  },
+  sendScene(sceneIndex) {
+    if (!cppBridge.connected || !cppBridge.ws) return;
+    try {
+      cppBridge.ws.send(JSON.stringify({
+        type: 'set_scene',
+        req_id: String(cppBridge.reqSeq++),
+        scene_index: Number(sceneIndex)
+      }));
+    } catch (e) { /* ignore */ }
+  },
+  sendBypass(globalBypass) {
+    if (!cppBridge.connected || !cppBridge.ws) return;
+    try {
+      cppBridge.ws.send(JSON.stringify({
+        type: 'set_bypass',
+        req_id: String(cppBridge.reqSeq++),
+        global_bypass: !!globalBypass
       }));
     } catch (e) { /* ignore */ }
   }

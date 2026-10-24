@@ -8,6 +8,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 if(MSVC)
     add_compile_options(/W4 /EHsc /utf-8 /MP /permissive-)
     add_compile_definitions(_CRT_SECURE_NO_WARNINGS WIN32_LEAN_AND_MEAN NOMINMAX)
+else()
+    add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
 add_library(hack_effect_core STATIC
@@ -32,6 +34,9 @@ if(WIN32)
         mmdevapi
         ksuser
     )
+else()
+    find_package(Threads REQUIRED)
+    target_link_libraries(hack_effect_core PUBLIC Threads::Threads)
 endif()
 
 add_executable(hack_effect_host

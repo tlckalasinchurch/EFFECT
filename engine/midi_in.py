@@ -63,10 +63,14 @@ class MidiSceneListener:
         self.load_mappings()
 
         # winmm keeps this pointer; it must outlive every open handle.
-        self._proto = ctypes.WINFUNCTYPE(
-            None, ctypes.c_void_p, ctypes.c_uint, ctypes.c_size_t, ctypes.c_size_t, ctypes.c_size_t
-        )
-        self._callback = self._proto(self._on_midi)
+        if sys.platform == "win32":
+            self._proto = ctypes.WINFUNCTYPE(
+                None, ctypes.c_void_p, ctypes.c_uint, ctypes.c_size_t, ctypes.c_size_t, ctypes.c_size_t
+            )
+            self._callback = self._proto(self._on_midi)
+        else:
+            self._proto = None
+            self._callback = None
 
     def load_mappings(self):
         if MAPPINGS_FILE.exists():

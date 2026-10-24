@@ -47,6 +47,12 @@ def cleanup_cpp_process():
 atexit.register(cleanup_cpp_process)
 
 
+def find_cpp_host_binary():
+    """Return the first existing native host binary, or None."""
+    from engine.cpp_host import find_cpp_host_binary as _find
+    return _find(os.path.dirname(os.path.abspath(__file__)))
+
+
 def run_server():
     """Run FastAPI server in background thread."""
     from server import app
@@ -75,15 +81,16 @@ def main():
     # Print configuration
     config.print_config()
 
-    # Try launching the native C++ ASIO Engine host
+    # Try launching the native C++ engine host. Presence of a process is NOT
+    # evidence of ASIO UX1 ownership — we query the host for the real backend.
     session_token = secrets.token_hex(16)
     cpp_port = 8765
-    cpp_exe = os.path.join(os.path.dirname(__file__), "cpp_engine", "build", "Release", "hack_effect_host.exe")
+    cpp_exe = find_cpp_host_binary()
     use_cpp_host = False
 
-    if os.path.exists(cpp_exe):
+    if cpp_exe:
         try:
-            logger.info("⚡ Spawning Native C++ ASIO Engine Host...")
+            logger.info(f"Spawning Native C++ Engine Host: {cpp_exe}")
             cmd = [
                 cpp_exe,
                 "--port", str(cpp_port),
@@ -96,15 +103,42 @@ def main():
             time.sleep(0.5)
             if cpp_proc.poll() is None:
                 use_cpp_host = True
-                logger.info(f"⚡ Native C++ ASIO Engine Host running (PID: {cpp_proc.pid})")
+                logger.info(f"Native C++ Engine Host running (PID: {cpp_proc.pid})")
                 from server import engine
                 engine.native_cpp_active = True
+                engine.native_cpp_asio = False
+                try:
+                    from engine.cpp_host import snapshot_host
+                    info = snapshot_host(cpp_port, session_token, timeout=2.0)
+                    engine.cpp_host_info = info
+                    engine.native_cpp_asio = bool(info.get("asio_running"))
+                    logger.info(
+                        "C++ host backend=%s asio_running=%s driver=%s sr=%s buffer=%s roundtrip_ms=%s",
+                        info.get("backend"),
+                        info.get("asio_running"),
+                        info.get("asio_driver"),
+                        info.get("sample_rate"),
+                        info.get("buffer_size"),
+                        info.get("roundtrip_latency_ms"),
+                    )
+                    if not info.get("asio_running"):
+                        logger.warning(
+                            "C++ host did not start an ASIO driver (backend=%s). "
+                            "Python PortAudio is suppressed to avoid device collision, "
+                            "but live Line 6 UX1 I/O is NOT verified.",
+                            info.get("backend"),
+                        )
+                except Exception as probe_err:
+                    logger.warning(f"C++ host is running but WebSocket probe failed: {probe_err}")
+                    engine.cpp_host_info = {"backend": "probe_failed", "asio_running": False}
             else:
                 logger.warning(f"Native C++ Host exited immediately with code {cpp_proc.returncode}")
                 cpp_proc = None
         except Exception as e:
             logger.warning(f"Could not spawn Native C++ Host: {e}")
             cpp_proc = None
+    else:
+        logger.info("Native C++ host binary not found; Python audio engine remains in control")
 
     # Start FastAPI server in background
     t = threading.Thread(target=run_server, daemon=True)

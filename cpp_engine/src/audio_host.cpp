@@ -379,6 +379,14 @@ bool AudioHost::try_start_asio(uint32_t sr, uint32_t bs) {
     return asio_host_.start(sr, bs, cb);
 }
 
+bool AudioHost::try_start_wasapi(uint32_t sr, uint32_t bs) {
+    (void)sr;
+    (void)bs;
+    // Exclusive WASAPI device open is not implemented. The production path is
+    // ASIO; otherwise the host falls back to the timed realtime pacer.
+    return false;
+}
+
 bool AudioHost::start(uint32_t sample_rate,
                       uint32_t buffer_size,
                       const std::string& backend_pref,
