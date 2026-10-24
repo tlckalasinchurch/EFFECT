@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/style.css?v=20261021o">
+  <link rel="stylesheet" href="/static/style.css?v=20261024_prostudio">
 </head>
 <body>
 
@@ -17,7 +17,35 @@
       <radialGradient id="knobGrad" cx="38%" cy="32%" r="80%">
         <stop offset="0%" stop-color="#2c3646" />
         <stop offset="55%" stop-color="#1a212d" />
+        <stop offset="100%" stop-color="#090c12" />
+      </radialGradient>
+      <linearGradient id="knobBevelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#475569" />
+        <stop offset="50%" stop-color="#1e293b" />
+        <stop offset="100%" stop-color="#090d14" />
+      </linearGradient>
+      <radialGradient id="knobCapGrad" cx="35%" cy="30%" r="75%">
+        <stop offset="0%" stop-color="#3b475c" />
+        <stop offset="60%" stop-color="#1e2633" />
         <stop offset="100%" stop-color="#11161f" />
+      </radialGradient>
+      <radialGradient id="tubeGlowGrad" cx="50%" cy="55%" r="55%">
+        <stop offset="0%" stop-color="#fef08a" />
+        <stop offset="45%" stop-color="#f59e0b" />
+        <stop offset="100%" stop-color="#7c2d12" stop-opacity="0" />
+      </radialGradient>
+      <linearGradient id="eqAreaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.42" />
+        <stop offset="50%" stop-color="#f59e0b" stop-opacity="0.16" />
+        <stop offset="100%" stop-color="#0f172a" stop-opacity="0.02" />
+      </linearGradient>
+      <radialGradient id="speakerConeGrad" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#0b0e14" />
+        <stop offset="28%" stop-color="#262e3d" />
+        <stop offset="72%" stop-color="#151a23" />
+        <stop offset="92%" stop-color="#2e3748" />
+        <stop offset="100%" stop-color="#0d1017" />
+      </radialGradient>
       </radialGradient>
     </defs>
   </svg>
@@ -34,37 +62,67 @@
             </svg>
           </div>
           <div class="brand-name">กดจนหลอน<span>Tone</span></div>
-          <span class="badge" id="engine-badge">NAM A2</span>
+          <span class="badge" id="engine-badge" style="cursor:pointer;" title="Line 6 UX1 Bit-Perfect 48 kHz / 24-Bit Studio">24-BIT · UX1</span>
         </div>
 
         <div class="preset-nav">
-          <button class="nav-arrow" id="prevPreset" aria-label="พรีเซ็ตก่อนหน้า"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
-          <div class="cur-preset">
+          <button class="nav-arrow" id="prevPreset" aria-label="พรีเซ็ตก่อนหน้า" title="พรีเซ็ตก่อนหน้า">‹</button>
+          <div class="cur-preset" id="curPresetBox" title="คลิกเพื่อเปิดค้นหาคลังเสียง TONE3000 &amp; พรีเซ็ต">
             <div class="cp-name"><span id="curName">—</span><span class="dirty-dot" id="dirtyDot" title="มีการแก้ไขที่ยังไม่บันทึก"></span></div>
             <div class="cp-sub" id="curSub">—</div>
           </div>
-          <button class="nav-arrow" id="nextPreset" aria-label="พรีเซ็ตถัดไป"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+          <button class="nav-arrow" id="nextPreset" aria-label="พรีเซ็ตถัดไป" title="พรีเซ็ตถัดไป">›</button>
+          <button class="btn icon-btn" id="btn-save-preset" title="บันทึกค่าพรีเซ็ตปัจจุบัน">💾</button>
         </div>
 
+        <!-- Center: 3 Quick Scenes & A/B Live Compare -->
+        <div class="top-center-group">
+          <div class="quick-scene-group" id="quickSceneGroup" role="group" aria-label="3 Quick Scenes">
+            <button type="button" class="scene-btn" data-qscene="clean" id="btn-scene-clean" title="Quick Clean Scene">CLEAN</button>
+            <button type="button" class="scene-btn active" data-qscene="rhythm" id="btn-scene-rhythm" title="Quick Rhythm Scene">RHYTHM</button>
+            <button type="button" class="scene-btn" data-qscene="lead" id="btn-scene-lead" title="Quick Lead Scene">LEAD</button>
+          </div>
+          <button type="button" class="btn ab-btn" id="btn-ab-toggle" title="A/B Rig Comparison (คลิกเพื่อสลับฟัง A/B · Shift+คลิกบันทึก Rig A)"><span id="abIndicator">A/B: LIVE</span></button>
+        </div>
+
+        <!-- Right: Primary Tone Explorer Button & Utilities -->
         <div class="top-actions">
+          <button type="button" class="btn t3k-brand-btn" id="btn-toggle-explorer" title="เปิด/ปิด คลังเสียง TONE3000 &amp; พรีเซ็ต (Real-time Cloud &amp; Local)">
+            <span class="t3k-live-dot"></span>TONE<span>3000</span> / คลังเสียง
+          </button>
+          <button class="btn" id="btn-tuner-toggle" title="จูนสาย (Chromatic Tuner)">TUNER</button>
+          <button class="btn" id="btn-midi-open" title="MIDI Learn &amp; Footswitch Mapping">MIDI</button>
+          <button class="btn" id="btn-gig-view" title="Gig View Mode (เวทีเล่นสด)">GIG</button>
+          <button class="btn icon-only" id="btn-settings-open" title="ตั้งค่าเสียง &amp; Audio Devices" aria-label="ตั้งค่า"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z"/></svg></button>
           <button class="btn power-btn on" id="btn-power" title="เปิด/ปิดเสียงเอ็นจิน">
             <span class="power-led" aria-hidden="true"></span><span id="power-label">POWER</span>
           </button>
-          <button class="btn" id="btn-gig-view" title="Gig View Mode (Quad Cortex Live Performance)">GIG VIEW</button>
-          <button class="btn" id="btn-tuner-toggle" title="จูนสาย (Chromatic Tuner)">TUNER</button>
-          <button class="btn icon-only" id="btn-settings-open" title="ตั้งค่าเสียง / UI" aria-label="ตั้งค่า"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z"/></svg></button>
-          <button class="btn text" id="btn-save-preset" title="บันทึกทับพรีเซ็ตปัจจุบัน">บันทึก</button>
-          <button class="btn text" id="btn-save-as-preset" title="บันทึกเป็นพรีเซ็ตใหม่">โคลน</button>
-          <button class="btn accent" id="btn-import-preset" title="นำเข้าไฟล์พรีเซ็ต (.mo, .rigpack, .kipr, .cortex.json, .nam, .wav)">📥 นำเข้าพรีเซ็ต</button>
-          <input type="file" id="universal-file-input" style="display:none;" accept=".mo,.rigpack,.kipr,.cortex.json,.nam,.wav">
-          <button class="btn accent" id="btn-t3k-open" title="ค้นหาเสียงจากคลัง TONE3000">
-            ค้นหาเสียงจาก TONE3000
-          </button>
+
+          <!-- Hidden secondary buttons preserved for full JS backward compatibility -->
+          <button id="btn-save-as-preset" style="display:none;"></button>
+          <button id="btn-import-preset" style="display:none;"></button>
+          <button id="btn-tap-tempo" style="display:none;"></button>
+          <button id="btn-undo" style="display:none;"></button>
+          <button id="btn-redo" style="display:none;"></button>
+          <button id="btn-lib-drawer" style="display:none;"></button>
+          <button id="btn-t3k-open" style="display:none;"></button>
+          <input type="file" id="universal-file-input" style="display:none;" accept=".mo,.rigpack,.kipr,.cortex.json,.nam,.namb,.t3kpreset,.wav">
         </div>
       </header>
 
-      <!-- ================= LIBRARY / PRESET TABLE / DETAILS ================= -->
-      <div class="main">
+      <!-- ================= TONE EXPLORER DRAWER (TONE3000 & PRESETS) ================= -->
+      <div class="main" id="toneExplorerDrawer">
+        <div class="explorer-banner">
+          <div class="eb-left">
+            <span class="t3k-live-dot"></span>
+            <strong>TONE3000 CLOUD &amp; PRESET EXPLORER</strong>
+            <span class="eb-sub">ค้นหาและโหลดโมเดลเสียง NAM &amp; IR แบบเรียลไทม์</span>
+          </div>
+          <div class="eb-right">
+            <button type="button" class="btn btn-sm" id="btn-import-preset-banner" title="นำเข้าไฟล์พรีเซ็ต (.mo, .rigpack, .kipr, .cortex.json, .nam, .wav)">📥 นำเข้าไฟล์</button>
+            <button type="button" class="btn btn-sm btn-ghost" id="btn-close-explorer" title="ปิดคลังเพื่อเล่นกีตาร์">✕ ปิดหน้าต่าง</button>
+          </div>
+        </div>
         <aside class="side" aria-label="คลังพรีเซ็ต">
           <div class="side-title">Library</div>
           <div id="libList"></div>
@@ -83,26 +141,31 @@
           </div>
         </aside>
 
-        <section class="center" aria-label="รายการพรีเซ็ต">
+        <section class="center" aria-label="คลังเสียง TONE3000 และพรีเซ็ต">
           <div class="table-tools">
             <label class="search">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-              <input type="text" id="rig-search-input" placeholder="ค้นหาพรีเซ็ต หรือชื่อแอมป์…" />
+              <input type="text" id="rig-search-input" placeholder="🔍 ค้นหาเสียง TONE3000 แบบเรียลไทม์ (Marshall, Fender, Mesa, Two-Rock, Clean, Lead, Djent)..." autocomplete="off" />
             </label>
-            <span class="row-count" id="rowCount"></span>
-            <button class="icon-btn" id="btn-refresh-lib" title="โหลดคลังใหม่" aria-label="โหลดคลังใหม่"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4.5V11h-6.5"/></svg></button>
-          </div>
-
-          <div class="t3k-cta hidden" id="t3k-cta">
-            <div>
-              <div class="t3k-cta-title">TONE3000 · NATIVE SEARCH</div>
-              <div class="t3k-cta-sub">ค้นหาแคปเจอร์ NAM และ IR จากคลังจริง แล้วโหลดเข้า NAM AMP ทันที</div>
+            <div class="preset-filter-chips" id="presetFilterChips">
+              <button type="button" class="filter-chip active" data-t3k-kind="trending">🔥 TONE3000 Trending</button>
+              <button type="button" class="filter-chip" data-t3k-kind="latest">⚡ Latest</button>
+              <button type="button" class="filter-chip" data-t3k-kind="favorited">★ Favorites</button>
+              <button type="button" class="filter-chip" data-t3k-gear="amp">🎸 Amps</button>
+              <button type="button" class="filter-chip" data-t3k-gear="pedal">🎛️ Pedals</button>
+              <button type="button" class="filter-chip" data-t3k-gear="cab">🔊 Cabs / IR</button>
+              <button type="button" class="filter-chip" data-t3k-kind="local">💾 Saved Presets</button>
             </div>
-            <button class="btn accent" id="btn-t3k-cta">ค้นหาเสียง</button>
+            <span class="row-count" id="rowCount"></span>
+            <button class="icon-btn" id="btn-refresh-lib" title="รีเฟรชคลังเสียง TONE3000" aria-label="โหลดคลังใหม่"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4.5V11h-6.5"/></svg></button>
           </div>
 
           <div class="table-scroll" id="tableScroll">
-            <table class="presets">
+            <!-- Real-time TONE3000 Tone Grid View -->
+            <div id="t3kMainGrid" class="t3k-main-grid"></div>
+
+            <!-- Legacy/Local Presets Fallback Table -->
+            <table class="presets hidden" id="localPresetsTable">
               <thead>
                 <tr>
                   <th>ชื่อ</th>
@@ -122,46 +185,58 @@
 
       <!-- ================= SIGNAL CHAIN ================= -->
       <div class="chain-wrap">
-        <!-- Quad Cortex Scene Selector Bar -->
-        <div class="cortex-scene-bar" id="cortexSceneBar" aria-label="Quad Cortex Scene Selector">
-          <div class="csb-left">
-            <span class="csb-title">SCENE</span>
-            <span class="csb-preset-name" id="cortexPresetName">British Lead 100</span>
-          </div>
-          <div class="csb-scenes" id="cortexScenesContainer"></div>
-          <div class="csb-right">
-            <select id="cortexPresetSelect" class="csb-select" title="เลือก Cortex Multi-Scene Preset">
-              <option value="">-- Cortex Presets --</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Kemper Morphing & Parallel Routing Strip -->
-        <div class="morph-strip" id="morphStrip">
-          <div class="morph-slot-group">
-            <button type="button" class="morph-slot-badge" id="morphSlotABtn" title="บันทึกเสียงปัจจุบันลง Slot A (Heel)" aria-label="Empty Morph Slot A; capture current rig">SAVE A</button>
-            <button type="button" class="morph-slot-clear" id="morphSlotAClear" title="ล้าง Slot A" aria-label="ล้าง Morph Slot A">×</button>
-          </div>
-          <span class="morph-label">MORPH</span>
-          <input type="range" id="morphSlider" min="0" max="100" value="0" class="morph-range" title="มอร์ฟเสียง A <-> B" aria-label="Morph between saved slots A and B" aria-valuetext="0 percent, Slot A">
-          <div class="morph-slot-group">
-            <button type="button" class="morph-slot-badge" id="morphSlotBBtn" title="บันทึกเสียงปัจจุบันลง Slot B (Toe)" aria-label="Empty Morph Slot B; capture current rig">SAVE B</button>
-            <button type="button" class="morph-slot-clear" id="morphSlotBClear" title="ล้าง Slot B" aria-label="ล้าง Morph Slot B">×</button>
-          </div>
-          <span class="morph-readout" id="morphReadout" role="status" aria-live="polite">0% (A)</span>
-          <div class="parallel-toggle-wrap">
-            <button class="parallel-btn" id="btn-parallel-toggle" title="เปิด/ปิดการแยกสัญญาณคู่ขนาน (Parallel Clean + Amp Path)">
-              <span class="p-led"></span>PARALLEL DUAL PATH
-            </button>
-            <input type="range" id="parallelBlendSlider" min="0" max="100" value="30" class="mini-range" title="ความดังสัญญาณคู่ขนาน (Parallel Blend)">
-            <span id="parallelBlendReadout" class="mini-readout">30%</span>
-          </div>
-        </div>
 
         <div class="chain-head">
-          <span class="ch-title">Signal Chain</span>
-          <span class="ch-note">กดไทล์เพื่อปรับค่า · คลิกขวา/แตะค้างเพื่อ Load File หรือ Load Folder</span>
-          <span class="ch-hint" id="pitch-hint"></span>
+          <div class="ch-left">
+            <span class="ch-title">Signal Chain</span>
+            <span class="ch-note">คลิกบล็อกเพื่อปรับเสียง · สลับลำดับด้วย ‹ › · คลิกขวาเพื่อโหลดไฟล์</span>
+          </div>
+          <div class="ch-right">
+            <button type="button" class="btn btn-sm btn-ghost" id="btn-toggle-routing" title="เปิด/ปิด แถบควบคุมขั้นสูง (Morphing A↔B &amp; Parallel Clean Path)">
+              🎛️ Routing &amp; Morph ▾
+            </button>
+            <span class="ch-hint" id="pitch-hint"></span>
+          </div>
+        </div>
+
+        <!-- Collapsible Advanced Routing (Cortex Scenes + Kemper Morph + Parallel) -->
+        <div id="routingContainer" class="routing-container collapsed">
+          <!-- Quad Cortex Scene Selector Bar -->
+          <div class="cortex-scene-bar" id="cortexSceneBar" aria-label="Quad Cortex Scene Selector">
+            <div class="csb-left">
+              <span class="csb-title">SCENE</span>
+              <span class="csb-preset-name" id="cortexPresetName">British Lead 100</span>
+            </div>
+            <div class="csb-scenes" id="cortexScenesContainer"></div>
+            <div class="csb-right">
+              <select id="cortexPresetSelect" class="csb-select" title="เลือก Cortex Multi-Scene Preset">
+                <option value="">-- Cortex Presets --</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Kemper Morphing & Parallel Routing Strip -->
+          <div class="morph-strip" id="morphStrip">
+            <div class="morph-slot-group">
+              <button type="button" class="morph-slot-badge" id="morphSlotABtn" title="บันทึกเสียงปัจจุบันลง Slot A (Heel)" aria-label="Empty Morph Slot A; capture current rig">SAVE A</button>
+              <button type="button" class="morph-slot-clear" id="morphSlotAClear" title="ล้าง Slot A" aria-label="ล้าง Morph Slot A">×</button>
+            </div>
+            <span class="morph-label">MORPH</span>
+            <input type="range" id="morphSlider" min="0" max="100" value="0" class="morph-range" title="มอร์ฟเสียง A <-> B" aria-label="Morph between saved slots A and B" aria-valuetext="0 percent, Slot A">
+            <div class="morph-slot-group">
+              <button type="button" class="morph-slot-badge" id="morphSlotBBtn" title="บันทึกเสียงปัจจุบันลง Slot B (Toe)" aria-label="Empty Morph Slot B; capture current rig">SAVE B</button>
+              <button type="button" class="morph-slot-clear" id="morphSlotBClear" title="ล้าง Slot B" aria-label="ล้าง Morph Slot B">×</button>
+            </div>
+            <span class="morph-readout" id="morphReadout" role="status" aria-live="polite">0% (A)</span>
+            <button type="button" class="morph-slot-badge" id="btn-auto-morph" title="สร้างคู่เสียง Morph A (Rhythm) ↔ B (Solo Lead) อัตโนมัติ">⚡ AUTO A↔B</button>
+            <div class="parallel-toggle-wrap">
+              <button class="parallel-btn" id="btn-parallel-toggle" title="เปิด/ปิดการแยกสัญญาณคู่ขนาน (Parallel Clean + Amp Path)">
+                <span class="p-led"></span>PARALLEL DUAL PATH
+              </button>
+              <input type="range" id="parallelBlendSlider" min="0" max="100" value="30" class="mini-range" title="ความดังสัญญาณคู่ขนาน (Parallel Blend)">
+              <span id="parallelBlendReadout" class="mini-readout">30%</span>
+            </div>
+          </div>
         </div>
 
         <div class="face">
@@ -184,10 +259,19 @@
         <div class="panel-head">
           <span class="pb-en" id="pbEn">NAM AMP</span>
           <span class="pb-th" id="pbTh"></span>
+          <div class="panel-block-tabs" id="panelBlockTabs" aria-label="เลือกบล็อกด่วน"></div>
+          <div class="macro-strip" id="macroStrip" title="Macro Quick Controls — ปรับหลายพารามิเตอร์พร้อมกันสำหรับเล่นจริง">
+            <span class="macro-lbl">MACRO:</span>
+            <button type="button" class="macro-btn" data-macro="tight" title="Tightness: ลด Bass บวม + กระชับ Gate &amp; Overdrive">Tight</button>
+            <button type="button" class="macro-btn" data-macro="bright" title="Brightness: เพิ่ม Treble &amp; Presence ให้พุ่งทะลุแบนด์">Bright</button>
+            <button type="button" class="macro-btn" data-macro="space" title="Space: เพิ่มมิติ Stereo Delay + Reverb">Space</button>
+            <button type="button" class="macro-btn" data-macro="lead" title="Lead Boost: บูสต์ Gain + Drive + Volume สำหรับโซโล่">Lead Boost</button>
+          </div>
           <button class="bypass-toggle" id="bypassToggle" aria-pressed="true">
             <span id="bypassLabel">เปิดใช้งาน</span><span class="sw" aria-hidden="true"></span>
           </button>
         </div>
+        <div class="amp-faceplate-banner" id="ampFaceplateBanner" style="display:none;"></div>
         <div class="panel-body">
           <div class="knobs" id="knobs"></div>
           <div class="panel-side" id="panelSide"></div>
@@ -198,7 +282,7 @@
       <footer class="statusbar">
         <span id="stPreset">—</span>
         <div class="st-mid">
-          <span id="status-audio-perf">SR 48,000 Hz · Buffer 128</span>
+          <span id="status-audio-perf">SR 48,000 Hz · Buffer 256</span>
           <span id="status-system-telemetry">CPU — · RAM —</span>
           <span id="status-engine-text">Audio Engine: …</span>
         </div>
@@ -240,11 +324,23 @@
         </div>
         <div class="setting-row">
           <label>Sample Rate</label>
-          <span class="setting-readout" id="modal-sr-readout">48,000 Hz</span>
+          <select id="modal-select-sr" class="modal-select">
+            <option value="44100">44,100 Hz (24-Bit Studio Standard)</option>
+            <option value="48000" selected>48,000 Hz (Live / Video Standard)</option>
+            <option value="88200">88,200 Hz (2x Oversampled Studio)</option>
+            <option value="96000">96,000 Hz (Ultra HD)</option>
+          </select>
+          <span class="setting-readout" id="modal-sr-readout" style="display:none;">44,100 Hz</span>
         </div>
         <div class="setting-row">
           <label>Buffer</label>
-          <span class="setting-readout" id="modal-buf-readout">128 samples</span>
+          <select id="modal-select-buf" class="modal-select">
+            <option value="64">64 samples (Ultra-Low Latency · 1.3ms)</option>
+            <option value="128">128 samples (Fast · 2.7ms)</option>
+            <option value="256" selected>256 samples (Recommended · 5.3ms — Rock Solid)</option>
+            <option value="512">512 samples (Safe Studio · 10.6ms)</option>
+          </select>
+          <span class="setting-readout" id="modal-buf-readout" style="display:none;">256 samples</span>
         </div>
         <div class="setting-row switch-row">
           <label for="sw-show-pitch">Show Pitch Shift</label>
@@ -390,9 +486,9 @@
   </div>
 
   <!-- Hidden pickers -->
-  <input type="file" id="file-picker" accept=".nam,.wav" hidden>
+  <input type="file" id="file-picker" accept=".nam,.namb,.t3kpreset,.json,.wav" hidden>
   <input type="file" id="folder-picker" webkitdirectory directory multiple hidden>
-  <input type="file" id="nam-file-input" accept=".nam" hidden>
+  <input type="file" id="nam-file-input" accept=".nam,.namb,.t3kpreset,.json" hidden>
   <input type="file" id="ir-file-input" accept=".wav" hidden>
 
   <!-- ================= GIG VIEW OVERLAY ================= -->
@@ -436,8 +532,41 @@
     </div>
   </div>
 
+  <!-- ================= MIDI LEARN MODAL ================= -->
+  <div id="modal-midi" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="MIDI Learn">
+    <div class="modal-card midi-modal-card">
+      <div class="modal-header">
+        <h3>MIDI Learn &amp; Footswitch Mapping</h3>
+        <button id="btn-close-midi" class="btn-modal-close" aria-label="ปิด">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="midi-status-banner" id="midiStatusBanner">
+          <span class="p-led on"></span><span id="midiDeviceCount">กำลังตรวจสอบ MIDI Devices...</span>
+        </div>
+        <div class="midi-learn-instructions">
+          คลิกปุ่ม <b>LEARN</b> ข้างฟังก์ชันที่ต้องการ แล้วกดปุ่มบนฟุตสวิตช์ หรือหมุนปุ่มบน MIDI Controller เพื่อจับคู่ทันที
+        </div>
+        <div class="midi-table-wrap">
+          <table class="midi-table">
+            <thead>
+              <tr>
+                <th>ฟังก์ชัน / แอ็กชัน</th>
+                <th>คำสั่ง MIDI ที่ผูกไว้</th>
+                <th>การทำงาน</th>
+              </tr>
+            </thead>
+            <tbody id="midiMappingsBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-close-midi-btn" class="btn accent">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="toast" role="status"></div>
 
-  <script src="/static/app.js?v=20261021f"></script>
+  <script src="/static/app.js?v=20261024_prostudio"></script>
 </body>
 </html>

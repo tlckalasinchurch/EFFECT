@@ -31,6 +31,8 @@ Two rules for editing:
 from dataclasses import dataclass, field
 from typing import Any, Optional, Tuple
 
+from engine.device_mode import DEVICE_MODES
+
 
 KINDS = ("float", "bool", "int", "str", "list")
 
@@ -122,6 +124,17 @@ PARALLEL = Module(
         _p("enabled", "parallel_enabled", "bool", False, owner="chain"),
         _p("blend", "parallel_blend", "float", 0.3, owner="chain", clamp=True,
            minimum=0.0, maximum=1.0),
+    ),
+)
+
+#: Chain DSP mode. Only generic and TONE3000/NAM remain supported; older
+#: device modes in persisted presets are ignored during load. `assign=False`
+#: delegates validation to set_device_mode.
+DEVICE = Module(
+    name="device", attr=None, in_graph=False,
+    params=(
+        _p("mode", "device_mode", "str", "generic", owner="chain",
+           setter="set_device_mode", assign=False, choices=DEVICE_MODES, ui=False),
     ),
 )
 
@@ -277,7 +290,7 @@ PROCESS_ORDER: Tuple[str, ...] = ("gate", "pitch", "screamer", "amp", "eq", "cab
 #: Every module, chain-level ones included, in processing order then the rest.
 MODULES: Tuple[Module, ...] = (
     GATE, PITCH, SCREAMER, AMP, NAM, EQ, CAB, MOD, DELAY, REVERB,
-    INPUT, MASTER, PARALLEL,
+    INPUT, MASTER, PARALLEL, DEVICE,
 )
 
 BY_NAME = {m.name: m for m in MODULES}

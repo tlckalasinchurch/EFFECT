@@ -1,0 +1,1 @@
+{"id": "cortex_downloaded_ambient", "name": "Downloaded Ambient Cloud", "author": "Community", "default_scene": 0, "scenes": [{"index": 0, "label": "Scene A", "color": "#00bcd4", "bypasses": {"reverb": true}}, {"index": 1, "label": "Scene B", "color": "#e74c3c", "bypasses": {"delay": true}}]}

@@ -160,10 +160,63 @@ class WaveNet:
         return ((out[0] + self.head_b) * self.head_scale).astype(np.float32)
 
 
+class _C99Net:
+    """A2 WaveNet run by nam_c99.dll, with the numpy WaveNet as fallback.
+
+    The DLL keeps ONE global model, so only one net may use it at a time.  A net
+    claims the DLL on its first process() call (i.e. when it is really in the
+    audio path) and a net that is not the owner runs the numpy twin instead.
+    Output matches the numpy runtime to better than -110 dB.
+    """
+    _owner = None
+
+    def __init__(self, model, fallback):
+        from engine.nam_c99 import C99NamEngine
+        self._cls = C99NamEngine
+        self.model = model
+        self.fallback = fallback
+        self.engine = None
+        self.enabled = True  # NamChain turns this off for multi-stage chains
+
+    @staticmethod
+    def supports(model):
+        """True when the model has exactly the A2 layout the DLL was built for."""
+        try:
+            from engine.nam_c99 import C99NamEngine
+            if not C99NamEngine.is_available():
+                return False
+            la = model["config"]["layers"][0]
+            return (len(model["weights"]) in (1871, 12146)
+                    and la["channels"] in (3, 8)
+                    and list(la["kernel_sizes"]) == _A2_KERNEL_SIZES
+                    and list(la["dilations"]) == _A2_DILATIONS
+                    and all((a.get("type") if isinstance(a, dict) else a) == "LeakyReLU" for a in la["activation"])
+                    and int(model.get("sample_rate", 48000)) == 48000)
+        except Exception:
+            return False
+
+    def reset(self):
+        self.fallback.reset()
+        if self.engine is not None and _C99Net._owner is self:
+            self.engine.reset()
+
+    def process(self, x):
+        if not self.enabled:
+            return self.fallback.process(x)
+        if _C99Net._owner is not self:
+            try:
+                self.engine = self._cls.from_weights(self.model["weights"], sample_rate=48000.0)
+                _C99Net._owner = self
+            except Exception:
+                self.enabled = False
+                return self.fallback.process(x)
+        return self.engine.process(x)
+
+
 class SlimmableWaveNet:
     """NAM "SlimmableContainer": WaveNet submodels of growing size, picked by max_value."""
 
-    def __init__(self, model, build="all"):
+    def __init__(self, model, build="all", use_c99=True):
         """build: "all" submodels, or just the "lite" (smallest) / "full" (largest) one."""
         if model.get("architecture") == "WaveNet":
             subs = [{"max_value": 1.0, "model": model}]
@@ -177,6 +230,12 @@ class SlimmableWaveNet:
             subs = subs[-1:]
         self.max_values = [s["max_value"] for s in subs]
         self.nets = [WaveNet(s["model"]) for s in subs]
+        self.c99_nets = []
+        if use_c99:
+            for i, s in enumerate(subs):
+                if _C99Net.supports(s["model"]):
+                    self.nets[i] = _C99Net(s["model"], self.nets[i])
+                    self.c99_nets.append(self.nets[i])
         self.metadata = model.get("metadata", {})
         self.sample_rate = model.get("sample_rate", 48000)
         self.active = len(self.nets) - 1
@@ -211,6 +270,11 @@ class NamChain:
         if not stages:
             raise ValueError("no NAM stages")
         self.stages = stages
+        if len(stages) > 1:
+            # The DLL holds a single model; stages would fight over it.
+            for stage in stages:
+                for net in getattr(stage["net"], "c99_nets", []):
+                    net.enabled = False
         self.enabled = True
         self.input_gain_db = float(input_gain_db)
         self.input_gain = np.float32(10.0 ** (self.input_gain_db / 20.0))
@@ -239,3 +303,98 @@ class NamChain:
                 "includes_cab": self.includes_cab,
                 "enabled": bool(self.enabled),
                 "input_gain_db": round(float(self.input_gain_db), 2)}
+
+
+_A2_KERNEL_SIZES = [6] * 14 + [15, 15] + [6] * 7
+_A2_DILATIONS = [1, 3, 7, 17, 41, 101, 239] * 2 + [1, 13] + [1, 3, 7, 17, 41, 101, 239]
+_A2_ACTIVATIONS = [{"type": "LeakyReLU", "negative_slope": 0.01} for _ in range(23)]
+
+
+def build_a2_model_from_weights(weights, sample_rate=48000, loudness=-18.0, gear_type="amp"):
+    """
+    Construct a canonical NAM A2 WaveNet / SlimmableContainer dict from raw A2 weights
+    (1,871 weights = A2-Lite 3ch; 12,146 weights = A2-Full 8ch).
+    """
+    w_arr = np.asarray(weights, dtype=np.float32).reshape(-1)
+    count = int(len(w_arr))
+    if count == 1871:
+        ch = 3
+        max_val = 0.5
+    elif count == 12146:
+        ch = 8
+        max_val = 1.0
+    else:
+        ch = 8 if count > 6000 else 3
+        max_val = 1.0
+
+    w_list = w_arr.tolist()
+    head_scale = float(w_arr[-1])
+    wavenet_doc = {
+        "version": "0.7.0",
+        "architecture": "WaveNet",
+        "sample_rate": int(sample_rate),
+        "metadata": {"loudness": float(loudness), "gear_type": gear_type},
+        "config": {
+            "head_scale": head_scale,
+            "layers": [
+                {
+                    "input_size": 1,
+                    "condition_size": 1,
+                    "head": {"out_channels": 1, "kernel_size": 16, "bias": True},
+                    "channels": ch,
+                    "bottleneck": ch,
+                    "kernel_sizes": list(_A2_KERNEL_SIZES),
+                    "dilations": list(_A2_DILATIONS),
+                    "activation": list(_A2_ACTIVATIONS),
+                    "head1x1": {"active": False, "out_channels": 1, "groups": 1},
+                    "layer1x1": {"active": True, "groups": 1},
+                    "groups_input": 1,
+                    "groups_input_mixin": 1,
+                    "gating_mode": ["none"] * 23,
+                    "secondary_activation": [None] * 23,
+                }
+            ],
+        },
+        "weights": w_list,
+    }
+    return {
+        "version": "0.7.0",
+        "architecture": "SlimmableContainer",
+        "sample_rate": int(sample_rate),
+        "metadata": {"loudness": float(loudness), "gear_type": gear_type, "architecture": "A2"},
+        "config": {"submodels": [{"max_value": max_val, "model": wavenet_doc}]},
+    }
+
+
+def parse_namb_binary(raw_bytes: bytes, gear_type: str = "amp", filename: str = "", sample_rate: int = 48000) -> dict:
+    """
+    Decode a binary NAM (.namb) payload (magic b'BMAN' / b'NAMB') into a
+    SlimmableContainer model dictionary ready for SlimmableWaveNet.
+    Conforms to the official tone-3000/nam-binary-loader format specification:
+      - 32-byte header with format version, flags, total_file_size, weights_offset, weight_count
+      - 48-byte metadata block with version, sample_rate, loudness, input/output levels
+      - Model configuration block (WaveNet / A2)
+      - Raw IEEE 754 float32 weight vectors
+    Also supports legacy 52-byte and compact 12-byte headers.
+    """
+    import struct
+
+    if len(raw_bytes) < 12 or raw_bytes[:4] not in (b"BMAN", b"NAMB"):
+        raise ValueError("Not a valid NAM binary (.namb) header")
+    c_arch, c_count = struct.unpack_from("<II", raw_bytes, 4)
+    if c_count in (1871, 12146) and 12 + c_count * 4 <= len(raw_bytes):
+        weights = np.frombuffer(raw_bytes, dtype="<f4", count=c_count, offset=12).astype(np.float32)
+        return build_a2_model_from_weights(weights, sample_rate=int(sample_rate or 48000), loudness=-18.0, gear_type=gear_type)
+    if len(raw_bytes) < 52:
+        raise ValueError("Not a valid NAM binary (.namb) header")
+    hdr_off, count = struct.unpack_from("<II", raw_bytes, 12)
+    sr, loudness = struct.unpack_from("<dd", raw_bytes, 36)
+    if hdr_off < 48 or hdr_off + count * 4 > len(raw_bytes):
+        raise ValueError("Corrupted .namb weight table bounds")
+    weights = np.frombuffer(raw_bytes, dtype="<f4", count=count, offset=hdr_off).astype(np.float32)
+    if not (8000 <= sr <= 192000):
+        sr = float(sample_rate or 48000)
+    if not (-60.0 <= loudness <= 24.0):
+        loudness = -18.0
+    return build_a2_model_from_weights(weights, sample_rate=int(sr), loudness=float(loudness), gear_type=gear_type)
+

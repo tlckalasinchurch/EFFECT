@@ -18,8 +18,10 @@ import t3k_fastapi as t3k
 from setup_logging import get_logger
 
 from engine.audio import AudioEngine
+from engine.device_mode import mode_for_source
 from engine import param_access
 from engine.presets import get_all_presets, save_preset
+from engine.master_bank import MASTER_SIGNATURE_PRESETS, ensure_master_signature_presets, generate_auto_morph_slots, apply_morph_pair
 from urllib.parse import quote
 from engine import user_library
 from engine.rigpack_export import export_rigpack
@@ -96,7 +98,8 @@ def get_devices():
         "devices": engine.get_device_list(),
         "selected_in": engine.input_device,
         "selected_out": engine.output_device,
-        "is_running": engine.is_running
+        "is_running": engine.is_running,
+        "asio_drivers": engine.get_asio_drivers()
     }
 
 @app.get("/api/settings")
@@ -219,6 +222,11 @@ def update_parameter(req: ParamUpdate):
             global _NAM_QUALITY
             if p == "quality" and str(val) in ("lite", "full"):
                 _NAM_QUALITY = str(val)
+                if chain.nam is not None:
+                    for stg in getattr(chain.nam, "stages", []):
+                        net = stg.get("net")
+                        if hasattr(net, "select"):
+                            net.select(0.5 if _NAM_QUALITY == "lite" else 1.0)
             elif chain.nam is not None and _is_known_parameter(sec, p):
                 param_access.set(chain, sec, p, val)
         elif _is_known_parameter(sec, p):
@@ -238,6 +246,7 @@ def update_parameter(req: ParamUpdate):
 
 @app.get("/api/presets")
 def list_presets():
+    ensure_master_signature_presets()
     return {"presets": get_all_presets()}
 
 @app.post("/api/preset/load")
@@ -250,7 +259,24 @@ def load_preset(req: PresetLoad):
         
     s = target["settings"]
     chain = engine.chain
-    
+
+    # The preset remembers which hardware it was voiced for; older presets have
+    # no "device" section and stay generic. A hand-edited preset must not make
+    # the load fail, so an unknown name logs and falls back.
+    device = s.get("device") or {}
+    try:
+        mode = device.get("mode", "generic")
+        # Legacy GE150/Cortex/Kemper modes were not usable; ignore them.
+        if mode not in ("generic", "nam"):
+            mode = "generic"
+        chain.set_device_mode(mode)
+    except ValueError:
+        logger.warning(
+            "Preset %s names an unknown device mode %r; loading as generic",
+            req.preset_id, device.get("mode"),
+        )
+        chain.set_device_mode("generic")
+
     # Apply gate
     chain.noise_gate.enabled = s["gate"].get("enabled", True)
     chain.noise_gate.threshold_db = s["gate"].get("threshold", -55.0)
@@ -313,6 +339,7 @@ def load_preset(req: PresetLoad):
     if isinstance(t3k_meta, dict):
         try:
             chain.nam = _restore_cached_t3k(t3k_meta, chain)
+            chain.set_device_mode(mode_for_source("tone3000"))
         except (OSError, ValueError, KeyError) as exc:
             logger.warning("Could not restore cached TONE3000 model for %s: %s", req.preset_id, exc)
             raise HTTPException(
@@ -321,7 +348,139 @@ def load_preset(req: PresetLoad):
                        "เลือกโหลดเสียงนี้จาก TONE3000 ใหม่อีกครั้ง",
             ) from exc
     
-    return {"success": True, "loaded_preset": target, "state": engine.get_state()}
+    # Apply Extended Blocks (EQ, Cab Tube/Mic, Mod, Ducking) & Master Morph Slots
+    if "bright" in s.get("amp", {}):
+        chain.amp.bright = bool(s["amp"]["bright"])
+    cab_s = s.get("cab") or {}
+    if any(k in cab_s for k in ("tube", "mic", "center", "distance")):
+        chain.cab.set_tube_and_mic(
+            tube=cab_s.get("tube", chain.cab.tube),
+            mic=cab_s.get("mic", chain.cab.mic),
+            center=cab_s.get("center", chain.cab.center),
+            distance=cab_s.get("distance", chain.cab.distance),
+        )
+    eq_s = s.get("eq") or {}
+    if eq_s:
+        chain.eq.enabled = bool(eq_s.get("enabled", False))
+        bands = eq_s.get("bands", eq_s.get("data"))
+        if bands is not None:
+            chain.eq.set_bands(bands, model_id=eq_s.get("model_id", chain.eq.model_id))
+        elif "model_id" in eq_s:
+            chain.eq.set_model(eq_s["model_id"])
+    mod_s = s.get("mod") or {}
+    if mod_s:
+        chain.mod.enabled = bool(mod_s.get("enabled", False))
+        chain.mod.model_id = int(mod_s.get("model_id", chain.mod.model_id))
+        chain.mod.rate = float(mod_s.get("rate", chain.mod.rate))
+        chain.mod.mix = float(mod_s.get("mix", chain.mod.mix))
+        chain.mod.tone = float(mod_s.get("tone", chain.mod.tone))
+        chain.mod.depth = float(mod_s.get("depth", chain.mod.depth))
+    if "ducking" in s.get("delay", {}):
+        chain.delay.ducking = bool(s["delay"]["ducking"])
+    if "duck_depth" in s.get("delay", {}):
+        chain.delay.duck_depth = float(s["delay"]["duck_depth"])
+    if "ducking" in s.get("reverb", {}):
+        chain.reverb.ducking = bool(s["reverb"]["ducking"])
+    if "duck_depth" in s.get("reverb", {}):
+        chain.reverb.duck_depth = float(s["reverb"]["duck_depth"])
+
+    master_meta = next((m for m in MASTER_SIGNATURE_PRESETS if m["id"] == req.preset_id), None)
+    if master_meta and "morph_a" in master_meta and "morph_b" in master_meta:
+        try:
+            apply_morph_pair(morph_mgr, master_meta["morph_a"], master_meta["morph_b"])
+        except Exception as exc:
+            logger.warning("Failed to apply master morph pair: %s", exc)
+
+    st = engine.get_state()
+    st["morph"] = morph_mgr.get_state()
+    return {"success": True, "loaded_preset": target, "state": st, "morph": st["morph"]}
+
+
+@app.get("/api/master-bank/presets")
+def get_master_bank_presets():
+    """Returns the unified กดจนหลอนTone Master Signature Bank cloned from all 4 brands."""
+    ensure_master_signature_presets()
+    return {"presets": MASTER_SIGNATURE_PRESETS}
+
+
+@app.post("/api/morph/auto")
+def auto_generate_morph_slots():
+    """Kemper-style Auto-Morph A<->B generator around the live amplifier & FX state."""
+    with ENGINE_STATE_LOCK:
+        pair = generate_auto_morph_slots(engine.chain)
+        morph_state = apply_morph_pair(morph_mgr, pair["slot_a"], pair["slot_b"])
+    return {"success": True, "morph": morph_state, "state": engine.get_state()}
+
+
+@app.post("/api/tempo/sync")
+def sync_tempo_bpm(data: dict):
+    """MOOER GE150 / Quad Cortex Tap Tempo & BPM Delay Sync."""
+    bpm = float(data.get("bpm", 120.0))
+    bpm = max(30.0, min(300.0, bpm))
+    sub = str(data.get("subdivision", "1/4")).lower()
+    beat_sec = 60.0 / bpm
+    mult = 0.75 if sub in ("1/8d", "dotted") else (0.5 if sub == "1/8" else 1.0)
+    delay_sec = max(0.02, min(2.0, round(beat_sec * mult, 3)))
+    with ENGINE_STATE_LOCK:
+        engine.chain.delay.time_sec = delay_sec
+    return {"success": True, "bpm": round(bpm, 1), "subdivision": sub, "delay_time_sec": delay_sec, "state": engine.get_state()}
+
+
+@app.get("/api/ai-tone/profiles")
+def get_ai_tone_profiles():
+    """Returns curated Artist & Song Tone DNA profiles for AI Tone Matching."""
+    from engine.ai_tone_matcher import ARTIST_TONE_PROFILES
+    return {"profiles": ARTIST_TONE_PROFILES}
+
+
+@app.post("/api/ai-tone/match")
+def ai_tone_match_endpoint(data: dict):
+    """Matches an artist, song, or tone description and synthesizes the full 9-block rig + Morph A/B."""
+    from engine.ai_tone_matcher import match_artist_tone
+    query = str(data.get("query") or data.get("id") or "")
+    prof = match_artist_tone(query)
+    if prof is None:
+        raise HTTPException(status_code=404, detail=f"No tone profile matches '{query}'")
+    s = prof["settings"]
+    chain = engine.chain
+
+    with ENGINE_STATE_LOCK:
+        chain.nam = None
+        for block in ("gate", "pitch", "screamer", "amp", "cab", "mod", "delay", "reverb"):
+            if block in s:
+                param_access.apply_settings(chain, block, s[block])
+        eq_s = s.get("eq") or {}
+        if eq_s:
+            chain.eq.enabled = bool(eq_s.get("enabled", False))
+            if "bands" in eq_s:
+                chain.eq.set_bands(eq_s["bands"], model_id=eq_s.get("model_id", 5))
+        par = prof.get("parallel") or {}
+        chain.parallel_enabled = bool(par.get("enabled", False))
+        chain.parallel_blend = float(par.get("blend", 0.3))
+        if "morph_a" in prof and "morph_b" in prof:
+            apply_morph_pair(morph_mgr, prof["morph_a"], prof["morph_b"])
+
+    st = engine.get_state()
+    st["morph"] = morph_mgr.get_state()
+    return {"success": True, "matched_profile": prof, "state": st, "morph": st["morph"]}
+
+
+@app.get("/api/hd-audio/status")
+def get_hd_audio_status():
+    """Returns World-Class HD DSP Mastering & Acoustic Engine state and telemetry."""
+    if getattr(engine, "hd_dsp", None) is None:
+        return {"enabled": False}
+    return engine.hd_dsp.get_status()
+
+
+@app.post("/api/hd-audio/update")
+def update_hd_audio_settings(data: dict):
+    """Updates World-Class HD DSP settings (auto_level, pure_cab, stereo_width, anti_squash, liquid_nam_eq)."""
+    if getattr(engine, "hd_dsp", None) is None:
+        raise HTTPException(status_code=500, detail="HD Audio Processor not initialized")
+    with ENGINE_STATE_LOCK:
+        status = engine.hd_dsp.update_settings(data or {})
+    return {"success": True, "hd_audio": status, "state": engine.get_state()}
 
 @app.post("/api/preset/save")
 def create_preset(req: PresetSave):
@@ -409,7 +568,120 @@ def _midi_select_scene(idx: int):
         cortex_mgr.set_active_scene(idx, chain=engine.chain)
 
 
-_midi_listener = MidiSceneListener(_midi_select_scene)
+def _midi_handle_action(action: str, val: int):
+    with ENGINE_STATE_LOCK:
+        ch = engine.chain
+        if action == "toggle_gate":
+            ch.noise_gate.enabled = not ch.noise_gate.enabled
+        elif action == "toggle_screamer":
+            ch.screamer.enabled = not ch.screamer.enabled
+        elif action == "toggle_amp":
+            ch.amp.enabled = not ch.amp.enabled
+        elif action == "toggle_cab":
+            ch.cab.enabled = not ch.cab.enabled
+        elif action == "toggle_mod":
+            ch.mod.enabled = not ch.mod.enabled
+        elif action == "toggle_delay":
+            ch.delay.enabled = not ch.delay.enabled
+        elif action == "toggle_reverb":
+            ch.reverb.enabled = not ch.reverb.enabled
+        elif action == "quick_clean":
+            apply_quick_scene("clean")
+        elif action == "quick_rhythm":
+            apply_quick_scene("rhythm")
+        elif action == "quick_lead":
+            apply_quick_scene("lead")
+        elif action == "toggle_ab":
+            toggle_ab_snapshot()
+
+
+_midi_listener = MidiSceneListener(_midi_select_scene, on_action=_midi_handle_action)
+
+_CURRENT_QUICK_SCENE = "rhythm"
+_AB_SNAPSHOT_A = None
+_AB_ACTIVE = "B"
+
+
+def apply_quick_scene(name: str) -> str:
+    global _CURRENT_QUICK_SCENE
+    name = str(name).strip().lower()
+    ch = engine.chain
+    if name == "clean":
+        ch.noise_gate.enabled = True
+        ch.screamer.enabled = False
+        ch.amp.gain = 0.28
+        ch.amp.bass = 0.50
+        ch.amp.mid = 0.55
+        ch.amp.treble = 0.65
+        ch.amp.presence = 0.70
+        ch.delay.enabled = False
+        ch.reverb.enabled = True
+        ch.reverb.mix = 0.25
+        _CURRENT_QUICK_SCENE = "clean"
+    elif name == "rhythm":
+        ch.noise_gate.enabled = True
+        ch.screamer.enabled = True
+        ch.screamer.drive = 0.35
+        ch.screamer.tone = 0.60
+        ch.screamer.level = 0.75
+        ch.amp.gain = 0.68
+        ch.amp.bass = 0.55
+        ch.amp.mid = 0.50
+        ch.amp.treble = 0.60
+        ch.amp.presence = 0.65
+        ch.delay.enabled = False
+        ch.reverb.enabled = True
+        ch.reverb.mix = 0.15
+        _CURRENT_QUICK_SCENE = "rhythm"
+    elif name == "lead":
+        ch.noise_gate.enabled = True
+        ch.screamer.enabled = True
+        ch.screamer.drive = 0.65
+        ch.screamer.tone = 0.65
+        ch.screamer.level = 0.85
+        ch.amp.gain = 0.82
+        ch.amp.bass = 0.55
+        ch.amp.mid = 0.62
+        ch.amp.treble = 0.65
+        ch.amp.presence = 0.72
+        ch.delay.enabled = True
+        ch.delay.mix = 0.30
+        ch.delay.feedback = 0.38
+        ch.reverb.enabled = True
+        ch.reverb.mix = 0.32
+        _CURRENT_QUICK_SCENE = "lead"
+    return _CURRENT_QUICK_SCENE
+
+
+def apply_ab_state(st: dict):
+    chain_data = st.get("chain", {})
+    from engine import param_access
+    for block_name, values in chain_data.items():
+        if isinstance(values, dict):
+            try:
+                param_access.apply_settings(engine.chain, block_name, values)
+            except Exception:
+                pass
+
+
+def store_ab_snapshot():
+    global _AB_SNAPSHOT_A
+    _AB_SNAPSHOT_A = engine.get_state()
+    return True
+
+
+def toggle_ab_snapshot() -> str:
+    global _AB_ACTIVE, _AB_SNAPSHOT_A
+    if _AB_SNAPSHOT_A is None:
+        store_ab_snapshot()
+        _AB_ACTIVE = "A"
+        return _AB_ACTIVE
+    if _AB_ACTIVE == "B":
+        apply_ab_state(_AB_SNAPSHOT_A)
+        _AB_ACTIVE = "A"
+    else:
+        _AB_ACTIVE = "B"
+    return _AB_ACTIVE
 
 
 @app.on_event("startup")
@@ -461,6 +733,117 @@ def update_cortex_scene(data: dict):
 def get_cortex_presets():
     """Returns all factory and multi-scene Cortex presets."""
     return {"presets": cortex_mgr.get_presets()}
+
+
+# ---------------------------------------------------------------------------
+# Modular Reorderable Signal Chain Endpoints (AmpForge Paradigm)
+# ---------------------------------------------------------------------------
+@app.get("/api/chain/order")
+def get_chain_order():
+    """Returns the user-facing block order of the current signal chain."""
+    return {
+        "order": engine.chain.get_stage_order(),
+        "device_mode": getattr(engine.chain, "device_mode", "generic"),
+    }
+
+
+@app.post("/api/chain/reorder")
+def reorder_chain(data: dict):
+    """Reorder blocks dynamically or move a single block left/right."""
+    with ENGINE_STATE_LOCK:
+        if "order" in data and isinstance(data["order"], list):
+            success = engine.chain.set_custom_order(data["order"])
+        elif "block" in data and "direction" in data:
+            engine.chain.move_block(data["block"], data["direction"])
+            success = True
+        else:
+            success = False
+    return {
+        "success": success,
+        "order": engine.chain.get_stage_order(),
+        "state": engine.get_state(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Clean, Rhythm, Lead 3-Scene Quick Switcher Endpoints
+# ---------------------------------------------------------------------------
+@app.post("/api/scenes/quick")
+def set_quick_scene_endpoint(data: dict):
+    """One-click transition to Clean, Rhythm, or Lead voicing."""
+    scene = str(data.get("scene", "rhythm")).lower()
+    with ENGINE_STATE_LOCK:
+        active = apply_quick_scene(scene)
+    return {
+        "success": True,
+        "active_scene": active,
+        "state": engine.get_state(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Instant A/B Rig Comparison Endpoints
+# ---------------------------------------------------------------------------
+@app.get("/api/ab/state")
+def get_ab_state_endpoint():
+    """Returns whether snapshot A is stored and which slot is active."""
+    return {
+        "has_a": _AB_SNAPSHOT_A is not None,
+        "active": _AB_ACTIVE,
+    }
+
+
+@app.post("/api/ab/store")
+def store_ab_endpoint():
+    """Store current rig settings into snapshot A."""
+    with ENGINE_STATE_LOCK:
+        store_ab_snapshot()
+    return {"success": True, "active": "A", "has_a": True}
+
+
+@app.post("/api/ab/toggle")
+def toggle_ab_endpoint():
+    """Toggle between Rig snapshot A and live Rig B."""
+    with ENGINE_STATE_LOCK:
+        active = toggle_ab_snapshot()
+    return {"success": True, "active": active, "state": engine.get_state()}
+
+
+# ---------------------------------------------------------------------------
+# MIDI Learn & Footswitch Mapping Endpoints
+# ---------------------------------------------------------------------------
+@app.get("/api/midi/status")
+def get_midi_status():
+    """Returns connected winmm MIDI device count, active mappings, and learn state."""
+    return {
+        "connected_inputs": len(_midi_listener._handles) if hasattr(_midi_listener, "_handles") else 0,
+        "mappings": getattr(_midi_listener, "mappings", {}),
+        "learning": getattr(_midi_listener, "learn_target", None) is not None,
+        "learn_target": getattr(_midi_listener, "learn_target", None),
+        "last_learned": getattr(_midi_listener, "last_learned", None),
+    }
+
+
+@app.post("/api/midi/learn")
+def start_midi_learn(data: dict):
+    """Arm or cancel MIDI learn for a specific target action (e.g. toggle_screamer, quick_lead)."""
+    target = data.get("target") or data.get("action")
+    if not target:
+        if hasattr(_midi_listener, "cancel_learn"):
+            _midi_listener.cancel_learn()
+        return {"success": True, "learn_target": None}
+    _midi_listener.start_learn(target)
+    return {"success": True, "learn_target": target}
+
+
+@app.post("/api/midi/clear")
+def clear_midi_mapping(data: dict):
+    """Remove a specific MIDI mapping key."""
+    key = data.get("key")
+    if key and key in _midi_listener.mappings:
+        del _midi_listener.mappings[key]
+        _midi_listener.save_mappings()
+    return {"success": True, "mappings": _midi_listener.mappings}
 
 
 @app.post("/api/cortex/preset/load")
@@ -584,7 +967,7 @@ async def universal_preset_import(file: UploadFile = File(...)):
         return await import_cortex_preset_file(file)
     elif filename.endswith(".rigpack") or filename.endswith(".kipr"):
         return await import_kemper_file(file)
-    elif filename.endswith(".nam"):
+    elif filename.endswith((".nam", ".namb", ".t3kpreset")):
         return await upload_nam_model(file)
     elif filename.endswith(".wav"):
         return await load_custom_ir(file)
@@ -946,7 +1329,7 @@ def _install_real_t3k_ir(preset):
     source_rate, samples, title = decoded
     try:
         prepared, truncated = CabinetSimulator._prepare_ir(
-            samples, source_rate, config.SAMPLE_RATE, config.IR_MAX_LENGTH
+            samples, source_rate, config.SAMPLE_RATE, config.ir_max_samples(config.SAMPLE_RATE)
         )
     except ValueError as exc:
         logger.warning("TONE3000 IR unusable for %s: %s", preset["id"], exc)
@@ -1071,6 +1454,7 @@ def load_tone3000_preset(req: Tone3000Load):
         else:
             if nam_chain:
                 chain.nam = nam_chain  # assigned last, fully built, so the audio thread never sees a partial chain
+                chain.set_device_mode(mode_for_source("tone3000"))
                 if nam_chain.includes_cab:
                     chain.cab.enabled = False
                 nam_info = {"active": True, "quality": req.nam_quality, **nam_chain.describe()}
@@ -1118,12 +1502,13 @@ def _decode_and_install_ir(raw_bytes: bytes, display_name: str) -> tuple:
         raise ValueError(f"Not a readable WAV file: {exc}") from exc
 
     prepared, truncated = CabinetSimulator._prepare_ir(
-        data, sr, config.SAMPLE_RATE, config.IR_MAX_LENGTH
+        data, sr, config.SAMPLE_RATE, config.ir_max_samples(config.SAMPLE_RATE)
     )
 
     # Commit only once decoding and validation have fully succeeded.
     with _CAB_IR_LOCK:
         engine.chain.cab.set_ir_data(prepared, display_name)
+        engine.chain.cab.enabled = True
 
     return display_name, len(prepared), int(sr), truncated
 
@@ -1210,6 +1595,29 @@ def _build_nam_chain(content: bytes, name: str, quality: str):
         "ที่ engine นี้ยังอ่านไม่ได้ ตั้งค่า TONE3000 เป็น Architecture = 1 (A1) แล้วโหลดใหม่"
     )
     try:
+        text = content.decode("utf-8-sig") if (content[:4] not in (b"BMAN", b"NAMB") and content[:5] != b"T3KHS" and not name.lower().endswith(".t3kpreset")) else ""
+    except UnicodeDecodeError as exc:
+        raise ValueError(binary_hint) from exc
+    if content[:4] in (b"BMAN", b"NAMB"):
+        model_dict = nam.parse_namb_binary(content)
+        net = nam.SlimmableWaveNet(model_dict, build=quality)
+        return nam.NamChain([{"title": re.sub(r"\.(nam|namb|json)$", "", name, flags=re.IGNORECASE), "gear_type": model_dict.get("metadata", {}).get("gear_type", "amp"), "net": net}])
+    if content[:5] == b"T3KHS" or name.lower().endswith(".t3kpreset"):
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix=".t3kpreset", delete=False) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+        try:
+            chain_obj = get_nam_chain(tmp_path, quality if quality in ("lite", "full") else "lite")
+            if chain_obj is None:
+                raise ValueError("No NAM A2 model blocks found in .t3kpreset")
+            return chain_obj
+        finally:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+    try:
         text = content.decode("utf-8-sig")
     except UnicodeDecodeError as exc:
         raise ValueError(binary_hint) from exc
@@ -1238,7 +1646,7 @@ async def upload_nam_model(nam_file: UploadFile = File(...), quality: str = "all
     Decodes the WaveNet architecture and installs it into the NAM chain.
     """
     filename = _sanitize_ir_filename(nam_file.filename)
-    if not (filename.endswith(".nam") or filename.endswith(".json")):
+    if not filename.lower().endswith((".nam", ".namb", ".json", ".t3kpreset")):
         raise HTTPException(status_code=400, detail="Only .nam model files are supported.")
 
     raw_bytes = await nam_file.read()
@@ -1257,7 +1665,14 @@ async def upload_nam_model(nam_file: UploadFile = File(...), quality: str = "all
 
     with ENGINE_STATE_LOCK:
         engine.chain.nam = new_chain
-        engine.chain.cab.enabled = not new_chain.includes_cab
+        engine.chain.set_device_mode(mode_for_source("nam"))
+        engine.chain.cab.enabled = getattr(getattr(engine, "hd_dsp", None), "force_nam_ir", False) or not new_chain.includes_cab
+    try:
+        custom_nam_dir = config.PROJECT_ROOT / "custom_nam"
+        custom_nam_dir.mkdir(parents=True, exist_ok=True)
+        (custom_nam_dir / filename).write_bytes(raw_bytes)
+    except OSError:
+        pass
 
     logger.info("Successfully loaded uploaded NAM model: %s", filename)
     return {
@@ -1273,9 +1688,253 @@ def clear_nam_model():
     """Remove the NAM chain and return to the DSP amp stage."""
     with ENGINE_STATE_LOCK:
         engine.chain.nam = None
+        engine.chain.set_device_mode("generic")
     return {"success": True, "state": engine.get_state()}
 
 # ------------------------------------------------------------------
+@app.get("/api/nam-a2/catalog")
+def get_nam_a2_and_ir_catalog():
+    """
+    Returns the complete catalog of NAM A2 models (Factory T3K A2 + Custom .nam/.namb)
+    and Cabinet IRs (24-Bit 44.1kHz Studio IRs + Real T3K WAV IRs + Custom .wav IRs + Classic Cabs).
+    """
+    from engine.world_class_dsp import STUDIO_24BIT_IRS
+
+    nam_models = []
+    for p in list_tone3000_presets():
+        if p.get("has_nam"):
+            nam_models.append({
+                "id": p["id"],
+                "title": f"{p.get('amp_name') or p['name']} (NAM A2)",
+                "preset_name": p["name"],
+                "source": "TONE3000 A2",
+                "architecture": "A2 (Slimmable Lite 3ch / Full 8ch)",
+                "has_real_ir": bool(p.get("has_real_ir")),
+                "cab_name": p.get("cab_name"),
+            })
+    custom_nam_dir = config.PROJECT_ROOT / "custom_nam"
+    if custom_nam_dir.exists():
+        for f in sorted(custom_nam_dir.iterdir()):
+            if f.is_file() and f.suffix.lower() in (".nam", ".namb", ".json", ".t3kpreset"):
+                nam_models.append({
+                    "id": f"custom_nam::{f.name}",
+                    "title": f"{f.stem} (Custom {f.suffix.upper()})",
+                    "preset_name": f.stem,
+                    "source": "Custom Upload",
+                    "architecture": "A2 Binary (.namb)" if f.suffix.lower() == ".namb" else "NAM A2 / WaveNet",
+                    "has_real_ir": False,
+                    "cab_name": None,
+                })
+
+    ir_list = []
+    for ir_title in STUDIO_24BIT_IRS:
+        ir_list.append({
+            "id": f"studio24::{ir_title}",
+            "name": ir_title,
+            "type": "24-Bit / 44.1kHz Studio IR",
+            "bit_depth": 24,
+            "sample_rate": int(getattr(engine, "sample_rate", 44100)),
+        })
+    for classic in ("Celestion V30 4x12", "Marshall 1960A Greenback", "Mesa Rectifier 4x12 Slant", "Fender Twin 2x12 Jensen"):
+        ir_list.append({
+            "id": f"classic::{classic}",
+            "name": classic,
+            "type": "Built-in Cab Model",
+            "bit_depth": 24,
+            "sample_rate": int(getattr(engine, "sample_rate", 48000)),
+        })
+    for p in list_tone3000_presets():
+        if p.get("has_real_ir"):
+            ir_list.append({
+                "id": f"t3k_ir::{p['id']}",
+                "name": f"{p.get('cab_name') or p['name']} (Real T3K IR)",
+                "type": "Recorder-Measured WAV IR",
+                "bit_depth": 24,
+                "sample_rate": int(p.get("ir_sample_rate") or 48000),
+            })
+    if config.CUSTOM_IR_DIR.exists():
+        for f in sorted(config.CUSTOM_IR_DIR.iterdir()):
+            if f.is_file() and f.suffix.lower() == ".wav":
+                ir_list.append({
+                    "id": f"custom_ir::{f.name}",
+                    "name": f.name,
+                    "type": "Custom WAV IR",
+                    "bit_depth": 24,
+                    "sample_rate": int(getattr(engine, "sample_rate", 44100)),
+                })
+
+    return {
+        "nam_a2_models": nam_models,
+        "studio_24bit_irs": list(STUDIO_24BIT_IRS),
+        "ir_cabinets": ir_list,
+        "active_nam": engine.chain.nam.describe() if engine.chain.nam is not None else None,
+        "active_ir": getattr(engine.chain.cab, "ir_name", ""),
+        "cab_enabled": bool(engine.chain.cab.enabled),
+        "sample_rate": int(engine.sample_rate),
+        "bit_depth": int(getattr(getattr(engine, "hd_dsp", None), "bit_depth", 24)),
+        "nam_quality": _NAM_QUALITY,
+    }
+
+
+@app.post("/api/nam-a2/load-pair")
+def load_nam_a2_and_ir_pair(data: dict):
+    """
+    Loads a NAM A2 model (from T3K A2 factory or custom_nam/) AND pairs it with a
+    Cabinet IR (24-Bit 44.1kHz Studio IR, T3K Real WAV IR, Custom WAV IR, or Classic Cab).
+    """
+    from engine.world_class_dsp import synthesize_studio_24bit_ir
+
+    global _NAM_QUALITY
+    data = data or {}
+    nam_id = str(data.get("nam_id") or data.get("nam_model") or "").strip()
+    ir_id = str(data.get("ir_id") or data.get("ir_name") or "").strip()
+    quality = str(data.get("quality") or _NAM_QUALITY).lower()
+    if quality not in ("lite", "full"):
+        quality = "lite"
+    _NAM_QUALITY = quality
+
+    input_gain_db = float(data.get("input_gain_db", getattr(engine.chain.nam, "input_gain_db", 0.0) if engine.chain.nam else 0.0))
+    loaded_nam_info = None
+    loaded_ir_name = None
+
+    with ENGINE_STATE_LOCK:
+        if nam_id and nam_id != "__keep__":
+            if nam_id == "__dsp__":
+                engine.chain.nam = None
+                engine.chain.set_device_mode("generic")
+            elif nam_id.startswith("custom_nam::"):
+                fname = os.path.basename(nam_id.split("::", 1)[1])
+                fpath = config.PROJECT_ROOT / "custom_nam" / fname
+                if not fpath.is_file():
+                    raise HTTPException(status_code=404, detail=f"Custom NAM file not found: {fname}")
+                new_chain = _build_nam_chain(fpath.read_bytes(), fname, quality)
+                new_chain.set_input_gain_db(input_gain_db)
+                engine.chain.nam = new_chain
+                engine.chain.set_device_mode(mode_for_source("nam"))
+                loaded_nam_info = new_chain.describe()
+            else:
+                presets = list_tone3000_presets()
+                target = next((p for p in presets if p["id"] == nam_id or p["file_name"] == nam_id), None)
+                if not target:
+                    raise HTTPException(status_code=404, detail=f"NAM A2 model not found: {nam_id}")
+                new_chain = get_nam_chain(target["file_path"], quality, input_gain_db=input_gain_db)
+                if not new_chain:
+                    raise HTTPException(status_code=400, detail="Selected preset has no NAM A2 block")
+                engine.chain.nam = new_chain
+                engine.chain.set_device_mode(mode_for_source("tone3000"))
+                loaded_nam_info = new_chain.describe()
+                if not ir_id and target.get("has_real_ir"):
+                    ir_info = _install_real_t3k_ir(target)
+                    if ir_info:
+                        loaded_ir_name = ir_info["ir_name"]
+
+        if ir_id and ir_id != "__keep__":
+            if ir_id.startswith("studio24::"):
+                title = ir_id.split("::", 1)[1]
+                ir_samples = synthesize_studio_24bit_ir(title, sample_rate=int(engine.sample_rate))
+                with _CAB_IR_LOCK:
+                    engine.chain.cab.set_ir_data(ir_samples, title)
+                loaded_ir_name = title
+            elif ir_id.startswith("classic::"):
+                title = ir_id.split("::", 1)[1]
+                with _CAB_IR_LOCK:
+                    engine.chain.cab.select_cab(title)
+                loaded_ir_name = title
+            elif ir_id.startswith("t3k_ir::"):
+                pid = ir_id.split("::", 1)[1]
+                presets = list_tone3000_presets()
+                target = next((p for p in presets if p["id"] == pid), None)
+                if not target:
+                    raise HTTPException(status_code=404, detail=f"T3K IR preset not found: {pid}")
+                ir_info = _install_real_t3k_ir(target)
+                if ir_info:
+                    loaded_ir_name = ir_info["ir_name"]
+            elif ir_id.startswith("custom_ir::"):
+                fname = os.path.basename(ir_id.split("::", 1)[1])
+                fpath = config.CUSTOM_IR_DIR / fname
+                if not fpath.is_file():
+                    raise HTTPException(status_code=404, detail=f"Custom IR file not found: {fname}")
+                name_out, _, _, _ = _decode_and_install_ir(fpath.read_bytes(), fname)
+                loaded_ir_name = name_out
+            else:
+                if any(k in ir_id.lower() for k in ("24-bit", "ozzy", "neural archetype", "basketweave")):
+                    ir_samples = synthesize_studio_24bit_ir(ir_id, sample_rate=int(engine.sample_rate))
+                    with _CAB_IR_LOCK:
+                        engine.chain.cab.set_ir_data(ir_samples, ir_id)
+                elif (config.CUSTOM_IR_DIR / os.path.basename(ir_id)).is_file():
+                    fpath = config.CUSTOM_IR_DIR / os.path.basename(ir_id)
+                    name_out, _, _, _ = _decode_and_install_ir(fpath.read_bytes(), fpath.name)
+                    loaded_ir_name = name_out
+                else:
+                    with _CAB_IR_LOCK:
+                        engine.chain.cab.select_cab(ir_id)
+                loaded_ir_name = ir_id
+
+            engine.chain.cab.enabled = True
+
+        if "cab_enabled" in data or "enable_cab" in data:
+            engine.chain.cab.enabled = bool(data.get("cab_enabled", data.get("enable_cab", True)))
+        elif loaded_nam_info is not None and not (ir_id and ir_id != "__keep__"):
+            # A capture that already contains the cabinet must not go through a second IR.
+            force = getattr(getattr(engine, "hd_dsp", None), "force_nam_ir", False)
+            engine.chain.cab.enabled = force or not engine.chain.nam.includes_cab
+
+    return {
+        "success": True,
+        "loaded_nam": loaded_nam_info or (engine.chain.nam.describe() if engine.chain.nam else None),
+        "loaded_ir": loaded_ir_name or getattr(engine.chain.cab, "ir_name", ""),
+        "quality": _NAM_QUALITY,
+        "state": engine.get_state(),
+    }
+
+
+@app.post("/api/audio/24bit-44k")
+def activate_24bit_44100_studio_mode(data: dict = None):
+    """
+    One-click switch to 24-Bit / 44.1 kHz (44,100 Hz) Natural Dynamic Studio Mode
+    (or custom sample_rate / bit_depth) with Ozzy/Neural Touch Sensitivity.
+    """
+    data = data or {}
+    default_sr = int(getattr(engine, "sample_rate", 48000) or 48000)
+    target_sr = int(data.get("sample_rate", default_sr))
+    if target_sr not in (44100, 48000, 88200, 96000):
+        target_sr = default_sr
+    target_bits = int(data.get("bit_depth", 24))
+    if target_bits not in (24, 32):
+        target_bits = 24
+
+    with ENGINE_STATE_LOCK:
+        engine.apply_sample_rate(target_sr)
+        if getattr(engine, "hd_dsp", None) is not None:
+            engine.hd_dsp.update_settings({
+                "enabled": True,
+                "bit_depth": target_bits,
+                "touch_sensitivity": float(data.get("touch_sensitivity", 0.88)),
+                "anti_squash": float(data.get("anti_squash", 0.78)),
+                "ozzy_doubler": bool(data.get("ozzy_doubler", engine.hd_dsp.ozzy_doubler)),
+            })
+        cur_ir = str(getattr(engine.chain.cab, "ir_name", ""))
+        if any(k in cur_ir.lower() for k in ("24-bit", "ozzy", "neural archetype", "basketweave")):
+            from engine.world_class_dsp import synthesize_studio_24bit_ir
+            with _CAB_IR_LOCK:
+                engine.chain.cab.set_ir_data(synthesize_studio_24bit_ir(cur_ir, sample_rate=target_sr), cur_ir)
+
+    if engine.is_running:
+        engine.start(
+            input_id=engine.input_device,
+            output_id=engine.output_device,
+            sample_rate=engine.sample_rate,
+            block_size=engine.block_size,
+        )
+    persist_audio_path()
+    return {
+        "success": True,
+        "sample_rate": engine.sample_rate,
+        "bit_depth": target_bits,
+        "hd_audio": engine.hd_dsp.get_status() if getattr(engine, "hd_dsp", None) else None,
+        "state": engine.get_state(),
+    }
+
 # TONE3000 API — OAuth 2.0 PKCE (select_tone / load_tone)
 #
 # The browser flow: the UI asks for an authorize URL, TONE3000 hands the user
@@ -1444,6 +2103,7 @@ def _install_t3k_tone(tone_id: int, model_id: int | None = None,
 
     with ENGINE_STATE_LOCK:
         engine.chain.nam = chain          # assigned fully built: the audio thread never sees a partial chain
+        engine.chain.set_device_mode(mode_for_source("tone3000"))
         engine.chain.amp.enabled = True
         engine.chain.cab.enabled = not chain.includes_cab
 
@@ -1724,7 +2384,19 @@ if os.path.exists(WEB_DIR):
 
 @app.get("/")
 def index():
-    return FileResponse(os.path.join(WEB_DIR, "index.html"))
+    return FileResponse(
+        os.path.join(WEB_DIR, "index.html"),
+        headers={"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0", "Pragma": "no-cache"},
+    )
+
+
+@app.middleware("http")
+async def _disable_static_cache(request: Request, call_next):
+    resp = await call_next(request)
+    if request.url.path == "/" or request.url.path.startswith("/static/"):
+        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        resp.headers["Pragma"] = "no-cache"
+    return resp
 
 @app.get("/manus-routes.json")
 def manus_routes():

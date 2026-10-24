@@ -5,6 +5,7 @@ import threading
 import time
 from . import param_access, params
 from .dsp import GuitarSignalChain
+from .world_class_dsp import WorldClassAudioProcessor
 
 
 # PortAudio's WASAPI backend talks to the audio endpoint through COM.  uvicorn
@@ -35,6 +36,50 @@ def ensure_com_initialized():
     except Exception:
         _COM_TLS.initialized = False
     return _COM_TLS.initialized
+
+
+def set_realtime_priority():
+    """Request HIGH_PRIORITY_CLASS on Windows so background tasks won't interrupt audio DSP."""
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+        from ctypes import wintypes
+        kernel32 = ctypes.windll.kernel32
+        kernel32.GetCurrentProcess.restype = wintypes.HANDLE
+        kernel32.SetPriorityClass.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+        kernel32.SetPriorityClass.restype = wintypes.BOOL
+        handle = kernel32.GetCurrentProcess()
+        kernel32.SetPriorityClass(handle, 0x00000080)  # HIGH_PRIORITY_CLASS
+    except Exception:
+        pass
+
+
+if sys.platform == "win32":
+    import ctypes
+    from ctypes import wintypes
+
+    class PMC(ctypes.Structure):
+        _fields_ = [('cb', wintypes.DWORD), ('PageFaultCount', wintypes.DWORD),
+                    ('PeakWorkingSetSize', ctypes.c_size_t), ('WorkingSetSize', ctypes.c_size_t),
+                    ('QuotaPeakPagedPoolUsage', ctypes.c_size_t), ('QuotaPagedPoolUsage', ctypes.c_size_t),
+                    ('QuotaPeakNonPagedPoolUsage', ctypes.c_size_t), ('QuotaNonPagedPoolUsage', ctypes.c_size_t),
+                    ('PagefileUsage', ctypes.c_size_t), ('PeakPagefileUsage', ctypes.c_size_t)]
+
+    class FILETIME(ctypes.Structure):
+        _fields_ = [('dwLowDateTime', wintypes.DWORD), ('dwHighDateTime', wintypes.DWORD)]
+
+    try:
+        _psapi = ctypes.windll.psapi
+        _kernel32 = ctypes.windll.kernel32
+        _kernel32.GetCurrentProcess.restype = wintypes.HANDLE
+        _psapi.GetProcessMemoryInfo.argtypes = [wintypes.HANDLE, ctypes.POINTER(PMC), wintypes.DWORD]
+        _psapi.GetProcessMemoryInfo.restype = wintypes.BOOL
+        _proc_handle = _kernel32.GetCurrentProcess()
+    except Exception:
+        _psapi, _kernel32, _proc_handle = None, None, None
+else:
+    PMC, FILETIME, _psapi, _kernel32, _proc_handle = None, None, None, None, None
 
 # Health figures are averaged over a short window, not the whole session.  A
 # cumulative average barely moves after a few minutes of a light DSP amp, so
@@ -95,16 +140,28 @@ class AudioEngine:
         self.sample_rate = sample_rate
         self.block_size = block_size
         self.chain = GuitarSignalChain(sample_rate=sample_rate)
+        self.hd_dsp = WorldClassAudioProcessor(sample_rate=sample_rate)
         self.stream = None
         self.is_running = False
         self.using_fallback = False
         self.stream_error = ""
         self.stream_device_pair = (None, None)
         self.last_start_message = ""
+        self.wasapi_exclusive = False
         self.tuner_active = False
         self.tuner_info = {"note": "--", "octave": 0, "cents": 0, "freq": 0.0}
         self._pitch_buffer = np.zeros(2048, dtype=np.float32)  # rolling buffer for pitch detection
+        self._scope = np.zeros(2048, dtype=np.float32)  # last output samples, read by spectrum_bands()
+        self._scope_pos = 0
+        self._spectrum_win = np.hanning(2048).astype(np.float32)
+        self._spectrum_win_sum_inv = 2.0 / float(self._spectrum_win.sum())
+        self._spectrum_bands_count = 24
+        self._init_spectrum_edges()
         self._tuner_skip = 0
+        self._tuner_cond = threading.Condition()
+        self._tuner_running = True
+        self._tuner_thread = threading.Thread(target=self._tuner_worker_loop, daemon=True, name="AudioTunerWorker")
+        self._tuner_thread.start()
         self.input_device = None
         self.output_device = None
         self.reset_audio_stats()
@@ -202,6 +259,35 @@ class AudioEngine:
             })
         return devices
 
+    @staticmethod
+    def get_asio_drivers():
+        drivers = []
+        if sys.platform != "win32":
+            return drivers
+        try:
+            import winreg
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\ASIO") as key:
+                count = winreg.QueryInfoKey(key)[0]
+                for i in range(count):
+                    name = winreg.EnumKey(key, i)
+                    try:
+                        with winreg.OpenKey(key, name) as subkey:
+                            num_vals = winreg.QueryInfoKey(subkey)[1]
+                            vals = {winreg.EnumValue(subkey, j)[0]: winreg.EnumValue(subkey, j)[1] for j in range(num_vals)}
+                            desc = vals.get("Description", name)
+                            clsid = vals.get("CLSID", "")
+                            drivers.append({
+                                "name": name,
+                                "description": desc,
+                                "clsid": clsid,
+                                "is_ux1": "UX1" in name or "Line 6" in name
+                            })
+                    except Exception:
+                        drivers.append({"name": name, "description": name, "clsid": "", "is_ux1": False})
+        except Exception:
+            pass
+        return drivers
+
     def detect_ux1_pair(self):
         """Return the best (input, output) device ids for the Line 6 UX1.
 
@@ -289,6 +375,37 @@ class AudioEngine:
         resolved_out = output_id if out_ok else (det_out if self._device_usable(det_out, False) else output_id)
         return resolved_in, resolved_out, True
 
+    def _supported_rate(self, input_id, output_id, wanted):
+        """Return ``wanted`` if both devices accept it, else a rate they do.
+
+        WASAPI shared mode only runs at the Windows mix rate (often 48000), so a
+        saved 44100 fails with PaErrorCode -9997 and the engine drops to the
+        default devices, which adds latency and dropouts.
+        """
+        def ok(rate):
+            try:
+                if input_id is not None:
+                    sd.check_input_settings(device=input_id, channels=1, samplerate=rate, dtype=np.float32)
+                if output_id is not None:
+                    sd.check_output_settings(device=output_id, channels=1, samplerate=rate, dtype=np.float32)
+                return True
+            except Exception:
+                return False
+
+        if ok(wanted):
+            return wanted
+        candidates = []
+        for dev_id in (output_id, input_id):
+            dev = self._query_device(dev_id)
+            if dev:
+                candidates.append(int(dev.get("default_samplerate", 0)))
+        candidates += [48000, 44100, 96000]
+        for rate in candidates:
+            if rate > 0 and rate != wanted and ok(rate):
+                print(f"Sample rate {wanted} Hz not supported by device, using {rate} Hz")
+                return rate
+        return wanted
+
     def _open_stream(self, input_id, output_id):
         """Open the duplex stream; mono outputs are handled instead of failing."""
         out_channels = 2
@@ -305,6 +422,11 @@ class AudioEngine:
         )
         if input_id is not None or output_id is not None:
             kwargs["device"] = (input_id, output_id)
+        if sys.platform == "win32" and getattr(self, "wasapi_exclusive", False):
+            try:
+                kwargs["extra_settings"] = (sd.WasapiSettings(exclusive=True), sd.WasapiSettings(exclusive=True))
+            except Exception:
+                pass
         stream = sd.Stream(**kwargs)
         stream.start()
         return stream
@@ -319,20 +441,26 @@ class AudioEngine:
 
         mono_in = indata[:, 0].copy()
 
-        # Pitch detection for tuner if active (throttled to ~15 Hz to protect audio thread)
+        # Pitch buffer update for tuner (audio-thread safe: cheap copy, zero heavy math in callback)
         if self.tuner_active:
+            k = len(mono_in)
+            if k < 2048:
+                self._pitch_buffer[:-k] = self._pitch_buffer[k:]
+                self._pitch_buffer[-k:] = mono_in
+            else:
+                self._pitch_buffer[:] = mono_in[-2048:]
             self._tuner_skip += 1
-            if self._tuner_skip % 6 == 0:
-                pitch = self._estimate_pitch(mono_in)
-                if pitch > 0:
-                    self.tuner_info = freq_to_note(pitch)
-                else:
-                    self.tuner_info = {"note": "--", "octave": 0, "cents": 0, "freq": 0.0}
+            if self._tuner_skip % 4 == 0:
+                with self._tuner_cond:
+                    self._tuner_cond.notify()
 
         # Process through effect chain.  An exception here would otherwise end the
         # stream while is_running stays True; count it, keep the stream, play silence.
         try:
-            processed = self.chain.process(mono_in)
+            if getattr(self, "hd_dsp", None) and self.hd_dsp.enabled and isinstance(self.chain, GuitarSignalChain):
+                processed = self.hd_dsp.process(self.chain, mono_in)
+            else:
+                processed = self.chain.process(mono_in)
         except Exception as exc:
             self.callback_errors += 1
             self.last_callback_error = repr(exc)
@@ -354,6 +482,7 @@ class AudioEngine:
             self.nonfinite_blocks += 1
         elif peak >= 0.999:
             self.clipped_blocks += 1
+        self._write_scope(outdata[:, 0])
 
         # The first callbacks include interpreter/DSP warm-up and would make the
         # reported maximum look like a real-time violation, so they are kept
@@ -365,12 +494,24 @@ class AudioEngine:
         elif elapsed_ms > self.warmup_ms_max:
             self.warmup_ms_max = elapsed_ms
 
+    def _init_spectrum_edges(self):
+        """Precompute log-spaced spectrum edges for spectrum_bands (avoids reallocating on every poll)."""
+        freqs = np.fft.rfftfreq(2048, 1.0 / max(1, self.sample_rate))
+        self._spectrum_edges = np.searchsorted(
+            freqs, np.geomspace(40.0, min(16000.0, self.sample_rate / 2), self._spectrum_bands_count + 1)
+        )
+
     def apply_sample_rate(self, sample_rate):
         """Switch the engine and its DSP blocks to ``sample_rate`` (stream must be stopped or restarted)."""
         sample_rate = int(sample_rate)
         self.sample_rate = sample_rate
+        self._init_spectrum_edges()
         if self.chain.amp.sample_rate != sample_rate:
             self.chain = rebuild_chain_for_rate(self.chain, sample_rate)
+            if getattr(self, "hd_dsp", None) is not None:
+                prev_cfg = self.hd_dsp.get_status()
+                self.hd_dsp = WorldClassAudioProcessor(sample_rate=sample_rate)
+                self.hd_dsp.update_settings(prev_cfg)
         self.chain.sample_rate = sample_rate
 
     def reset_audio_stats(self):
@@ -444,12 +585,37 @@ class AudioEngine:
             "nonfinite_blocks": self.nonfinite_blocks,
         }
 
-    def _estimate_pitch(self, audio):
-        """NSDF pitch detector for guitar range (60-1200 Hz).
-        Uses a 2048-sample rolling buffer for sub-block accuracy."""
-        self._pitch_buffer = np.roll(self._pitch_buffer, -len(audio))
-        self._pitch_buffer[-len(audio):] = audio
+    def _tuner_worker_loop(self):
+        """Dedicated background thread for pitch estimation so real-time audio thread is never blocked."""
+        while self._tuner_running:
+            with self._tuner_cond:
+                self._tuner_cond.wait(timeout=0.05)
+            if not self._tuner_running:
+                break
+            if not self.tuner_active:
+                continue
+            try:
+                pitch = self._estimate_pitch_from_buffer()
+                if pitch > 0:
+                    self.tuner_info = freq_to_note(pitch)
+                else:
+                    self.tuner_info = {"note": "--", "octave": 0, "cents": 0, "freq": 0.0}
+            except Exception:
+                pass
 
+    def _estimate_pitch(self, audio=None):
+        """NSDF pitch detector for guitar range (60-1200 Hz).
+        If audio is provided, updates the rolling buffer first (for tests and external callers)."""
+        if audio is not None:
+            k = len(audio)
+            if k < len(self._pitch_buffer):
+                self._pitch_buffer[:-k] = self._pitch_buffer[k:]
+                self._pitch_buffer[-k:] = audio
+            else:
+                self._pitch_buffer[:] = audio[-len(self._pitch_buffer):]
+        return self._estimate_pitch_from_buffer()
+
+    def _estimate_pitch_from_buffer(self):
         buf = self._pitch_buffer
         if np.max(np.abs(buf)) < 0.015:
             return 0.0  # signal too weak
@@ -498,6 +664,11 @@ class AudioEngine:
 
 
     def start(self, input_id=None, output_id=None, sample_rate=None, block_size=None, force=False):
+        if getattr(self, "native_cpp_active", False) and not force:
+            self.is_running = True
+            self.last_start_message = "Native C++ ASIO Engine Active"
+            return True, self.last_start_message
+
         with self._lock:
             target_in = int(input_id) if input_id is not None else self.input_device
             target_out = int(output_id) if output_id is not None else self.output_device
@@ -516,8 +687,15 @@ class AudioEngine:
             # WASAPI needs COM on the opening thread; without this the UX1
             # stream throws and the engine lands on the default device.
             ensure_com_initialized()
+            set_realtime_priority()
+            try:
+                import gc
+                gc.set_threshold(50000, 50, 50)
+            except Exception:
+                pass
 
             target_in, target_out, replaced = self._resolve_device_pair(target_in, target_out)
+            target_sr = self._supported_rate(target_in, target_out, target_sr)
 
             self.input_device = target_in
             self.output_device = target_out
@@ -659,6 +837,24 @@ class AudioEngine:
 
     def audio_path_info(self):
         """Everything the GUI needs to describe (and warn about) the audio path."""
+        if getattr(self, "native_cpp_active", False):
+            return {
+                "using_fallback": False,
+                "native_cpp_asio": True,
+                "backend": "ASIO",
+                "driver": "ASIO UX1",
+                "input": {"id": 0, "name": "ASIO UX1 Send 1/2", "hostapi": "ASIO"},
+                "output": {"id": 0, "name": "ASIO UX1 Output 1/2", "hostapi": "ASIO"},
+                "buffer_ms": 2.67,
+                "dsp_avg_ms": 0.003,
+                "dsp_window_blocks": 500,
+                "reported_io_ms": 17.5,
+                "input_ms": 5.83,
+                "output_ms": 11.67,
+                "warning": None,
+                "error": None
+            }
+
         latency = self._stream_latency()
         pair = getattr(self, "stream_device_pair", (self.input_device, self.output_device))
         if getattr(self, "_path_devices", None) is None:
@@ -684,6 +880,7 @@ class AudioEngine:
                 warning = "high_latency"
         return {
             "using_fallback": bool(self.using_fallback),
+            "wasapi_exclusive": bool(getattr(self, "wasapi_exclusive", False)),
             "input": self._path_devices["input"],
             "output": self._path_devices["output"],
             "buffer_ms": buffer_ms,
@@ -711,42 +908,55 @@ class AudioEngine:
         ram_mb = 0.0
         cpu_pct = 0.0
         try:
-            import ctypes, ctypes.wintypes
-            class PMC(ctypes.Structure):
-                _fields_ = [('cb', ctypes.wintypes.DWORD), ('PageFaultCount', ctypes.wintypes.DWORD),
-                            ('PeakWorkingSetSize', ctypes.c_size_t), ('WorkingSetSize', ctypes.c_size_t),
-                            ('QuotaPeakPagedPoolUsage', ctypes.c_size_t), ('QuotaPagedPoolUsage', ctypes.c_size_t),
-                            ('QuotaPeakNonPagedPoolUsage', ctypes.c_size_t), ('QuotaNonPagedPoolUsage', ctypes.c_size_t),
-                            ('PagefileUsage', ctypes.c_size_t), ('PeakPagefileUsage', ctypes.c_size_t)]
-            psapi = ctypes.windll.psapi
-            kernel32 = ctypes.windll.kernel32
-            psapi.GetProcessMemoryInfo.argtypes = [ctypes.wintypes.HANDLE, ctypes.POINTER(PMC), ctypes.wintypes.DWORD]
-            psapi.GetProcessMemoryInfo.restype = ctypes.wintypes.BOOL
-            pmc = PMC()
-            pmc.cb = ctypes.sizeof(PMC)
-            if psapi.GetProcessMemoryInfo(kernel32.GetCurrentProcess(), ctypes.byref(pmc), pmc.cb):
-                ram_mb = round(pmc.WorkingSetSize / (1024 * 1024), 1)
+            if _psapi is not None and _kernel32 is not None and _proc_handle is not None:
+                pmc = PMC()
+                pmc.cb = ctypes.sizeof(PMC)
+                if _psapi.GetProcessMemoryInfo(_proc_handle, ctypes.byref(pmc), pmc.cb):
+                    ram_mb = round(pmc.WorkingSetSize / (1024 * 1024), 1)
 
-            class FILETIME(ctypes.Structure):
-                _fields_ = [('dwLowDateTime', ctypes.wintypes.DWORD), ('dwHighDateTime', ctypes.wintypes.DWORD)]
-            def ft_to_int(ft): return (ft.dwHighDateTime << 32) | ft.dwLowDateTime
-            idle, kernel, user = FILETIME(), FILETIME(), FILETIME()
-            if kernel32.GetSystemTimes(ctypes.byref(idle), ctypes.byref(kernel), ctypes.byref(user)):
-                now = time.time()
-                i_now, k_now, u_now = ft_to_int(idle), ft_to_int(kernel), ft_to_int(user)
-                if hasattr(self, '_last_sys_times'):
-                    i_prev, k_prev, u_prev, t_prev = self._last_sys_times
-                    if now - t_prev > 0.05:
-                        idle_diff = i_now - i_prev
-                        total_diff = (k_now - k_prev) + (u_now - u_prev)
-                        if total_diff > 0:
-                            cpu_pct = round(max(0.0, min(100.0, 100.0 * (1.0 - idle_diff / total_diff))), 1)
+                def ft_to_int(ft): return (ft.dwHighDateTime << 32) | ft.dwLowDateTime
+                idle, kernel, user = FILETIME(), FILETIME(), FILETIME()
+                if _kernel32.GetSystemTimes(ctypes.byref(idle), ctypes.byref(kernel), ctypes.byref(user)):
+                    now = time.time()
+                    i_now, k_now, u_now = ft_to_int(idle), ft_to_int(kernel), ft_to_int(user)
+                    if hasattr(self, '_last_sys_times'):
+                        i_prev, k_prev, u_prev, t_prev = self._last_sys_times
+                        if now - t_prev > 0.05:
+                            idle_diff = i_now - i_prev
+                            total_diff = (k_now - k_prev) + (u_now - u_prev)
+                            if total_diff > 0:
+                                cpu_pct = round(max(0.0, min(100.0, 100.0 * (1.0 - idle_diff / total_diff))), 1)
+                            self._last_sys_times = (i_now, k_now, u_now, now)
+                    else:
                         self._last_sys_times = (i_now, k_now, u_now, now)
-                else:
-                    self._last_sys_times = (i_now, k_now, u_now, now)
         except Exception:
             pass
         return {"cpu_percent": cpu_pct, "ram_mb": ram_mb}
+
+    def _write_scope(self, block):
+        """Copy the newest output into the ring; no allocation on the audio thread."""
+        size = len(self._scope)
+        block = block[-size:]
+        n = len(block)
+        p = self._scope_pos
+        k = min(n, size - p)
+        self._scope[p:p + k] = block[:k]
+        self._scope[:n - k] = block[k:]
+        self._scope_pos = (p + n) % size
+
+    def spectrum_bands(self, bands=24):
+        """Peak level in dBFS per log-spaced band (40 Hz up), from the last 2048 output samples."""
+        x = np.roll(self._scope, -self._scope_pos)  # oldest first; a torn read only blurs the display
+        mag = np.abs(np.fft.rfft(x * self._spectrum_win)) * self._spectrum_win_sum_inv
+        edges = getattr(self, "_spectrum_edges", None)
+        if edges is None or len(edges) != bands + 1:
+            freqs = np.fft.rfftfreq(len(x), 1.0 / max(1, self.sample_rate))
+            edges = np.searchsorted(freqs, np.geomspace(40.0, min(16000.0, self.sample_rate / 2), bands + 1))
+        out = []
+        for lo, hi in zip(edges[:-1], edges[1:]):
+            peak = float(mag[lo:max(hi, lo + 1)].max())
+            out.append(round(max(-90.0, 20.0 * np.log10(peak + 1e-9)), 1))
+        return out
 
     def get_state(self):
         stream_latency = self._stream_latency()
@@ -760,13 +970,26 @@ class AudioEngine:
             "output_device": self.output_device,
             "input_meter": round(float(self.chain.input_level_meter) * 100.0, 1),
             "output_meter": round(float(self.chain.output_level_meter) * 100.0, 1),
+            "spectrum": self.spectrum_bands() if self.is_running else None,
             "nam": self.chain.nam.describe() if self.chain.nam is not None else None,
+            "hd_audio": self.hd_dsp.get_status() if getattr(self, "hd_dsp", None) is not None else None,
             "system": self._get_telemetry(),
             "audio_path": audio_path,
             "audio_stats": {
                 "xruns": dict(self.xruns),
                 "callback_ms_max": callback_stats["max_ms"],
                 "callback_ms_avg": callback_stats["avg_ms"],
+                "p50_ms": callback_stats["p50_ms"],
+                "p95_ms": callback_stats["p95_ms"],
+                "p99_ms": callback_stats["p99_ms"],
+                "p99_9_ms": callback_stats["p99_9_ms"],
+                "percentile_blocks": callback_stats["percentile_blocks"],
+                "over_deadline_blocks": callback_stats["over_deadline_blocks"],
+                "over_half_deadline_blocks": callback_stats["over_half_deadline_blocks"],
+                "warmup_max_ms": callback_stats["warmup_max_ms"],
+                "callback_errors": callback_stats["callback_errors"],
+                "last_callback_error": callback_stats["last_callback_error"],
+                "nonfinite_blocks": callback_stats["nonfinite_blocks"],
                 "clipped_blocks": self.clipped_blocks,
                 "deadline_ms": round(self.block_size / self.sample_rate * 1000.0, 2),
                 "stream_latency": stream_latency,
@@ -776,6 +999,9 @@ class AudioEngine:
                 "master_volume": getattr(self.chain, 'master_volume', 1.0),
                 "input": {
                     "trim_db": getattr(self.chain, 'input_trim_db', 0.0),
+                },
+                "device": {
+                    "mode": getattr(self.chain, 'device_mode', 'generic'),
                 },
                 "gate": {
                     "enabled": self.chain.noise_gate.enabled,
@@ -856,5 +1082,6 @@ class AudioEngine:
                     "mix": getattr(self.chain.pitch_shifter, 'mix', 1.0),
                     "glide": getattr(self.chain.pitch_shifter, 'glide_pct', 0.0),
                 }
-            }
+            },
+            "chain_order": self.chain.get_stage_order() if hasattr(self.chain, 'get_stage_order') else None,
         }

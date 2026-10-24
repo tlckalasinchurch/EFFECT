@@ -4,6 +4,10 @@ import numpy as np
 from scipy import signal
 
 import config
+from engine.convolver import PartitionedConvolver
+from engine.oversample import Oversampler
+from engine.amp_voicing import resolve_amp_voicing
+from engine.device_mode import DEFAULT_MODE, block_order
 
 class NoiseGate:
     def __init__(self, threshold_db=-60.0, ratio=4.0, attack_ms=2.0, release_ms=50.0, hold_ms=50.0, range_db=-60.0, sample_rate=48000):
@@ -63,6 +67,19 @@ class NoiseGate:
         return audio * gain_curve
 
 
+def soft_clip(x, knee=0.5, ceiling=0.7):
+    """Linear below ``knee``, then a tanh curve that approaches ``ceiling`` without a corner.
+
+    Run it oversampled. Band-limiting a clipped wave overshoots (Gibbs ringing): a
+    0.97 ceiling came out of the decimation filter at 1.19 and hit the chain's hard
+    output clip on 15% of samples. 0.7 keeps the peak under 1.0 for input 2x past
+    full scale.
+    """
+    span = ceiling - knee
+    a = np.abs(x)
+    return np.where(a > knee, np.sign(x) * (knee + span * np.tanh((a - knee) / span)), x)
+
+
 class Overdrive:
     def __init__(self, drive=0.5, tone=0.5, level=0.7, sample_rate=48000):
         self.drive = drive  # 0.0 to 1.0
@@ -70,6 +87,7 @@ class Overdrive:
         self.level = level  # 0.0 to 1.0
         self.enabled = False
         self.sample_rate = sample_rate
+        self._os = Oversampler(sample_rate)
         self._update_filter()
 
     def _update_filter(self):
@@ -90,7 +108,11 @@ class Overdrive:
         
         # Asymmetric soft clipping (Tube Screamer diode saturation)
         # Positive swing clips softer, negative swing clips harder
-        y = np.where(x > 0, np.tanh(x * 1.2) * 0.85, np.tanh(x * 0.9) * 0.95)
+        clip = lambda v: np.where(v > 0, np.tanh(v * 1.2) * 0.85, np.tanh(v * 0.9) * 0.95)
+        if x.ndim > 1:
+            y = clip(x)
+        else:
+            y = self._os.process(x, clip)  # oversampled: keeps clipping harmonics from folding back
         
         # Filter tone
         if audio.ndim > 1:
@@ -121,11 +143,20 @@ class AmpHead:
 
     def _init_filters(self):
         nyq = self.sample_rate * 0.5
+        # 16x: stage 1 runs at up to ~50x gain (near square wave), 4x left -32 dB of aliasing
+        self._os = Oversampler(self.sample_rate, factor=16)
+        # The tone stack and master push the default amp to ~1.4 peak; this keeps it
+        # under the chain's hard output clip, which would otherwise alias at the base rate.
+        self._out_os = Oversampler(self.sample_rate)
+        self._bright_prev = 0.0  # last pre-bright sample of the previous block
         # Pre-emphasis filter (guitar tight low-cut)
         b_lowcut, a_lowcut = signal.butter(2, 80.0 / nyq, btype='high')
         self.lowcut_b = b_lowcut
         self.lowcut_a = a_lowcut
         self.lowcut_zi = np.zeros(2)
+        # Tone-stack filter state, one entry per stage; kept across blocks and
+        # across knob moves (the coefficients change, the history stays).
+        self._eq_zi = {}
 
     def process(self, audio):
         if not self.enabled:
@@ -133,26 +164,45 @@ class AmpHead:
             
         mono = audio[:, 0] if audio.ndim > 1 else audio
         
+        # Family voicing for the selected amp model; None keeps the legacy sound.
+        voicing = resolve_amp_voicing(self.model)
+        lowcut_hz = voicing["lowcut_hz"] if voicing else 80.0
+        gain_scale = voicing["gain_scale"] if voicing else 60.0
+        gain_exp = voicing["gain_exp"] if voicing else 2.2
+        bias = voicing["bias"] if voicing else 0.15
+        stage2 = voicing["stage2"] if voicing else 1.8
+        bright_amt = voicing["bright"] if voicing else 0.35
+
         # 1. Pre-amp low cut (tightens the bass before distortion)
-        x, self.lowcut_zi = signal.lfilter(self.lowcut_b, self.lowcut_a, mono, zi=self.lowcut_zi)
+        if lowcut_hz == 80.0:
+            x, self.lowcut_zi = signal.lfilter(self.lowcut_b, self.lowcut_a, mono, zi=self.lowcut_zi)
+        else:
+            x = self._voiced_lowcut(lowcut_hz, mono)
 
         # Bright switch adds treble definition in front of the preamp
+        # (the difference uses the previous block's last sample, not a wrap-around)
         if self.bright:
-            x = x + 0.35 * (x - np.roll(x, 1))
+            prev, self._bright_prev = self._bright_prev, float(x[-1])
+            x = x + bright_amt * np.diff(x, prepend=prev)
+        else:
+            self._bright_prev = float(x[-1])
         
-        # 2. Multi-stage tube preamp saturation
-        # Stage 1: Initial tube saturation
-        pre_gain = 1.0 + (self.gain ** 2.2) * 60.0
-        s1 = np.tanh(x * pre_gain)
-        
-        # Stage 2: Second triode stage with DC offset / even harmonic generation
-        dc_bias = 0.15 * min(self.gain, 0.8)
-        s2 = np.tanh((s1 + dc_bias) * 1.8) - np.tanh(dc_bias * 1.8)
-        
-        # Stage 3: Power amp sag & compression
-        power_drive = s2 * (0.8 + self.master * 0.7)
-        s3 = np.clip(power_drive, -1.2, 1.2)
-        s3 = (3.0 * s3 - s3**3) / 2.0  # soft polynomial saturation
+        # 2. Multi-stage tube preamp saturation, all three stages at 16x the rate
+        pre_gain = 1.0 + (self.gain ** gain_exp) * gain_scale
+        dc_bias = bias * min(self.gain, 0.8)
+        power = 0.8 + self.master * 0.7
+
+        def stages(v):
+            # Stage 1: Initial tube saturation
+            s1 = np.tanh(v * pre_gain)
+            # Stage 2: Second triode stage with DC offset / even harmonic generation
+            s2 = np.tanh((s1 + dc_bias) * stage2) - np.tanh(dc_bias * stage2)
+            # Stage 3: Power amp sag & compression
+            # Clip at +/-1, where the cubic peaks; past 1 it folds back and buzzes.
+            s3 = np.clip(s2 * power, -1.0, 1.0)
+            return (3.0 * s3 - s3**3) / 2.0  # soft polynomial saturation
+
+        s3 = self._os.process(x, stages)
         
         # 3. Tone Stack (Bass, Middle, Treble, Presence)
         # Bass shelf around 120 Hz
@@ -166,32 +216,56 @@ class AmpHead:
         
         # Apply parametric filters
         out = self._apply_eq(s3, bass_gain_db, mid_gain_db, treble_gain_db, presence_gain_db)
+        if voicing and voicing["eq"]:
+            out = self._apply_voicing_eq(out, voicing["eq"])
         
-        # Master volume
-        out = out * (self.master * 1.2)
+        # Master volume, then an oversampled soft clip
+        out = self._out_os.process(out * (self.master * 1.2), soft_clip)
         
         if audio.ndim > 1:
             return np.column_stack((out, out))
         return out
 
+    def _voiced_lowcut(self, hz, x):
+        """Pre-amp low cut at a model-specific corner; state is kept per corner."""
+        cache = self.__dict__.setdefault("_voiced_lc", {})
+        entry = cache.get(hz)
+        if entry is None:
+            b, a = signal.butter(2, hz / (self.sample_rate * 0.5), btype='high')
+            entry = cache[hz] = [b, a, np.zeros(2)]
+        y, entry[2] = signal.lfilter(entry[0], entry[1], x, zi=entry[2])
+        return y
+
+    def _apply_voicing_eq(self, x, bands):
+        """Fixed model shaping (peaking filters) that the tone knobs do not cover."""
+        nyq = self.sample_rate * 0.5
+        for i, (hz, db, q) in enumerate(bands):
+            b, a = self._peak(hz / nyq, db, q)
+            key = f"voicing{i}"
+            zi = self._eq_zi.get(key)
+            if zi is None or len(zi) != max(len(a), len(b)) - 1:
+                zi = np.zeros(max(len(a), len(b)) - 1)
+            x, self._eq_zi[key] = signal.lfilter(b, a, x, zi=zi)
+        return x
+
     def _apply_eq(self, x, bass_db, mid_db, treble_db, pres_db):
         nyq = self.sample_rate * 0.5
-        # Low shelf for bass
-        b_bass, a_bass = self._shelf(150.0 / nyq, bass_db, 'low')
-        x = signal.lfilter(b_bass, a_bass, x)
-        
-        # Peaking filter for mid (800 Hz, Q=1.0)
-        b_mid, a_mid = self._peak(800.0 / nyq, mid_db, 1.0)
-        x = signal.lfilter(b_mid, a_mid, x)
-        
-        # High shelf for treble
-        b_treb, a_treb = self._shelf(3500.0 / nyq, treble_db, 'high')
-        x = signal.lfilter(b_treb, a_treb, x)
-        
-        # High shelf for presence
-        b_pres, a_pres = self._shelf(5500.0 / nyq, pres_db, 'high')
-        x = signal.lfilter(b_pres, a_pres, x)
-        
+        stages = (
+            # Low shelf for bass
+            ("bass", self._shelf(150.0 / nyq, bass_db, 'low')),
+            # Peaking filter for mid (800 Hz, Q=1.0)
+            ("mid", self._peak(800.0 / nyq, mid_db, 1.0)),
+            # High shelf for treble
+            ("treble", self._shelf(3500.0 / nyq, treble_db, 'high')),
+            # High shelf for presence
+            ("presence", self._shelf(5500.0 / nyq, pres_db, 'high')),
+        )
+        for name, (b, a) in stages:
+            zi = self._eq_zi.get(name)
+            if zi is None or len(zi) != max(len(a), len(b)) - 1:
+                zi = np.zeros(max(len(a), len(b)) - 1)
+            x, self._eq_zi[name] = signal.lfilter(b, a, x, zi=zi)
+
         return x
 
     def _shelf(self, norm_freq, gain_db, btype='low'):
@@ -224,7 +298,8 @@ class CabinetSimulator:
         self.level = 1.0
         self.ir_name = 'Celestion V30 4x12'
         self.ir_data = self._generate_synthetic_ir('v30')
-        self.zi = np.zeros(len(self.ir_data) - 1)
+        self._conv = PartitionedConvolver(self.ir_data)
+        self._conv_dirty = False  # set while bypassed so the tail is dropped on re-enable
         # Per-block EQ (TONE3000-plugin style): Low Cut / High Cut / dry-wet.
         self.lowcut_hz = 20.0
         self.highcut_hz = 20000.0
@@ -571,7 +646,7 @@ class CabinetSimulator:
         try:
             from scipy.io import wavfile
             sr, data = wavfile.read(path)
-            prepared, _ = self._prepare_ir(data, sr, self.sample_rate, config.IR_MAX_LENGTH)
+            prepared, _ = self._prepare_ir(data, sr, self.sample_rate, config.ir_max_samples(self.sample_rate))
             self.set_ir_data(prepared, os.path.basename(path))
             return True
         except Exception as e:
@@ -592,21 +667,30 @@ class CabinetSimulator:
             raise ValueError("IR contains NaN or infinite samples")
 
         # Commit only after every check passes.
+        # Built here (control thread) and published as one reference: the audio
+        # thread keeps using the old convolver until its next block, and a new IR
+        # starts with no history from the previous cabinet.
+        conv = PartitionedConvolver(prepared)
         self.ir_data = prepared
         self.ir_name = str(ir_name)
-        self.zi = np.zeros(len(self.ir_data) - 1, dtype=np.float32)
+        self._conv = conv
         # A new IR must not inherit the previous cabinet's filter history.
         self._design_cutoffs()
         return True
 
     def process(self, audio):
         if not self.enabled:
+            self._conv_dirty = True
             return audio
 
         mono = audio[:, 0] if audio.ndim > 1 else audio
         sat = self._tube_sat
         src = mono if sat is None else self._tube_saturate(mono, *sat)
-        wet = signal.fftconvolve(src, self.ir_data, mode='full')[:len(mono)]
+        conv = self._conv  # read once: set_ir_data may replace it between blocks
+        if self._conv_dirty:
+            conv.reset()
+            self._conv_dirty = False
+        wet = conv.process(src)
 
         # Per-block EQ: Low Cut then High Cut, exactly like the plugin's IR CAB
         # block. Both filters are 2nd-order Butterworth biquads.
@@ -799,17 +883,19 @@ class Reverb:
             buf = self.comb_buffers[idx]
             d = len(buf)
             pos = self.comb_pos[idx]
-            if pos + n <= d:
-                out_val = buf[pos : pos + n].copy()
-                buf[pos : pos + n] = mono + out_val * fb
-                self.comb_pos[idx] = (pos + n) % d
-            else:
-                p1 = d - pos
-                p2 = n - p1
-                out_val = np.concatenate([buf[pos:d], buf[0:p2]])
-                buf[pos:d] = mono[:p1] + out_val[:p1] * fb
-                buf[0:p2] = mono[p1:] + out_val[p1:] * fb
-                self.comb_pos[idx] = p2
+            # Process any block length, including blocks larger than this comb
+            # buffer. Split at the ring boundary repeatedly rather than assuming
+            # a single wrap (the audio callback normally uses much smaller blocks).
+            out_val = np.empty(n, dtype=np.float32)
+            offset = 0
+            while offset < n:
+                count = min(n - offset, d - pos)
+                segment = buf[pos : pos + count].copy()
+                out_val[offset : offset + count] = segment
+                buf[pos : pos + count] = mono[offset : offset + count] + segment * fb
+                offset += count
+                pos = (pos + count) % d
+            self.comb_pos[idx] = pos
             rev += out_val * 0.25
 
         # Tone: one-pole low-pass on the tail, 1 kHz (dark) .. 18 kHz (bright)
@@ -1052,8 +1138,9 @@ class ModulationProcessor:
 
 class GuitarSignalChain:
     """The Complete Guitar Effect Rig Chain"""
-    def __init__(self, sample_rate=48000):
+    def __init__(self, sample_rate=48000, device_mode=DEFAULT_MODE):
         self.sample_rate = sample_rate
+        self.set_device_mode(device_mode)
         self.master_volume = 1.0
         self.input_trim_db = 0.0
         self.noise_gate = NoiseGate(threshold_db=-55.0, sample_rate=sample_rate)
@@ -1071,6 +1158,77 @@ class GuitarSignalChain:
         self.parallel_enabled = False
         self.parallel_blend = 0.3
 
+    @property
+    def device_mode(self):
+        """Which hardware this chain is voicing; see engine.device_mode."""
+        return self._device_mode
+
+    @device_mode.setter
+    def device_mode(self, mode):
+        self.set_device_mode(mode)
+
+    def set_device_mode(self, mode):
+        """Switch the block order. Parameters are left exactly as they are.
+
+        The order is resolved before anything is stored, so an unknown mode
+        raises ``ValueError`` and leaves the chain on its previous order.
+        """
+        order = block_order(mode)
+        self._device_mode = mode
+        self._stage_order = order
+        return mode
+
+    def get_stage_order(self):
+        """Return the current user-facing audio block order (excluding markers)."""
+        return [s for s in self._stage_order if s not in ("tap", "parallel")]
+
+    def set_custom_order(self, order_list):
+        """Set a custom order for the audio blocks.
+        
+        Thread-safe: assigns a newly constructed tuple in one atomic statement.
+        """
+        alias_map = {"chorus": "mod", "drive": "screamer", "overdrive": "screamer"}
+        order_mapped = [alias_map.get(s, s) for s in order_list]
+        valid_blocks = {"gate", "pitch", "screamer", "amp", "eq", "cab", "mod", "delay", "reverb"}
+        clean = [s for s in order_mapped if s in valid_blocks]
+        if not clean or "amp" not in clean:
+            return False
+        seen = set()
+        deduped = []
+        for s in clean:
+            if s not in seen:
+                seen.add(s)
+                deduped.append(s)
+        for b in ("gate", "pitch", "screamer", "amp", "eq", "cab", "mod", "delay", "reverb"):
+            if b not in seen:
+                deduped.append(b)
+        
+        new_stages = []
+        for s in deduped:
+            if s == "amp":
+                new_stages.append("tap")
+            new_stages.append(s)
+            if s == "cab":
+                new_stages.append("parallel")
+        
+        self._stage_order = tuple(new_stages)
+        return True
+
+    def move_block(self, block_name, direction):
+        """Move a block 'left' or 'right' in the chain and return the new user-facing order."""
+        alias_map = {"chorus": "mod", "drive": "screamer", "overdrive": "screamer"}
+        block_name = alias_map.get(block_name, block_name)
+        order = self.get_stage_order()
+        if block_name not in order:
+            return order
+        idx = order.index(block_name)
+        if direction in ("left", "up", "prev") and idx > 0:
+            order[idx], order[idx - 1] = order[idx - 1], order[idx]
+        elif direction in ("right", "down", "next") and idx < len(order) - 1:
+            order[idx], order[idx + 1] = order[idx + 1], order[idx]
+        self.set_custom_order(order)
+        return self.get_stage_order()
+
     def process(self, input_chunk):
         # Calculate input level from the raw signal, then apply the input trim.
         in_rms = float(np.sqrt(np.mean(input_chunk ** 2) + 1e-9))
@@ -1079,33 +1237,47 @@ class GuitarSignalChain:
         x = input_chunk
         if self.input_trim_db:
             x = x * np.float32(10.0 ** (self.input_trim_db / 20.0))
-        x = self.noise_gate.process(x)
-        x = self.pitch_shifter.process(x)
 
-        clean_dry = x.copy()  # Parallel tap before distortion / amp
+        clean_dry = None  # filled by the "tap" stage when the mode has one
+        for stage in self._stage_order:
+            if stage == "gate":
+                x = self.noise_gate.process(x)
+            elif stage == "pitch":
+                x = self.pitch_shifter.process(x)
+            elif stage == "tap":
+                clean_dry = x.copy()  # Parallel tap before distortion / amp
+            elif stage == "screamer":
+                # DRIVE is a real block in front of the amp, even when a NAM
+                # chain is installed. The old path skipped it whenever `nam`
+                # was set; the generic order still runs it in both cases.
+                x = self.screamer.process(x)
+            elif stage == "amp":
+                # One amp slot: the installed NAM chain when there is one, else
+                # AmpHead. `nam` is read once because the UI thread may swap it
+                # mid-block.
+                nam = self.nam
+                if nam is None:
+                    x = self.amp.process(x)
+                elif getattr(nam, "enabled", True):
+                    x = nam.process(x)
+            elif stage == "eq":
+                x = self.eq.process(x)
+            elif stage == "cab":
+                x = self.cab.process(x)
+            elif stage == "parallel":
+                # Quad Cortex style parallel mixer: blend the clean tap back in.
+                if clean_dry is not None and self.parallel_enabled and self.parallel_blend > 0.001:
+                    blend = min(1.0, max(0.0, float(self.parallel_blend)))
+                    x = (1.0 - blend) * x + blend * clean_dry
+            elif stage == "mod":
+                x = self.mod.process(x)
+            elif stage == "delay":
+                x = self.delay.process(x)
+            elif stage == "reverb":
+                x = self.reverb.process(x)
+            else:  # pragma: no cover - block_order() rejects unknown stages
+                raise ValueError(f"unknown stage {stage!r} in device mode {self._device_mode!r}")
 
-        # DRIVE is a real block in front of the amp, even when a NAM chain is
-        # installed. The old path skipped it whenever `nam` was set.
-        x = self.screamer.process(x)
-
-        nam = self.nam  # read once: the UI thread may swap it mid-block
-        if nam is not None:
-            if getattr(nam, "enabled", True):
-                x = nam.process(x)
-        else:
-            x = self.amp.process(x)
-
-        x = self.eq.process(x)
-        x = self.cab.process(x)
-
-        # Quad Cortex style Parallel Mixer (combines Drive/Amp/Cab with clean parallel tap)
-        if getattr(self, "parallel_enabled", False) and getattr(self, "parallel_blend", 0.0) > 0.001:
-            blend = min(1.0, max(0.0, float(self.parallel_blend)))
-            x = (1.0 - blend) * x + blend * clean_dry
-        x = self.mod.process(x)
-        x = self.delay.process(x)
-        x = self.reverb.process(x)
-        
         # Master volume control & brickwall limiter to protect hearing / speakers
         x = np.clip(x * self.master_volume, -1.0, 1.0)
         
@@ -1120,6 +1292,9 @@ class GuitarSignalChain:
         from engine.mooer_preset import mo_to_workstation_preset
         ws = mo_to_workstation_preset(mo_doc)
         s = ws["settings"]
+        # Older workstations might still be in an unsupported hardware mode;
+        # MOOER presets use the generic path and never select GE150 mode.
+        self.set_device_mode("generic")
 
         for block in ("gate", "eq", "cab", "delay", "reverb"):
             param_access.apply_settings(self, block, s[block])
@@ -1132,8 +1307,8 @@ class GuitarSignalChain:
         param_access.apply_settings(self, "screamer", s["screamer"], skip=("tone",))
         param_access.set(self, "screamer", "tone", s["screamer"]["tone"], hook=False)
 
-        # The MOOER amp TYPE selects a GE150 model; only its tone stack is
-        # applied here, so the DSP amp keeps the model the user picked.
+        # Keep the MOOER model label in state for import/export fidelity; do
+        # not switch the generic amp voicing based on an unverified mapping.
         param_access.apply_settings(self, "amp", s["amp"], skip=("model",))
 
         # Pitch and Mod share one switch on the unit: when the MOD block runs a

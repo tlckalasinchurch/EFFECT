@@ -1,8 +1,8 @@
 {
  "note": "state['chain'] returned by POST /api/parameter on baseline_chain()",
  "sources": {
-  "server.py": "d53d13a7cced06b61a9b75dc39475432162112030810ecebeccb20e1e1cec3d6",
-  "engine/dsp.py": "21dcda2b7c0996d7a5ea07a3c3f16cb536c1e3a1bc891e684a4ebe93a7e8ceb0"
+  "server.py": "7e8c9bfbc234b11a3d4bb3ac867c9383cd4566221990c572eed2754a9b9f8c8d",
+  "engine/dsp.py": "914878b685f062cd85954ddb43cb6e84cca6471200e3f384f96078f09463690f"
  },
  "probes": [
   {
@@ -13,6 +13,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": false,
@@ -109,6 +112,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -206,6 +212,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -301,6 +310,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -398,6 +410,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -493,6 +508,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -590,6 +608,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -685,6 +706,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -782,6 +806,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -878,6 +905,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -973,6 +1003,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -1070,6 +1103,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -1166,6 +1202,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -1261,6 +1300,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -1358,6 +1400,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -1453,6 +1498,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -1550,6 +1598,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -1645,6 +1696,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -1742,6 +1796,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -1837,6 +1894,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -1934,6 +1994,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -2029,6 +2092,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -2126,6 +2192,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -2221,6 +2290,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -2318,6 +2390,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -2413,6 +2488,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -2510,6 +2588,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -2605,6 +2686,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -2702,6 +2786,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -2797,6 +2884,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -2894,6 +2984,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -2989,6 +3082,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -3086,6 +3182,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -3181,6 +3280,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -3278,6 +3380,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -3373,6 +3478,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -3470,6 +3578,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -3565,6 +3676,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -3662,6 +3776,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -3757,6 +3874,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -3854,6 +3974,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -3949,6 +4072,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -4046,6 +4172,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -4141,6 +4270,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -4238,6 +4370,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -4333,6 +4468,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -4430,6 +4568,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -4525,6 +4666,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -4622,6 +4766,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -4717,6 +4864,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -4814,6 +4964,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -4909,6 +5062,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -5006,6 +5162,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -5101,6 +5260,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -5198,6 +5360,9 @@
     "input": {
      "trim_db": 24.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -5293,6 +5458,9 @@
     "master_volume": 2.0,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -5390,6 +5558,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -5486,6 +5657,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -5574,6 +5748,105 @@
    }
   },
   {
+   "section": "device",
+   "param": "mode",
+   "value": "nam",
+   "state": {
+    "master_volume": 0.8,
+    "input": {
+     "trim_db": 2.0
+    },
+    "device": {
+     "mode": "nam"
+    },
+    "gate": {
+     "enabled": true,
+     "threshold": -40.0,
+     "hold_ms": 30.0,
+     "range_db": -50.0,
+     "release_ms": 80.0
+    },
+    "screamer": {
+     "enabled": true,
+     "drive": 0.5,
+     "tone": 0.4,
+     "level": 0.6
+    },
+    "amp": {
+     "enabled": true,
+     "gain": 0.45,
+     "bass": 0.35,
+     "mid": 0.55,
+     "treble": 0.65,
+     "presence": 0.25,
+     "master": 0.75,
+     "model": "Plexi",
+     "bright": false
+    },
+    "parallel": {
+     "enabled": true,
+     "blend": 0.4
+    },
+    "cab": {
+     "enabled": true,
+     "ir_name": "Celestion V30 4x12",
+     "level": 0.9,
+     "lowcut": 80.0,
+     "highcut": 7000.0,
+     "mix": 0.8,
+     "tube": "6L6",
+     "mic": "SM57",
+     "center": 40.0,
+     "distance": 30.0
+    },
+    "eq": {
+     "enabled": true,
+     "model_id": 3,
+     "bands": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+     ]
+    },
+    "mod": {
+     "enabled": true,
+     "model_id": 4,
+     "rate": 0.4,
+     "mix": 0.6,
+     "tone": 0.5,
+     "depth": 0.7
+    },
+    "delay": {
+     "enabled": true,
+     "time": 0.4,
+     "feedback": 0.45,
+     "mix": 0.3,
+     "ducking": true,
+     "duck_depth": 0.55
+    },
+    "reverb": {
+     "enabled": true,
+     "decay": 0.6,
+     "mix": 0.4,
+     "tone": 0.35,
+     "type": "room",
+     "ducking": true,
+     "duck_depth": 0.45
+    },
+    "pitch": {
+     "enabled": false,
+     "semitones": 0.0,
+     "target_semitones": 2.0,
+     "cents": 10.0,
+     "mix": 0.5,
+     "glide": 25.0
+    }
+   }
+  },
+  {
    "section": "input",
    "param": "trim",
    "value": 999.0,
@@ -5581,6 +5854,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 24.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -5678,6 +5954,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -5773,6 +6052,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -5870,6 +6152,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -200.0,
@@ -5965,6 +6250,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -6062,6 +6350,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -6158,6 +6449,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -40.0,
@@ -6253,6 +6547,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,

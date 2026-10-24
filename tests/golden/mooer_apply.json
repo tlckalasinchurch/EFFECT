@@ -1,8 +1,8 @@
 {
  "note": "state['chain'] after apply_mooer_preset(FACTORY_GE150_PRESETS[i])",
  "sources": {
-  "server.py": "d53d13a7cced06b61a9b75dc39475432162112030810ecebeccb20e1e1cec3d6",
-  "engine/dsp.py": "21dcda2b7c0996d7a5ea07a3c3f16cb536c1e3a1bc891e684a4ebe93a7e8ceb0"
+  "server.py": "7e8c9bfbc234b11a3d4bb3ac867c9383cd4566221990c572eed2754a9b9f8c8d",
+  "engine/dsp.py": "914878b685f062cd85954ddb43cb6e84cca6471200e3f384f96078f09463690f"
  },
  "presets": [
   {
@@ -12,6 +12,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -107,6 +110,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -31.5,
@@ -200,6 +206,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,
@@ -295,6 +304,9 @@
     "input": {
      "trim_db": 2.0
     },
+    "device": {
+     "mode": "generic"
+    },
     "gate": {
      "enabled": true,
      "threshold": -45.5,
@@ -388,6 +400,9 @@
     "master_volume": 0.8,
     "input": {
      "trim_db": 2.0
+    },
+    "device": {
+     "mode": "generic"
     },
     "gate": {
      "enabled": true,

@@ -1,0 +1,1 @@
+{"preset_name": "Downloaded 808 Crunch", "device": "MOOER GE150", "schema": "V1.3.0", "effectModule": {"AMP": {"SWITCH": 1, "TYPE": 7, "Data": [60, 50, 50, 60, 60, 70]}, "DS": {"SWITCH": 1, "TYPE": 2, "Data": [70, 50, 40]}}}
