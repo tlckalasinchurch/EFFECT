@@ -6,17 +6,26 @@
 #include "ws_server.hpp"
 #include "parity_vectors.inc"
 
+#include <algorithm>
 #include <cassert>
+#include <chrono>
 #include <cmath>
 #include <cstring>
 #include <iostream>
 #include <limits>
 #include <string>
+#include <thread>
 #include <vector>
 
 #ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#else
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <unistd.h>
 #endif
 
 using namespace hack_effect;
@@ -69,11 +78,12 @@ void test_param_registry_dual_units() {
 
 void test_audio_callback_nan_guard_and_bypass() {
     AudioHost host;
+    host.set_global_bypass(true);
     constexpr uint32_t kFrames = 64;
     std::vector<float> in(kFrames, 0.25f);
     std::vector<float> out(kFrames * 2, 0.0f);
 
-    // Warmup + normal passthrough
+    // Warmup + normal passthrough (global bypass must keep dry input)
     for (int i = 0; i < 60; ++i) {
         host.process_block(in.data(), out.data(), kFrames);
     }
@@ -100,6 +110,31 @@ void test_audio_callback_nan_guard_and_bypass() {
     assert(m_clean.nonfinite_blocks == 0);
     assert(m_clean.passed_phase1_gate);
     std::cout << "[PASS] test_audio_callback_nan_guard_and_bypass\n";
+}
+
+void test_dsp_unbypass_changes_signal() {
+    AudioHost host;
+    host.set_global_bypass(false);
+    host.set_param_value("amp", "enabled", 1.0f);
+    host.set_param_value("amp", "gain", 0.85f);
+    host.set_param_value("cab", "enabled", 1.0f);
+    host.set_param_value("screamer", "enabled", 1.0f);
+    host.set_param_value("screamer", "drive", 0.7f);
+
+    constexpr uint32_t kFrames = 128;
+    std::vector<float> in(kFrames, 0.25f);
+    std::vector<float> out(kFrames * 2, 0.0f);
+    for (int i = 0; i < 8; ++i) {
+        host.process_block(in.data(), out.data(), kFrames);
+    }
+    float max_delta = 0.0f;
+    for (uint32_t i = 0; i < kFrames; ++i) {
+        max_delta = std::max(max_delta, std::fabs(out[i * 2] - 0.25f));
+        assert(std::isfinite(out[i * 2]));
+        assert(std::isfinite(out[i * 2 + 1]));
+    }
+    assert(max_delta > 0.01f);
+    std::cout << "[PASS] test_dsp_unbypass_changes_signal (max_delta=" << max_delta << ")\n";
 }
 
 void test_ipc_protocol_and_security() {
@@ -148,22 +183,39 @@ void test_ipc_protocol_and_security() {
     assert(scene_resp.find(R"("ok":true)") != std::string::npos);
     assert(host.active_scene() == 3);
 
-#ifdef _WIN32
     // Test live socket HTTP 401 on wrong token & HTTP 403 on disallowed Origin
     auto send_raw_http = [&](const std::string& raw_req) -> std::string {
+#ifdef _WIN32
         SOCKET s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        auto close_s = [&]() { closesocket(s); };
+        auto send_s = [&](const char* b, int n) { return send(s, b, n, 0); };
+        auto recv_s = [&](char* b, int n) { return recv(s, b, n, 0); };
+        DWORD timeout_ms = 2000;
+        setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&timeout_ms), sizeof(timeout_ms));
+        setsockopt(s, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char*>(&timeout_ms), sizeof(timeout_ms));
+#else
+        int s = socket(AF_INET, SOCK_STREAM, 0);
+        auto close_s = [&]() { close(s); };
+        auto send_s = [&](const char* b, int n) { return static_cast<int>(::send(s, b, static_cast<std::size_t>(n), 0)); };
+        auto recv_s = [&](char* b, int n) { return static_cast<int>(::recv(s, b, static_cast<std::size_t>(n), 0)); };
+        timeval tv{};
+        tv.tv_sec = 2;
+        tv.tv_usec = 0;
+        setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+        setsockopt(s, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+#endif
         sockaddr_in addr{};
         addr.sin_family = AF_INET;
         addr.sin_port = htons(srv.port());
         inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr);
         if (connect(s, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) != 0) {
-            closesocket(s);
+            close_s();
             return {};
         }
-        send(s, raw_req.data(), static_cast<int>(raw_req.size()), 0);
+        send_s(raw_req.data(), static_cast<int>(raw_req.size()));
         char rbuf[512]{};
-        int n = recv(s, rbuf, sizeof(rbuf) - 1, 0);
-        closesocket(s);
+        int n = recv_s(rbuf, static_cast<int>(sizeof(rbuf) - 1));
+        close_s();
         return n > 0 ? std::string(rbuf, static_cast<std::size_t>(n)) : std::string{};
     };
 
@@ -180,7 +232,6 @@ void test_ipc_protocol_and_security() {
         "Origin: http://malicious.site\r\n"
         "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n");
     assert(resp_403.find("403 Forbidden") != std::string::npos);
-#endif
 
     srv.stop();
     std::cout << "[PASS] test_ipc_protocol_and_security\n";
@@ -315,6 +366,7 @@ void test_phase5_asio_driver_enumeration_and_com() {
     for (const auto& d : drivers) {
         if (d.is_ux1) has_ux1 = true;
     }
+    (void)has_ux1;
 
     AsioDriverHost asio;
     const bool loaded = asio.load_driver("ASIO UX1");
@@ -353,11 +405,14 @@ int main() {
     test_spsc_ring_buffer();
     test_param_registry_dual_units();
     test_audio_callback_nan_guard_and_bypass();
+    test_dsp_unbypass_changes_signal();
     test_ipc_protocol_and_security();
     test_phase2_amp_and_cab_python_parity();
     test_phase3_cloned_flagship_dsp();
     test_phase4_nam_c99_native_inference();
     test_phase5_asio_driver_enumeration_and_com();
-    std::cout << "\nALL PHASE 1, PHASE 2, PHASE 3, PHASE 4 & PHASE 5 C++ UNIT, IPC, NAM & ASIO TESTS PASSED.\n";
+    std::cout << "\nC++ UNIT / IPC / DSP TESTS COMPLETED.\n";
+    std::cout << "Hardware-dependent NAM DLL and ASIO UX1 cases are reported as PASS or SKIP above.\n";
+    std::cout << "Do not treat a SKIP as live Line 6 UX1 ASIO evidence.\n";
     return 0;
 }

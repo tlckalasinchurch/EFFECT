@@ -87,6 +87,12 @@ public:
     MetricsSnapshot metrics_snapshot() const { return metrics_.snapshot(); }
     void reset_metrics() noexcept { metrics_.reset(); }
 
+    int32_t asio_input_latency_samples() const noexcept { return asio_host_.input_latency_samples(); }
+    int32_t asio_output_latency_samples() const noexcept { return asio_host_.output_latency_samples(); }
+    double asio_roundtrip_latency_ms() const noexcept { return asio_host_.roundtrip_latency_ms(); }
+    bool asio_running() const noexcept { return asio_host_.is_running(); }
+    const std::string& asio_driver_name() const noexcept { return asio_host_.driver_name(); }
+
     DspNamEngine& nam_engine() noexcept { return dsp_nam_; }
     void set_use_nam(bool use_nam) noexcept { use_nam_.store(use_nam, std::memory_order_release); }
     bool is_using_nam() const noexcept { return use_nam_.load(std::memory_order_acquire); }
@@ -109,7 +115,7 @@ private:
     std::atomic<bool> stop_requested_{false};
     std::atomic<uint32_t> sample_rate_{48000};
     std::atomic<uint32_t> buffer_size_{128};
-    std::atomic<bool> global_bypass_{true};
+    std::atomic<bool> global_bypass_{false};
     std::atomic<uint8_t> active_scene_{0};
 
     // Lock-free parameter storage shared between control plane and audio callback

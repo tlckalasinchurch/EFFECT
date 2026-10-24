@@ -1,18 +1,28 @@
 #include "ws_server.hpp"
+#include "sha1.hpp"
 
 #include <algorithm>
 #include <cctype>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <fstream>
 #include <iomanip>
 #include <sstream>
+#include <vector>
 
 #ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <windows.h>
 #include <bcrypt.h>
+#else
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <unistd.h>
 #endif
 
 namespace hack_effect {
@@ -134,7 +144,11 @@ std::string compute_ws_accept_key(const std::string& client_key) {
                    static_cast<ULONG>(magic.size()),
                    digest, sizeof(digest));
         BCryptCloseAlgorithmProvider(alg, 0);
+    } else {
+        sha1::hash(reinterpret_cast<const uint8_t*>(magic.data()), magic.size(), digest);
     }
+#else
+    sha1::hash(reinterpret_cast<const uint8_t*>(magic.data()), magic.size(), digest);
 #endif
     return base64_encode(digest, sizeof(digest));
 }
@@ -176,6 +190,11 @@ std::string LoopbackWsServer::generate_csprng_token() {
     uint8_t bytes[32]{};
 #ifdef _WIN32
     BCryptGenRandom(nullptr, bytes, sizeof(bytes), BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+#else
+    std::ifstream urandom("/dev/urandom", std::ios::binary);
+    if (urandom) {
+        urandom.read(reinterpret_cast<char*>(bytes), sizeof(bytes));
+    }
 #endif
     std::ostringstream oss;
     for (uint8_t b : bytes) {
@@ -337,6 +356,36 @@ std::string LoopbackWsServer::handle_json_message(const std::string& json_payloa
         return o.str();
     }
 
+    if (type == "load_nam") {
+        const std::string path = extract_json_string(json_payload, "path");
+        if (path.empty()) {
+            return make_err("missing_path", "load_nam requires a local 'path' to a .nam binary");
+        }
+        std::ifstream f(path, std::ios::binary | std::ios::ate);
+        if (!f.is_open()) {
+            return make_err("nam_open_failed", "Could not open NAM file: " + path);
+        }
+        const std::streamsize sz = f.tellg();
+        f.seekg(0, std::ios::beg);
+        std::vector<uint8_t> buf(static_cast<std::size_t>(sz));
+        if (sz > 0 && !f.read(reinterpret_cast<char*>(buf.data()), sz)) {
+            return make_err("nam_read_failed", "Could not read NAM file");
+        }
+        std::string err;
+        const bool ok = host_.nam_engine().load_model_binary(buf.data(), static_cast<uint32_t>(buf.size()), &err);
+        if (ok) {
+            host_.set_use_nam(true);
+            host_.nam_engine().set_enabled(true);
+        }
+        std::ostringstream o;
+        o << R"({"type":"nam_loaded","req_id":")" << json_escape(req_id)
+          << R"(","ok":)" << (ok ? "true" : "false")
+          << R"(,"using_nam":)" << (host_.is_using_nam() ? "true" : "false")
+          << R"(,"model_name":")" << json_escape(host_.nam_engine().model_name())
+          << R"(","error":")" << json_escape(err) << R"("})";
+        return o.str();
+    }
+
     if (type == "reset_metrics") {
         host_.reset_metrics();
         std::ostringstream o;
@@ -352,8 +401,15 @@ std::string LoopbackWsServer::handle_json_message(const std::string& json_payloa
         o << R"({"type":"metrics","req_id":")" << json_escape(req_id)
           << R"(","ok":true,"is_running":)" << (host_.is_running() ? "true" : "false")
           << R"(,"backend":")" << json_escape(host_.active_backend())
-          << R"(","sample_rate":)" << host_.sample_rate()
+          << R"(")"
+          << R"(,"sample_rate":)" << host_.sample_rate()
           << R"(,"buffer_size":)" << host_.buffer_size()
+          << R"(,"asio_running":)" << (host_.asio_running() ? "true" : "false")
+          << R"(,"asio_driver":")" << json_escape(host_.asio_driver_name()) << R"(")"
+          << R"(,"asio_input_latency_samples":)" << host_.asio_input_latency_samples()
+          << R"(,"asio_output_latency_samples":)" << host_.asio_output_latency_samples()
+          << R"(,"roundtrip_latency_ms":)" << host_.asio_roundtrip_latency_ms()
+          << R"(,"using_nam":)" << (host_.is_using_nam() ? "true" : "false")
           << R"(,"deadline_ms":)" << m.deadline_ms
           << R"(,"callback_count":)" << m.callback_count
           << R"(,"percentile_blocks":)" << m.percentile_blocks
@@ -399,6 +455,12 @@ std::string LoopbackWsServer::handle_json_message(const std::string& json_payloa
           << R"(,"active_scene":)" << static_cast<int>(host_.active_scene())
           << R"(,"sample_rate":)" << host_.sample_rate()
           << R"(,"buffer_size":)" << host_.buffer_size()
+          << R"(,"asio_running":)" << (host_.asio_running() ? "true" : "false")
+          << R"(,"asio_driver":")" << json_escape(host_.asio_driver_name()) << R"(")"
+          << R"(,"asio_input_latency_samples":)" << host_.asio_input_latency_samples()
+          << R"(,"asio_output_latency_samples":)" << host_.asio_output_latency_samples()
+          << R"(,"roundtrip_latency_ms":)" << host_.asio_roundtrip_latency_ms()
+          << R"(,"using_nam":)" << (host_.is_using_nam() ? "true" : "false")
           << R"(,"scenes":[)";
         for (std::size_t i = 0; i < scenes.size(); ++i) {
             if (i > 0) o << ",";
@@ -427,6 +489,40 @@ std::string LoopbackWsServer::handle_json_message(const std::string& json_payloa
     return make_err("unknown_command", "Unsupported command type: " + type);
 }
 
+namespace {
+
+#ifdef _WIN32
+using NativeSocket = SOCKET;
+static constexpr NativeSocket kInvalidNativeSocket = INVALID_SOCKET;
+static int native_close(NativeSocket s) { return closesocket(s); }
+static int native_send(NativeSocket s, const char* buf, int n) { return send(s, buf, n, 0); }
+static int native_recv(NativeSocket s, char* buf, int n) { return recv(s, buf, n, 0); }
+#else
+using NativeSocket = int;
+static constexpr NativeSocket kInvalidNativeSocket = -1;
+static int native_close(NativeSocket s) { return close(s); }
+static int native_send(NativeSocket s, const char* buf, int n) {
+    return static_cast<int>(::send(s, buf, static_cast<size_t>(n), 0));
+}
+static int native_recv(NativeSocket s, char* buf, int n) {
+    return static_cast<int>(::recv(s, buf, static_cast<size_t>(n), 0));
+}
+#endif
+
+void set_recv_timeout(NativeSocket sock, int timeout_ms) {
+#ifdef _WIN32
+    DWORD ms = static_cast<DWORD>(timeout_ms);
+    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&ms), sizeof(ms));
+#else
+    timeval tv{};
+    tv.tv_sec = timeout_ms / 1000;
+    tv.tv_usec = (timeout_ms % 1000) * 1000;
+    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+#endif
+}
+
+} // namespace
+
 bool LoopbackWsServer::start() {
     stop();
 
@@ -440,9 +536,11 @@ bool LoopbackWsServer::start() {
     if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
         return false;
     }
-
-    SOCKET s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (s == INVALID_SOCKET) {
+    NativeSocket s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+#else
+    NativeSocket s = socket(AF_INET, SOCK_STREAM, 0);
+#endif
+    if (s == kInvalidNativeSocket) {
         return false;
     }
 
@@ -454,21 +552,25 @@ bool LoopbackWsServer::start() {
     addr.sin_port = htons(config_.port);
     inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr);
 
-    if (bind(s, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) == SOCKET_ERROR) {
-        closesocket(s);
+    if (bind(s, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) != 0) {
+        native_close(s);
         return false;
     }
 
     sockaddr_in bound{};
+#ifdef _WIN32
     int bound_len = sizeof(bound);
+#else
+    socklen_t bound_len = sizeof(bound);
+#endif
     if (getsockname(s, reinterpret_cast<sockaddr*>(&bound), &bound_len) == 0) {
         bound_port_.store(ntohs(bound.sin_port), std::memory_order_release);
     } else {
         bound_port_.store(config_.port, std::memory_order_release);
     }
 
-    if (listen(s, SOMAXCONN) == SOCKET_ERROR) {
-        closesocket(s);
+    if (listen(s, 16) != 0) {
+        native_close(s);
         return false;
     }
 
@@ -477,19 +579,20 @@ bool LoopbackWsServer::start() {
     running_.store(true, std::memory_order_release);
     accept_thread_ = std::thread(&LoopbackWsServer::accept_loop, this);
     return true;
-#else
-    return false;
-#endif
 }
 
 void LoopbackWsServer::stop() {
     stop_requested_.store(true, std::memory_order_release);
-#ifdef _WIN32
     if (listen_sock_ != ~uintptr_t(0)) {
-        closesocket(static_cast<SOCKET>(listen_sock_));
+        NativeSocket s = static_cast<NativeSocket>(listen_sock_);
+#ifdef _WIN32
+        shutdown(s, SD_BOTH);
+#else
+        shutdown(s, SHUT_RDWR);
+#endif
+        native_close(s);
         listen_sock_ = ~uintptr_t(0);
     }
-#endif
     if (accept_thread_.joinable()) {
         accept_thread_.join();
     }
@@ -497,36 +600,36 @@ void LoopbackWsServer::stop() {
 }
 
 void LoopbackWsServer::accept_loop() {
-#ifdef _WIN32
     while (!stop_requested_.load(std::memory_order_acquire)) {
         sockaddr_in client_addr{};
+#ifdef _WIN32
         int addr_len = sizeof(client_addr);
-        SOCKET client = accept(static_cast<SOCKET>(listen_sock_),
-                               reinterpret_cast<sockaddr*>(&client_addr),
-                               &addr_len);
-        if (client == INVALID_SOCKET) {
+#else
+        socklen_t addr_len = sizeof(client_addr);
+#endif
+        NativeSocket client = accept(static_cast<NativeSocket>(listen_sock_),
+                                     reinterpret_cast<sockaddr*>(&client_addr),
+                                     &addr_len);
+        if (client == kInvalidNativeSocket) {
             break;
         }
         // Verify peer is strictly 127.0.0.1
         if (ntohl(client_addr.sin_addr.s_addr) != INADDR_LOOPBACK) {
-            closesocket(client);
+            native_close(client);
             continue;
         }
         handle_client_socket(static_cast<uintptr_t>(client));
     }
-#endif
 }
 
 void LoopbackWsServer::handle_client_socket(uintptr_t raw_sock) {
-#ifdef _WIN32
-    SOCKET sock = static_cast<SOCKET>(raw_sock);
-    DWORD timeout_ms = 5000;
-    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&timeout_ms), sizeof(timeout_ms));
+    NativeSocket sock = static_cast<NativeSocket>(raw_sock);
+    set_recv_timeout(sock, 5000);
 
     char buf[4096]{};
-    int n = recv(sock, buf, sizeof(buf) - 1, 0);
+    int n = native_recv(sock, buf, static_cast<int>(sizeof(buf) - 1));
     if (n <= 0) {
-        closesocket(sock);
+        native_close(sock);
         return;
     }
     const std::string req(buf, static_cast<std::size_t>(n));
@@ -535,8 +638,8 @@ void LoopbackWsServer::handle_client_socket(uintptr_t raw_sock) {
     const std::string origin = extract_http_header(req, "Origin");
     if (!is_origin_allowed(origin)) {
         const char* forbidden = "HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
-        send(sock, forbidden, static_cast<int>( std::strlen(forbidden)), 0);
-        closesocket(sock);
+        native_send(sock, forbidden, static_cast<int>(std::strlen(forbidden)));
+        native_close(sock);
         return;
     }
 
@@ -547,16 +650,16 @@ void LoopbackWsServer::handle_client_socket(uintptr_t raw_sock) {
     }
     if (token != config_.session_token) {
         const char* unauth = "HTTP/1.1 401 Unauthorized\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
-        send(sock, unauth, static_cast<int>(std::strlen(unauth)), 0);
-        closesocket(sock);
+        native_send(sock, unauth, static_cast<int>(std::strlen(unauth)));
+        native_close(sock);
         return;
     }
 
     const std::string ws_key = extract_http_header(req, "Sec-WebSocket-Key");
     if (ws_key.empty()) {
         const char* bad_req = "HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
-        send(sock, bad_req, static_cast<int>(std::strlen(bad_req)), 0);
-        closesocket(sock);
+        native_send(sock, bad_req, static_cast<int>(std::strlen(bad_req)));
+        native_close(sock);
         return;
     }
 
@@ -567,12 +670,12 @@ void LoopbackWsServer::handle_client_socket(uintptr_t raw_sock) {
        << "Connection: Upgrade\r\n"
        << "Sec-WebSocket-Accept: " << accept_key << "\r\n\r\n";
     const std::string hs_str = hs.str();
-    send(sock, hs_str.data(), static_cast<int>(hs_str.size()), 0);
+    native_send(sock, hs_str.data(), static_cast<int>(hs_str.size()));
 
     // WebSocket Frame Loop (RFC 6455)
     while (!stop_requested_.load(std::memory_order_acquire)) {
         uint8_t hdr[2]{};
-        int r = recv(sock, reinterpret_cast<char*>(hdr), 2, 0);
+        int r = native_recv(sock, reinterpret_cast<char*>(hdr), 2);
         if (r != 2) break;
 
         const uint8_t opcode = hdr[0] & 0x0F;
@@ -585,11 +688,11 @@ void LoopbackWsServer::handle_client_socket(uintptr_t raw_sock) {
 
         if (payload_len == 126) {
             uint8_t ext[2]{};
-            if (recv(sock, reinterpret_cast<char*>(ext), 2, 0) != 2) break;
+            if (native_recv(sock, reinterpret_cast<char*>(ext), 2) != 2) break;
             payload_len = (static_cast<uint64_t>(ext[0]) << 8) | ext[1];
         } else if (payload_len == 127) {
             uint8_t ext[8]{};
-            if (recv(sock, reinterpret_cast<char*>(ext), 8, 0) != 8) break;
+            if (native_recv(sock, reinterpret_cast<char*>(ext), 8) != 8) break;
             payload_len = 0;
             for (int i = 0; i < 8; ++i) {
                 payload_len = (payload_len << 8) | ext[i];
@@ -602,14 +705,14 @@ void LoopbackWsServer::handle_client_socket(uintptr_t raw_sock) {
 
         uint8_t mask_key[4]{};
         if (masked) {
-            if (recv(sock, reinterpret_cast<char*>(mask_key), 4, 0) != 4) break;
+            if (native_recv(sock, reinterpret_cast<char*>(mask_key), 4) != 4) break;
         }
 
         std::string payload(static_cast<std::size_t>(payload_len), '\0');
         std::size_t received = 0;
         while (received < payload_len) {
-            int chunk = recv(sock, payload.data() + received,
-                             static_cast<int>(payload_len - received), 0);
+            int chunk = native_recv(sock, payload.data() + received,
+                                    static_cast<int>(payload_len - received));
             if (chunk <= 0) break;
             received += static_cast<std::size_t>(chunk);
         }
@@ -636,11 +739,10 @@ void LoopbackWsServer::handle_client_socket(uintptr_t raw_sock) {
             break;
         }
         frame.insert(frame.end(), reply.begin(), reply.end());
-        send(sock, reinterpret_cast<const char*>(frame.data()), static_cast<int>(frame.size()), 0);
+        native_send(sock, reinterpret_cast<const char*>(frame.data()), static_cast<int>(frame.size()));
     }
 
-    closesocket(sock);
-#endif
+    native_close(sock);
 }
 
 } // namespace hack_effect
