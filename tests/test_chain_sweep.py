@@ -104,7 +104,7 @@ def amp_clean():
     chain = _base()
     chain.noise_gate.enabled = False
     chain.amp.model = "Twin"
-    chain.amp.gain = 0.2
+    chain.amp.gain = 0.15
     chain.amp.bass = 0.7
     chain.amp.mid = 0.4
     chain.amp.treble = 0.8
@@ -331,14 +331,20 @@ class DspChainSweepTests(unittest.TestCase):
                 np.testing.assert_allclose(got["block_rms"], want["block_rms"], atol=ATOL, rtol=0)
 
     def test_cases_are_distinguishable_from_each_other(self):
-        """A sweep where two scenarios sound alike would hide half the chain."""
+        """A sweep where two scenarios sound alike would hide half the chain.
+
+        Equal RMS alone is not "alike": drive_hot and eq_studio landed 8e-4 apart in
+        RMS while their waveforms differ by 0.44, so the samples must match too.
+        """
         x = render_input()
-        rms = {name: signature(render(factory(), x))["rms"] for name, factory in CASES.items()}
+        sigs = {name: signature(render(factory(), x)) for name, factory in CASES.items()}
         collisions = []
-        names = list(rms)
+        names = list(sigs)
         for i, a in enumerate(names):
             for b in names[i + 1:]:
-                if abs(rms[a] - rms[b]) < 1e-3:
+                same_level = abs(sigs[a]["rms"] - sigs[b]["rms"]) < 1e-3
+                same_wave = np.max(np.abs(np.subtract(sigs[a]["samples"], sigs[b]["samples"]))) < 1e-3
+                if same_level and same_wave:
                     collisions.append((a, b))
         self.assertEqual(collisions, [], f"these scenarios are indistinguishable: {collisions}")
 

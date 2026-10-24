@@ -106,7 +106,7 @@ def test_tuner():
     from engine.audio import AudioEngine, freq_to_note
     ae = AudioEngine()
     sr = 48000
-    t = np.arange(256) / float(sr)
+    t = np.arange(2048) / float(sr)
     sine = np.sin(2.0 * np.pi * 110.0 * t).astype(np.float32)
     freq = ae._estimate_pitch(sine)
     note = freq_to_note(freq)

@@ -277,6 +277,21 @@ class EngineStartTests(AudioPathTestCase):
         self.assertFalse(ok)
         self.assertFalse(engine.is_running)
 
+    def test_audio_stats_exposes_percentiles(self):
+        engine = self.make_engine()
+        engine._callback_warmup = 0
+        for v in (0.5, 1.0, 1.5, 2.0):
+            engine._record_block_time(v)
+        stats = engine.get_state()["audio_stats"]
+        self.assertIn("p50_ms", stats)
+        self.assertIn("p95_ms", stats)
+        self.assertIn("p99_ms", stats)
+        self.assertIn("p99_9_ms", stats)
+        self.assertIn("callback_errors", stats)
+        self.assertIn("nonfinite_blocks", stats)
+        self.assertIsNotNone(stats["p99_ms"])
+        self.assertEqual(stats["callback_errors"], 0)
+
 
 class DevicePersistenceTests(unittest.TestCase):
     """Saved devices describe the user's intent, never the fallback pair."""

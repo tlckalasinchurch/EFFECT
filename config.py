@@ -184,7 +184,14 @@ CUSTOM_IR_DIR = PROJECT_ROOT / "custom_irs"
 T3K_CACHE_DIR = PROJECT_ROOT / "tone3000_cache"
 
 # Cabinet IR limits (shared by the DSP layer and the upload endpoint)
-IR_MAX_LENGTH = 2048  # Maximum IR length in samples
+IR_MAX_SECONDS = 1.0  # Longest IR kept; longer files are truncated
+
+
+def ir_max_samples(sample_rate):
+    """IR length cap in samples at ``sample_rate``."""
+    return int(IR_MAX_SECONDS * sample_rate)
+
+
 IR_UPLOAD_MAX_BYTES = 16 * 1024 * 1024  # Hard cap on uploaded .wav payload
 IR_ALLOWED_SUFFIXES = {".wav"}
 

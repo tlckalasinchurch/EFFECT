@@ -105,18 +105,19 @@ function showToast(message, isError = false) {
 
 // ── block definitions ────────────────────────────────────────────────
 const ICONS = {
-  input: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h7"/><path d="M8 7l5 5-5 5"/><path d="M19 5v14"/></svg>',
-  gate: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h3l2-6 3 12 3-12 2 6h7"/><path d="M2 5h20" stroke-dasharray="3 3"/></svg>',
-  pitch: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M8 6l4-3 4 3"/><path d="M8 18l4 3 4-3"/></svg>',
-  drive: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="6" width="16" height="12" rx="2"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><path d="M8 18v3M16 18v3"/></svg>',
-  amp: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="8" cy="12" r="2"/><path d="M13 10h5M13 14h5"/></svg>',
-  'amp-cab': '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="12" height="9" rx="1.5"/><circle cx="6" cy="9.5" r="1.5"/><rect x="15" y="8" width="7" height="11" rx="1.5"/><circle cx="18.5" cy="13.5" r="2"/></svg>',
-  pedal: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18H6z"/><circle cx="9" cy="8" r="1.5"/><circle cx="15" cy="8" r="1.5"/><path d="M9 14h6"/></svg>',
-  cab: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/></svg>',
-  reverb: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c2-4 4-4 6 0s4 4 6 0 4-4 6 0"/><path d="M3 17c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/></svg>',
-  delay: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v5l3 2"/><path d="M5 4 3 6M19 4l2 2"/></svg>',
-  eq: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-7"/><path d="M4 10V3"/><path d="M12 21v-9"/><path d="M12 8V3"/><path d="M20 21v-5"/><path d="M20 12V3"/><circle cx="4" cy="12" r="2"/><circle cx="12" cy="10" r="2"/><circle cx="20" cy="14" r="2"/></svg>',
-  output: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h11"/><path d="M11 7l5 5-5 5"/><path d="M20 5v14"/></svg>',
+  input: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M7 12h7m-3-3 3 3-3 3"/><line x1="17" y1="8" x2="17" y2="16"/></svg>',
+  gate: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h5l4-12h7"/><path d="M4 18V6h16" stroke-opacity="0.35" stroke-dasharray="2 2"/></svg>',
+  pitch: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 19V5m-3 3 3-3 3 3"/><path d="M16 5v14m-3-3 3 3 3-3"/></svg>',
+  drive: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2.5"/><circle cx="9.5" cy="8" r="1.3"/><circle cx="14.5" cy="8" r="1.3"/><line x1="8" y1="13" x2="16" y2="13"/><circle cx="12" cy="17" r="1.4"/></svg>',
+  amp: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><line x1="2.5" y1="14" x2="21.5" y2="14"/><circle cx="6.5" cy="16.5" r="0.9" fill="currentColor"/><circle cx="10" cy="16.5" r="0.9" fill="currentColor"/><circle cx="13.5" cy="16.5" r="0.9" fill="currentColor"/><circle cx="17.5" cy="16.5" r="0.9" fill="currentColor"/></svg>',
+  'amp-cab': '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="6" rx="1.5"/><rect x="3" y="10" width="18" height="11" rx="2"/><circle cx="9" cy="15.5" r="2.5"/><circle cx="15" cy="15.5" r="2.5"/></svg>',
+  pedal: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2.5"/><circle cx="9.5" cy="8" r="1.3"/><circle cx="14.5" cy="8" r="1.3"/><line x1="8" y1="13" x2="16" y2="13"/><circle cx="12" cy="17" r="1.4"/></svg>',
+  cab: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2.5"/><circle cx="12" cy="12" r="5.5"/><circle cx="12" cy="12" r="2"/></svg>',
+  reverb: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7.5v9L12 21l8-4.5v-9L12 3Z"/><path d="M4 7.5 12 12l8-4.5"/><path d="M12 12v9"/></svg>',
+  delay: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5l6 7-6 7Z"/><path d="M11 19V8l5 5.5-5 5.5Z" stroke-opacity="0.75"/><path d="M17 19v-8l4 4-4 4Z" stroke-opacity="0.5"/></svg>',
+  eq: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12" stroke-opacity="0.35"/><path d="M3 14c3-8 6 8 9 0s6-8 9-2"/></svg>',
+  mod: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10c3-5 6 5 9 0s6-5 9 0"/><path d="M3 15c3-5 6 5 9 0s6-5 9 0" stroke-opacity="0.55"/></svg>',
+  output: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><line x1="7" y1="8" x2="7" y2="16"/><path d="M10 12h7m-3-3 3 3-3 3"/></svg>',
 };
 
 const K = (key, label, min, max, step, fmt, def, section, param, uiScale = 1) =>
@@ -130,6 +131,7 @@ const BLOCKS = [
   { id: 'amp', en: 'NAM AMP', th: 'แอมป์ / NAM', section: 'amp', canBypass: true, icon: 'amp' },
   { id: 'cab', en: 'IR CAB', th: 'ตู้ + IR', section: 'cab', canBypass: true, icon: 'cab' },
   { id: 'eq', en: 'STUDIO EQ', th: 'อีควอไลเซอร์', section: 'eq', canBypass: true, icon: 'eq' },
+  { id: 'mod', en: 'MOD 19', th: 'มอดูเลชัน', section: 'mod', canBypass: true, icon: 'mod' },
   { id: 'delay', en: 'DELAY', th: 'ดีเลย์', section: 'delay', canBypass: true, icon: 'delay' },
   { id: 'reverb', en: 'REVERB', th: 'รีเวิร์บ', section: 'reverb', canBypass: true, icon: 'reverb' },
   { id: 'output', en: 'OUTPUT', th: 'เอาต์พุต', section: 'master', canBypass: false, icon: 'output' },
@@ -191,6 +193,12 @@ const KNOB_SETS = {
     K('band4', 'High Shelf', -16, 16, 0.5, 'db', 0, 'eq', 'band4'),
     K('band5', 'High Cut', 2000, 20000, 50, 'hz', 20000, 'eq', 'band5'),
   ],
+  mod: [
+    K('rate', 'Rate', 0, 100, 1, 'pct', 50, 'mod', 'rate', 100),
+    K('depth', 'Depth', 0, 100, 1, 'pct', 50, 'mod', 'depth', 100),
+    K('tone', 'Tone', 0, 100, 1, 'pct', 50, 'mod', 'tone', 100),
+    K('mix', 'Mix', 0, 100, 1, 'pct', 50, 'mod', 'mix', 100),
+  ],
   delay: [
     K('time', 'Time', 20, 2000, 1, 'ms', 360, 'delay', 'time'),
     K('feedback', 'Feedback', 0, 95, 1, 'pct', 35, 'delay', 'feedback', 100),
@@ -223,11 +231,24 @@ function blockTh(id) {
 }
 
 function visibleBlocks() {
+  const customOrder = state.chainOrder || state.lastServer?.chain_order || (state.lastServer?.chain?.device?.order);
+  if (Array.isArray(customOrder) && customOrder.length) {
+    const map = {};
+    BLOCKS.forEach((b) => { map[b.id === 'drive' ? 'screamer' : b.id] = b; });
+    const ordered = [];
+    customOrder.forEach((key) => {
+      const b = map[key];
+      if (b && (b.id !== 'pitch' || state.showPitch)) {
+        ordered.push(b);
+      }
+    });
+    return [BLOCKS[0], ...ordered, BLOCKS[BLOCKS.length - 1]];
+  }
   return BLOCKS.filter((b) => b.id !== 'pitch' || state.showPitch);
 }
 
 function knobsForBlock(id) {
-  if (id === 'amp') return state.nam ? KNOB_SETS.amp_nam : KNOB_SETS.amp_dsp;
+  if (id === 'amp') return state.nam ? [...KNOB_SETS.amp_nam, ...KNOB_SETS.amp_dsp] : KNOB_SETS.amp_dsp;
   if (id === 'eq' && (state.live?.eq?.model_id ?? 5) === 5) return KNOB_SETS.eq_studio;
   return KNOB_SETS[id] || [];
 }
@@ -241,6 +262,7 @@ function blockEnabled(id) {
   if (id === 'amp') return state.nam ? !!state.nam.enabled : (c.amp ? !!c.amp.enabled : true);
   if (id === 'cab') return c.cab ? !!c.cab.enabled : true;
   if (id === 'eq') return c.eq ? !!c.eq.enabled : false;
+  if (id === 'mod') return c.mod ? !!c.mod.enabled : false;
   if (id === 'delay') return c.delay ? !!c.delay.enabled : false;
   if (id === 'reverb') return c.reverb ? !!c.reverb.enabled : false;
   return true;
@@ -286,11 +308,17 @@ function blockSubtitle(id) {
     return shortText(c.cab?.ir_name || 'IR', 20);
   }
   if (id === 'delay') return Math.round(Number(c.delay?.time || 0.36) * 1000) + ' ms';
+  if (id === 'mod') {
+    const mid = Number(c.mod?.model_id || 12);
+    const mnames = { 4: 'Flanger', 5: 'Jet-Flang', 6: 'Tremolo', 7: 'Stutter', 11: 'Rotary', 12: 'Ana-Chorus', 13: 'Tri-Chorus', 19: 'Lo-Fi Crush' };
+    return (mnames[mid] || ('Mod #' + mid)) + ' · ' + Math.round(Number(c.mod?.mix ?? 0.5) * 100) + '%';
+  }
   if (id === 'reverb') {
     const type = String(c.reverb?.type || 'plate');
     return type.charAt(0).toUpperCase() + type.slice(1);
   }
   if (id === 'output') return Math.round(Number(c.master_volume ?? 1) * 100) + ' %';
+
   return '';
 }
 
@@ -340,6 +368,7 @@ function readServer(kd) {
     if (kd.param === 'time') v = Number(v || 0) * 1000;
   }
   else if (kd.section === 'reverb') v = c.reverb?.[kd.param];
+  else if (kd.section === 'mod') v = c.mod?.[kd.param];
   else if (kd.section === 'master') v = c.master_volume;
   else if (kd.section === 'nam') v = state.nam?.[kd.param];
   if (!Number.isFinite(Number(v))) v = (kd.def || 0) / (kd.uiScale || 1);
@@ -386,6 +415,22 @@ function queueParam(kd, uiValue) {
     return;
   }
   markDirty(true);
+  window._undoStack = window._undoStack || [];
+  window._redoStack = window._redoStack || [];
+  const prevSrv = readServer(kd);
+  const nextSrv = toServer(kd, uiValue);
+  const nowTs = Date.now();
+  const topUndo = window._undoStack[window._undoStack.length - 1];
+  if (topUndo && topUndo.section === kd.section && topUndo.param === kd.param && (nowTs - topUndo.ts) < 600) {
+    topUndo.next = nextSrv;
+    topUndo.ts = nowTs;
+  } else if (Math.abs(Number(prevSrv) - Number(nextSrv)) > 0.0001) {
+    window._undoStack.push({ section: kd.section, param: kd.param, prev: prevSrv, next: nextSrv, ts: nowTs });
+    if (window._undoStack.length > 50) window._undoStack.shift();
+    window._redoStack.length = 0;
+    if ($('btn-undo')) $('btn-undo').disabled = false;
+    if ($('btn-redo')) $('btn-redo').disabled = true;
+  }
   const key = kd.section + '.' + kd.param;
   let rec = state.pending.get(key);
   if (!rec) {
@@ -393,6 +438,9 @@ function queueParam(kd, uiValue) {
     state.pending.set(key, rec);
   }
   rec.value = toServer(kd, uiValue);
+  if (typeof rec.value === 'number') {
+    cppBridge.sendParamValue(kd.section, kd.param, rec.value);
+  }
   if (rec.timer) return;
   rec.timer = setTimeout(async () => {
     const value = rec.value;
@@ -410,6 +458,11 @@ function queueParam(kd, uiValue) {
 }
 
 async function sendParamNow(section, param, value) {
+  if (typeof value === 'number') {
+    cppBridge.sendParamValue(section, param, value);
+  } else if (typeof value === 'boolean') {
+    cppBridge.sendParamValue(section, param, value ? 1.0 : 0.0);
+  }
   try {
     const data = await api('/api/parameter', {
       method: 'POST',
@@ -442,8 +495,8 @@ function makeKnob(kd, initialUi, opts = {}) {
   svg.innerHTML = `
     <path class="k-track" d="${arcPath(50, 50, 42, -135, 135)}"></path>
     <path class="k-arc" d=""></path>
-    <circle class="k-face" cx="50" cy="50" r="30"></circle>
-    <g class="k-pointer"><line x1="50" y1="50" x2="50" y2="22"></line></g>`;
+    <circle class="k-collar" cx="50" cy="50" r="46" fill="none" stroke="#2c3646" stroke-width="3" stroke-dasharray="1.5 2.4"></circle><circle class="k-face" cx="50" cy="50" r="30"></circle><circle class="k-cap" cx="50" cy="50" r="24" fill="url(#knobCapGrad)" stroke="#384357" stroke-width="0.8"></circle><g class="k-ticks">${Array.from({ length: 19 }, (_, i) => { const a = -135 + (270 * i) / 18; const [tx, ty] = polar(50, 50, 46, a); return `<circle class="k-tick" data-idx="${i}" cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="${i % 9 === 0 ? '1.6' : '1.1'}" fill="#2b3442"/>`; }).join('')}</g>
+    <g class="k-pointer"><line x1="50" y1="36" x2="50" y2="22"></line><circle class="k-tip" cx="50" cy="24" r="2.1" fill="#f59e0b"></circle></g>`;
   knob.appendChild(svg);
 
   const labelEl = document.createElement('div');
@@ -459,6 +512,8 @@ function makeKnob(kd, initialUi, opts = {}) {
 
   const arc = svg.querySelector('.k-arc');
   const pointer = svg.querySelector('.k-pointer line');
+  const tip = svg.querySelector('.k-tip');
+  const ticks = svg.querySelectorAll('.k-tick');
 
   const ctrl = {
     kd,
@@ -475,7 +530,13 @@ function makeKnob(kd, initialUi, opts = {}) {
       const t = (val - kd.min) / (kd.max - kd.min || 1);
       const angle = -135 + 270 * t;
       arc.setAttribute('d', t <= 0.0005 ? '' : arcPath(50, 50, 42, -135, angle));
+      const [p1x, p1y] = polar(50, 50, 12, angle);
       const [px, py] = polar(50, 50, 27, angle);
+      const [tx, ty] = polar(50, 50, 23.5, angle);
+      pointer.setAttribute('x1', p1x.toFixed(2));
+      pointer.setAttribute('y1', p1y.toFixed(2));
+      if (tip) { tip.setAttribute('cx', tx.toFixed(2)); tip.setAttribute('cy', ty.toFixed(2)); }
+      ticks.forEach((tk, idx) => tk.setAttribute('fill', (idx / 18) <= t + 0.01 ? 'var(--gold)' : '#2b3442'));
       pointer.setAttribute('x2', px.toFixed(2));
       pointer.setAttribute('y2', py.toFixed(2));
       valueEl.textContent = fmtKnob(kd, val);
@@ -515,6 +576,31 @@ function makeKnob(kd, initialUi, opts = {}) {
     ctrl.setValue(ctrl.value + dir * (kd.step || 1) * 2);
   }, { passive: false });
   knob.addEventListener('dblclick', () => ctrl.setValue(kd.def));
+  valueEl.title = 'คลิกเพื่อพิมพ์ตัวเลขโดยตรง';
+  valueEl.addEventListener('click', () => {
+    if (valueEl.querySelector('input')) return;
+    const inp = document.createElement('input');
+    inp.type = 'number';
+    inp.className = 'k-value-input';
+    inp.min = String(kd.min);
+    inp.max = String(kd.max);
+    inp.step = String(kd.step || 1);
+    inp.value = String(Number(ctrl.value.toFixed(2)));
+    valueEl.textContent = '';
+    valueEl.appendChild(inp);
+    inp.focus();
+    inp.select();
+    const commit = () => {
+      const parsed = parseFloat(inp.value);
+      if (!Number.isNaN(parsed)) ctrl.setValue(parsed);
+      else valueEl.textContent = fmtKnob(kd, ctrl.value);
+    };
+    inp.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') { ev.preventDefault(); inp.blur(); }
+      else if (ev.key === 'Escape') { valueEl.textContent = fmtKnob(kd, ctrl.value); }
+    });
+    inp.addEventListener('blur', commit, { once: true });
+  });
   knob.addEventListener('keydown', (e) => {
     const step = kd.step || 1;
     if (e.key === 'ArrowUp' || e.key === 'ArrowRight') { e.preventDefault(); ctrl.setValue(ctrl.value + step); }
@@ -603,12 +689,16 @@ function favKey(item) {
 
 function filteredPresets() {
   let list = mappedPresets();
-  if (state.filter === 'mine') list = list.filter((p) => p.type === 'preset' && (p.author === 'User' || String(p.id).startsWith('user_')));
+  if (state.filter === 'master') list = list.filter((p) => String(p.id).startsWith('master_'));
+  else if (state.filter === 'mine') list = list.filter((p) => p.type === 'preset' && (p.author === 'User' || String(p.id).startsWith('user_')));
   else if (state.filter === 't3k') list = list.filter((p) => p.type === 't3k');
   else if (state.filter === 'kemper') list = list.filter((p) => p.type === 'kemper');
   else if (state.filter === 'cortex') list = list.filter((p) => p.type === 'cortex');
   else if (state.filter === 'mooer') list = list.filter((p) => p.type === 'mooer');
   else if (state.filter === 'fav') list = list.filter((p) => state.favorites.has(favKey(p)));
+  if (state.toneFilter === 'clean') list = list.filter((p) => Number(p.gain ?? 0.5) <= 0.42);
+  else if (state.toneFilter === 'crunch') list = list.filter((p) => Number(p.gain ?? 0.5) > 0.42 && Number(p.gain ?? 0.5) < 0.70);
+  else if (state.toneFilter === 'highgain') list = list.filter((p) => Number(p.gain ?? 0.5) >= 0.70);
   const q = state.query.trim().toLowerCase();
   if (q) {
     list = list.filter((p) => [p.name, p.amp, p.cab, p.category, p.author].join(' ').toLowerCase().includes(q));
@@ -618,6 +708,7 @@ function filteredPresets() {
 
 const LIB_DEFS = [
   { id: 'all', label: 'ทั้งหมด', icon: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>' },
+  { id: 'master', label: '★ Master Clones', icon: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>' },
   { id: 'kemper', label: 'KEMPER Rigs', icon: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><circle cx="7" cy="8" r="1.5"/><circle cx="12" cy="8" r="1.5"/><circle cx="17" cy="8" r="1.5"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>' },
   { id: 'cortex', label: 'Quad Cortex', icon: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><circle cx="6" cy="8" r="1.5"/><circle cx="10" cy="8" r="1.5"/><circle cx="14" cy="8" r="1.5"/><circle cx="18" cy="8" r="1.5"/><circle cx="6" cy="14" r="1.5"/><circle cx="10" cy="14" r="1.5"/><circle cx="14" cy="14" r="1.5"/><circle cx="18" cy="14" r="1.5"/></svg>' },
   { id: 'mooer', label: 'MOOER GE150', icon: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="2" width="18" height="20" rx="3"/><circle cx="12" cy="7" r="2.5"/><rect x="7" y="13" width="10" height="6" rx="1"/></svg>' },
@@ -632,6 +723,7 @@ function renderLib() {
   const all = mappedPresets();
   const counts = {
     all: all.length,
+    master: all.filter((p) => String(p.id).startsWith('master_')).length,
     mine: all.filter((p) => p.type === 'preset' && (p.author === 'User' || String(p.id).startsWith('user_'))).length,
     t3k: all.filter((p) => p.type === 't3k').length,
     kemper: all.filter((p) => p.type === 'kemper').length,
@@ -762,7 +854,7 @@ function gearBayHTML(item) {
     : '';
   const picture = image
     ? `<img class="gear-image" src="${esc(image)}" alt="${esc(item.name)} gear image" loading="lazy" referrerpolicy="no-referrer" onerror="this.hidden=true">`
-    : `<div class="gear-no-image" aria-label="ไม่มีภาพจริงของอุปกรณ์">NO IMAGE</div>`;
+    : `<div class="gear-no-image" aria-label="ไม่มีภาพจริงของอุปกรณ์" style="padding:0; overflow:hidden;"><svg viewBox="0 0 80 56" width="100%" height="100%" preserveAspectRatio="xMidYMid slice"><rect width="80" height="56" fill="#120f0d"/><rect x="4" y="6" width="72" height="26" rx="2" fill="#090b10" stroke="#334155"/><circle cx="22" cy="19" r="7" fill="url(#tubeGlowGrad)"/><circle cx="40" cy="19" r="7" fill="url(#tubeGlowGrad)"/><circle cx="58" cy="19" r="7" fill="url(#tubeGlowGrad)"/><rect x="4" y="36" width="72" height="14" rx="1.5" fill="#b45309"/><circle cx="14" cy="43" r="2.8" fill="#111"/><circle cx="26" cy="43" r="2.8" fill="#111"/><circle cx="38" cy="43" r="2.8" fill="#111"/><circle cx="50" cy="43" r="2.8" fill="#111"/><circle cx="68" cy="43" r="3" fill="#ef4444"/></svg></div>`;
   return `<div class="gear-bay" aria-label="แอมป์และตู้ลำโพง">
     <div class="gear-card">${picture}<div class="gear-info"><span class="gear-label">AMP / CAPTURE</span><strong>${esc(amp)}</strong><span>${esc(live?.gear ? t3kGearLabel(live.gear) : p.ir_mic ? 'Mic · ' + p.ir_mic : 'Gear name')}</span></div></div>
     <div class="gear-card gear-ir"><div class="gear-info"><span class="gear-label">CABINET / IR</span><strong>${esc(irName)}</strong><span>${irAvailable && preview?.sample_rate ? `${Number(preview.sample_rate).toLocaleString()} Hz · ${preview.duration_ms} ms` : irAvailable ? 'IR included' : 'Synthetic / unavailable'}</span>${waveform}</div></div>
@@ -1013,14 +1105,17 @@ function chainGearVisual(id) {
   if (id === 'cab' && state.nam?.includes_cab) {
     return '<span class="cb-gear-state included" title="Cabinet อยู่ใน NAM capture แล้ว">CAB<br>INCLUDED</span>';
   }
-  if (id === 'amp' && state.nam) {
-    return `<span class="cb-gear-state">${namGearType() === 'amp-cab' ? 'AMP+CAB' : 'NAM CAPTURE'}</span>`;
+  if (id === 'amp') {
+  if (id === 'amp') {
+    return '';
+  }
   }
   if (id === 'cab' && state.irPreview?.waveform?.length) {
     const bars = state.irPreview.waveform.map((v) => `<i style="height:${Math.max(3, Math.round(v * 24))}px"></i>`).join('');
-    return `<span class="cb-ir-wave" aria-label="IR waveform preview" title="${esc(state.irPreview.name || 'Cabinet IR')}">${bars}</span>`;
+    return `<span class="cb-ir-wave" title="Impulse Response waveform">${bars}</span>`;
   }
-  if (id === 'cab') return '<span class="cb-gear-state">NO IR PREVIEW</span>';
+  if (false) return '';
+
   return '';
 }
 
@@ -1042,10 +1137,14 @@ function renderChain() {
       ? `<span class="cb-power ${enabled ? '' : 'off'}" data-power="${b.id}" role="button" aria-label="เปิด/ปิด ${blockEn(b.id)}"><i></i></span>`
       : '';
     const t3kBadge = (b.id === 'amp' && state.t3kLoaded) ? '<span class="cb-t3k">T3K</span>' : '';
-    const visual = b.id === 'amp' || b.id === 'cab' ? chainGearVisual(b.id) : '';
-    btn.classList.toggle('gear-block', b.id === 'amp' || b.id === 'cab');
+    const visual = chainGearVisual(b.id);
+    const canNudge = b.id !== 'input' && b.id !== 'output';
+    const nudge = canNudge
+      ? `<span class="cb-nudge-left" data-nudge-left="${b.id}" title="เลื่อนบล็อกไปข้างหน้า">‹</span><span class="cb-nudge-right" data-nudge-right="${b.id}" title="เลื่อนบล็อกไปข้างหลัง">›</span>`
+      : '';
+    btn.classList.toggle('gear-block', !!visual);
     btn.classList.toggle('cab-included', b.id === 'cab' && !!state.nam?.includes_cab);
-    btn.innerHTML = `${power}${t3kBadge}<span class="cb-gear-visual">${visual}</span><span class="cb-icon">${blockIcon(b.id)}</span><span class="cb-en">${blockEn(b.id)}</span><span class="cb-sub">${esc(blockSubtitle(b.id))}</span>`;
+    btn.innerHTML = `${power}${t3kBadge}${nudge}<span class="cb-gear-visual">${visual}</span><span class="cb-icon">${blockIcon(b.id)}</span><span class="cb-en">${blockEn(b.id)}</span><span class="cb-sub">${esc(blockSubtitle(b.id))}</span>`;
     chain.appendChild(btn);
   });
 
@@ -1112,7 +1211,48 @@ function renderPanel() {
       state.knobControllers.panel.push(ctrl);
     });
   }
+  renderAmpFaceplate(b.id);
   renderPanelSide();
+}
+
+function renderAmpFaceplate(blockId) {
+  const tabsEl = $('panelBlockTabs');
+  if (tabsEl) {
+    tabsEl.innerHTML = visibleBlocks().map((vb) => {
+      const en = blockEnabled(vb.id);
+      const active = vb.id === blockId ? 'active' : '';
+      const dot = vb.canBypass ? `<span class="pbt-dot ${en ? 'on' : 'off'}"></span>` : '';
+      return `<button type="button" class="pbt-tab ${active} ${en ? '' : 'bypassed'}" data-tab-block="${vb.id}" title="คลิกเพื่อแก้ไข · ดับเบิลคลิกเพื่อเปิด/ปิด">${dot}${blockEn(vb.id)}</button>`;
+    }).join('');
+    tabsEl.querySelectorAll('[data-tab-block]').forEach((tb) => {
+      tb.addEventListener('click', () => selectBlock(tb.dataset.tabBlock));
+      tb.addEventListener('dblclick', (e) => { e.stopPropagation(); toggleBlock(tb.dataset.tabBlock); });
+    });
+  }
+  const banner = $('ampFaceplateBanner');
+  if (banner) { banner.style.display = 'none'; return; }
+  if (!banner) return;
+  const gain = Number(state.live?.amp?.gain ?? 0.65);
+  const vMode = document.body.dataset.voicing || (gain < 0.36 ? 'clean' : (gain > 0.72 ? 'highgain' : 'vintage'));
+  const jewelColor = vMode === 'clean' ? '#38bdf8' : (vMode === 'highgain' ? '#f43f5e' : '#f59e0b');
+  const glowR = Math.round(9 + gain * 9);
+  const tubesSvg = [265, 315, 365, 415, 505, 555, 605, 655].map((cx, idx) => {
+    const isPower = idx >= 4;
+    const tw = isPower ? 22 : 16;
+    const th = isPower ? 40 : 32;
+    const ty = isPower ? 10 : 18;
+    return `<g><circle cx="${cx}" cy="${ty + th * 0.58}" r="${glowR + (isPower ? 3 : 0)}" fill="url(#tubeGlowGrad)"/><rect x="${cx - tw / 2}" y="${ty}" width="${tw}" height="${th}" rx="${tw / 2}" fill="rgba(15,23,42,0.45)" stroke="#94a3b8" stroke-width="1.2"/><rect x="${cx - tw * 0.28}" y="${ty + 6}" width="${tw * 0.56}" height="${th - 14}" rx="1" fill="#1e293b" stroke="#64748b" stroke-width="0.7"/><circle cx="${cx}" cy="${ty + th * 0.62}" r="${isPower ? 4.2 : 3.2}" fill="#fde047"/><rect x="${cx - tw / 2 - 1}" y="${ty + th - 4}" width="${tw + 2}" height="6" rx="1" fill="#b45309" stroke="#f59e0b" stroke-width="0.6"/></g>`;
+  }).join('');
+  banner.innerHTML = `<div class="faceplate-wrap"><svg viewBox="0 0 920 64" width="100%" height="64" preserveAspectRatio="none"><rect x="1" y="1" width="918" height="62" rx="5" fill="#0d1118" stroke="#2b3445" stroke-width="1.5"/><rect x="8" y="6" width="212" height="52" rx="3" fill="#141a24" stroke="#334155"/><circle cx="28" cy="32" r="9" fill="${jewelColor}" stroke="#f8fafc" stroke-width="1.5"/><circle cx="25" cy="29" r="3" fill="#ffffff" fill-opacity="0.7"/><text x="46" y="24" fill="#e2e8f0" font-family="monospace" font-size="10" font-weight="700">TUBE STAGE · ${blockId.toUpperCase()}</text><text x="46" y="39" fill="${jewelColor}" font-family="monospace" font-size="9" font-weight="600">BIAS: ${(38 + gain * 14).toFixed(1)}mA · ${vMode.toUpperCase()}</text><rect x="228" y="6" width="456" height="52" rx="3" fill="#070a0f" stroke="#f59e0b" stroke-width="0.9"/><line x1="228" y1="19" x2="684" y2="19" stroke="rgba(255,255,255,0.05)"/><line x1="228" y1="32" x2="684" y2="32" stroke="rgba(255,255,255,0.05)"/><line x1="228" y1="45" x2="684" y2="45" stroke="rgba(255,255,255,0.05)"/>${tubesSvg}<text x="456" y="54" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="8" letter-spacing="1.5">4×12AX7 PREAMP  ·  4×EL34/6L6 CLASS A/B POWER STAGE</text><rect x="692" y="6" width="106" height="52" rx="3" fill="#090d14" stroke="#475569"/><path d="M 704 46 A 42 42 0 0 1 786 46" fill="none" stroke="#334155" stroke-width="2.5"/><path d="M 762 24 A 42 42 0 0 1 786 46" fill="none" stroke="#ef4444" stroke-width="2.5"/><line id="vuNeedleIn" x1="745" y1="48" x2="762" y2="18" stroke="#38bdf8" stroke-width="2" stroke-linecap="round"/><circle cx="745" cy="48" r="3" fill="#e2e8f0"/><text x="745" y="56" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="8">INPUT VU</text><rect x="804" y="6" width="108" height="52" rx="3" fill="#090d14" stroke="#f59e0b" stroke-width="0.9"/><path d="M 816 46 A 42 42 0 0 1 898 46" fill="none" stroke="#334155" stroke-width="2.5"/><path d="M 874 24 A 42 42 0 0 1 898 46" fill="none" stroke="#ef4444" stroke-width="2.5"/><line id="vuNeedleOut" x1="857" y1="48" x2="878" y2="18" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/><circle cx="857" cy="48" r="3" fill="#e2e8f0"/><text x="857" y="56" text-anchor="middle" fill="#f59e0b" font-family="monospace" font-size="8">OUTPUT VU</text></svg><div class="voicing-quick-bar"><button type="button" class="mini-btn ${vMode==='clean'?'active':''}" data-voicing-pick="clean">❄️ CLEAN GLASS</button><button type="button" class="mini-btn ${vMode==='vintage'?'active':''}" data-voicing-pick="vintage">🔥 BRITISH PLEXI</button><button type="button" class="mini-btn ${vMode==='highgain'?'active':''}" data-voicing-pick="highgain">⚡ MODERN CHUG</button></div></div>`;
+  banner.querySelectorAll('[data-voicing-pick]').forEach((vb) => {
+    vb.addEventListener('click', () => {
+      const m = vb.dataset.voicingPick;
+      document.body.dataset.voicing = m;
+      const g = m === 'clean' ? 0.28 : (m === 'highgain' ? 0.85 : 0.58);
+      sendParamNow('amp', 'gain', g).then(() => renderPanel());
+    });
+  });
+
 }
 
 function renderPanelSide() {
@@ -1161,7 +1301,18 @@ function renderPanelSide() {
       const title = state.namTitle || stages.map((s) => s.title).filter(Boolean).join(' → ') || 'NAM capture';
       const gear = namGearType();
       side.innerHTML = `
-        <div class="ps-title">NAM CHAIN</div>
+        <div class="ps-title">NAM A2 NEURAL AMP + IR LOADER</div>
+        <div class="ps-file" style="color:var(--gold-2); font-weight:700;">${esc(title)}</div>
+        ${drow('Architecture', 'NAM A2 (' + (state.namQuality === 'full' ? 'Full 8ch · 12,146w' : 'Lite 3ch · 1,871w') + ')')}
+        ${drow('Active Cab IR', esc(state.live?.cab?.ir_name || 'Celestion V30 4x12') + (state.live?.cab?.enabled !== false ? ' (ON)' : ' (BYPASSED)'))}
+        ${drow('Liquid Tone Stack', 'ACTIVE (Gain/EQ/Master ปรับได้จริง)')}
+        ${drow('Input Gain', (state.nam.input_gain_db ?? 0).toFixed(1) + ' dB')}
+        <div class="ps-actions" style="display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-top:6px;">
+          <button class="mini-btn" data-action="load-nam" style="border-color:var(--gold); color:var(--gold-2);">📂 เปิดไฟล์ NAM A2</button>
+          <button class="mini-btn" data-action="load-ir" style="border-color:#38bdf8; color:#38bdf8;">📂 ใส่ไฟล์ IR (.wav)</button>
+          <button class="mini-btn" data-action="activate-24bit-44k">⚡ 24-Bit / 44.1kHz</button>
+          <button class="mini-btn" data-action="open-t3k">🌐 คลัง TONE3000</button>
+        </div>
         <div class="ps-file">${esc(title)}</div>
         ${drow('Stages', String(stages.length || 1))}
         ${drow('Gear', gear === 'amp-cab' ? 'Amp + Cab capture' : gear === 'pedal' ? 'Pedal / outboard' : 'Amp head')}
@@ -1179,7 +1330,76 @@ function renderPanelSide() {
       side.innerHTML = `
         <div class="ps-title">DSP AMP</div>
         <div class="ps-file">${esc(state.live?.amp?.model || 'Amp')}</div>
-        <div class="ps-note">ยังไม่มี NAM model — ใช้ DSP amp จำลองอยู่ โหลด .nam จากเครื่องหรือเลือกจาก TONE3000 เพื่อแทนที่</div>
+        <div class="ps-title">DSP TUBE AMP · 4 TOPOLOGIES</div>
+        <label class="cab-select-label" style="margin-bottom:6px;">Amp Voicing Topology
+          <select id="ampModelSelect" class="cab-select-input">
+            <option value="Ozzy_Neural" ${(state.live?.amp?.model || '') === 'Ozzy_Neural' ? 'selected' : ''}>🔥 Ozzy × Neural Oversized 24-Bit (44.1kHz Touch Dynamic)</option>
+            <option value="Clean" ${(state.live?.amp?.model || '') === 'Clean' ? 'selected' : ''}>Boutique Class-A Clean (High Headroom)</option>
+            <option value="Twin" ${(state.live?.amp?.model || '') === 'Twin' ? 'selected' : ''}>1965 Fender Twin Reverb (6L6 Glass)</option>
+            <option value="Plexi" ${(state.live?.amp?.model || '') === 'Plexi' ? 'selected' : ''}>1968 Marshall Super Lead Plexi (EL34 Bark)</option>
+            <option value="5150" ${(state.live?.amp?.model || '5150') === '5150' ? 'selected' : ''}>Peavey 5150 / Dual Recto (Tight High-Gain)</option>
+          </select>
+        </label>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; background:#141a24; padding:6px 8px; border-radius:5px; border:1px solid #232d3d;">
+          <span style="font-size:11px; font-weight:600; color:#cbd5e1;">Bright Cap Switch (เพิ่มหัวโน้ต)</span>
+          <input type="checkbox" id="chkAmpBright" ${state.live?.amp?.bright ? 'checked' : ''} style="width:16px; height:16px; cursor:pointer;">
+        </div>
+        <label class="cab-select-label" style="margin-bottom:6px;">NAM A2 Neural Capture + IR Quick Loader
+          <select id="quickNamA2Select" class="cab-select-input">
+            <option value="">-- เลือกโมเดล NAM A2 ในเครื่อง หรือกดเปิดไฟล์ .nam/.namb --</option>
+            <option value="t3k_bogner_fullstack">Bogner Ecstasy 101B (NAM A2 + Real 4x12 IR)</option>
+            <option value="t3k_mesa_pitch_shift">Mesa Boogie Dual Rectifier (NAM A2 + Oversized IR)</option>
+            <option value="t3k_marshall_bluesbreaker">1966 Marshall JTM45 Bluesbreaker (NAM A2)</option>
+            <option value="t3k_dumble_spread">Dumble Overdrive Special (NAM A2 + 2x12 IR)</option>
+            <option value="t3k_matchless_crunch">Matchless Brave 30 Class-A (NAM A2 + 2x12 IR)</option>
+            <option value="t3k_stereo_crunch_verb">JHS Morning Glory + Boutique Amp (NAM A2)</option>
+          </select>
+        </label>
+        <div class="ps-actions" style="display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-bottom:6px;">
+          <button class="mini-btn" data-action="load-nam" style="border-color:var(--gold); color:var(--gold-2);">📂 เปิดไฟล์ NAM A2</button>
+          <button class="mini-btn" data-action="load-ir" style="border-color:#38bdf8; color:#38bdf8;">📂 ใส่ไฟล์ IR (.wav)</button>
+          <button class="mini-btn" data-action="load-ozzy-neural" style="border-color:#f43f5e; color:#fda4af;">🔥 โทนโอไซด์ × นูลอ</button>
+          <button class="mini-btn" data-action="activate-24bit-44k" style="border-color:#10b981; color:#6ee7b7;">⚡ 24-Bit / 44.1kHz</button>
+        </div>
+        <div class="ps-actions">
+          <button class="mini-btn" data-action="load-nam">Load NAM</button>
+          <button class="mini-btn" data-action="open-t3k">TONE3000</button>
+        </div>
+        <div class="seg quality-seg">
+          <button data-quality="lite" class="${state.namQuality === 'lite' ? 'active' : ''}">Lite</button>
+          <button data-quality="full" class="${state.namQuality === 'full' ? 'active' : ''}">Full</button>
+        </div>`;
+    if (true) {}
+    $('ampModelSelect')?.addEventListener('change', (e) => {
+        sendParamNow('amp', 'model', e.target.value).then(() => { renderChain(); renderPanel(); });
+      });
+      $('chkAmpBright')?.addEventListener('change', (e) => {
+        sendParamNow('amp', 'bright', e.target.checked);
+      });
+      $('quickNamA2Select')?.addEventListener('change', (e) => {
+        if (!e.target.value) return;
+        api('/api/nam-a2/load-pair', { method: 'POST', body: { nam_id: e.target.value, quality: state.namQuality || 'lite' } }).then((res) => {
+          if (res?.state) applyServerState(res.state, { forceRender: true });
+          renderChain(); renderPanel();
+          showToast('โหลดโมเดล NAM A2 + IR สำเร็จ');
+        });
+      });
+      const _unused2 = ``;
+      $('ampModelSelect')?.addEventListener('change', (e) => {
+        sendParamNow('amp', 'model', e.target.value).then(() => { renderChain(); renderPanel(); });
+      });
+      $('chkAmpBright')?.addEventListener('change', (e) => {
+        sendParamNow('amp', 'bright', e.target.checked);
+      });
+      $('quickNamA2Select')?.addEventListener('change', (e) => {
+        if (!e.target.value) return;
+        api('/api/nam-a2/load-pair', { method: 'POST', body: { nam_id: e.target.value, quality: state.namQuality || 'lite' } }).then((res) => {
+          if (res?.state) applyServerState(res.state, { forceRender: true });
+          renderChain(); renderPanel();
+          showToast('โหลดโมเดล NAM A2 + IR สำเร็จ');
+        });
+      });
+      const _unused = `
         <div class="ps-actions">
           <button class="mini-btn" data-action="load-nam">Load NAM</button>
           <button class="mini-btn" data-action="open-t3k">TONE3000</button>
@@ -1189,6 +1409,15 @@ function renderPanelSide() {
           <button data-quality="full" class="${state.namQuality === 'full' ? 'active' : ''}">Full</button>
         </div>`;
     }
+    return;
+  }
+  if (false) {
+    $('ampModelSelect')?.addEventListener('change', (e) => {
+      sendParamNow('amp', 'model', e.target.value).then(() => { renderChain(); renderPanel(); });
+    });
+    $('chkAmpBright')?.addEventListener('change', (e) => {
+      sendParamNow('amp', 'bright', e.target.checked);
+    });
     return;
   }
   if (b.id === 'cab') {
@@ -1201,9 +1430,27 @@ function renderPanelSide() {
     side.innerHTML = `
       <div class="ps-title">3D VIRTUAL MIC &amp; TUBE VOICING</div>
       <div class="ps-file">${esc(cab.ir_name || 'Default IR')}</div>
+      <label class="cab-select-label" style="margin-bottom:6px;">24-Bit / 44.1kHz Studio IR &amp; Cab Selector
+        <select id="cabIrQuickSelect" class="cab-select-input">
+          <optgroup label="★ 24-Bit / 44.1kHz Studio Master IRs (Ozzy × Neural)">
+            <option value="Ozzy British Oversized 4x12 (24-Bit 44.1kHz)" ${(cab.ir_name||'').includes('Ozzy British')?'selected':''}>Ozzy British Oversized 4x12 (24-Bit 44.1kHz)</option>
+            <option value="Neural Archetype Oversized V30 (24-Bit 44.1kHz)" ${(cab.ir_name||'').includes('Neural Archetype')?'selected':''}>Neural Archetype Oversized V30 (24-Bit 44.1kHz)</option>
+            <option value="1968 Marshall Basketweave Greenback (24-Bit 44.1kHz)" ${(cab.ir_name||'').includes('1968 Marshall')?'selected':''}>1968 Marshall Basketweave Greenback (24-Bit 44.1kHz)</option>
+          </optgroup>
+          <optgroup label="TONE3000 &amp; Studio Real IRs">
+            <option value="t3k_recto_4x12_v30_sm57.wav" ${(cab.ir_name||'').includes('recto_4x12')?'selected':''}>Mesa Rectifier 4x12 V30 (SM57)</option>
+            <option value="t3k_1960a_greenback_sm57_r121.wav" ${(cab.ir_name||'').includes('1960a_greenback')?'selected':''}>Marshall 1960A Greenback (SM57+R121)</option>
+            <option value="t3k_bogner_uber_v30_t75.wav" ${(cab.ir_name||'').includes('bogner_uber')?'selected':''}>Bogner Uberkab V30+T75</option>
+            <option value="t3k_friedman_4x12_v30.wav" ${(cab.ir_name||'').includes('friedman_4x12')?'selected':''}>Friedman 4x12 Vintage 30</option>
+            <option value="t3k_evh_5150_4x12.wav" ${(cab.ir_name||'').includes('evh_5150')?'selected':''}>EVH 5150III 4x12 G12EVH</option>
+            <option value="Celestion V30 4x12" ${cab.ir_name==='Celestion V30 4x12'?'selected':''}>Celestion V30 4x12 (Classic)</option>
+            <option value="Greenback 4x12" ${cab.ir_name==='Greenback 4x12'?'selected':''}>Greenback 4x12 (Classic)</option>
+          </optgroup>
+        </select>
+      </label>
       <div class="cab-3d-wrap">
         <div class="cab-speaker-stage" id="cabSpeakerStage">
-          <div class="speaker-cone-circle" style="width: 150px; height: 150px;"></div>
+          <svg viewBox="0 0 180 180" width="100%" height="100%" style="position:absolute; inset:0; pointer-events:none;"><circle cx="90" cy="90" r="84" fill="url(#speakerConeGrad)" stroke="#334155" stroke-width="3"/><circle cx="90" cy="90" r="76" fill="none" stroke="#1e293b" stroke-width="4"/><circle cx="90" cy="90" r="62" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1" stroke-dasharray="4 3"/><circle cx="90" cy="90" r="44" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="3 3"/><line x1="90" y1="6" x2="90" y2="174" stroke="rgba(56,189,248,0.18)" stroke-width="1" stroke-dasharray="3 3"/><line x1="6" y1="90" x2="174" y2="90" stroke="rgba(56,189,248,0.18)" stroke-width="1" stroke-dasharray="3 3"/><circle cx="90" cy="90" r="26" fill="#0f141d" stroke="#f59e0b" stroke-width="1.5"/><circle cx="90" cy="90" r="18" fill="url(#knobCapGrad)" stroke="#475569" stroke-width="1"/></svg>
           <div class="speaker-cone-circle" style="width: 90px; height: 90px;"></div>
           <div class="speaker-dust-cap"></div>
           <div class="draggable-mic" id="draggableMic" style="left: ${center}%; top: ${dist}%;">MIC</div>
@@ -1236,6 +1483,21 @@ function renderPanelSide() {
       </div>`;
 
     attachCabMicDrag();
+    $('cabIrQuickSelect')?.addEventListener('change', async (e) => {
+      const irName = e.target.value;
+      if (!irName) return;
+      try {
+        const res = await api('/api/nam-a2/load-pair', {
+          method: 'POST',
+          body: { ir_name: irName, enable_cab: true }
+        });
+        if (res?.state) applyServerState(res.state, { forceRender: true });
+        await loadIrPreview();
+        renderChain(); renderPanel();
+        showToast('โหลด IR "' + irName + '" คู่กับแอมป์/NAM A2 แล้ว');
+      } catch (err) { showToast(err.message, true); }
+    });
+    return;
     return;
   }
   if (b.id === 'eq') {
@@ -1245,10 +1507,10 @@ function renderPanelSide() {
       <div class="ps-title">STUDIO PARAMETRIC EQ CURVE</div>
       <div class="eq-curve-wrap">
         <svg class="eq-curve-svg" id="eqCurveSvg" viewBox="0 0 300 120" preserveAspectRatio="none">
-          <line x1="0" y1="60" x2="300" y2="60" stroke="#334155" stroke-dasharray="2,2"/>
+          <line x1="0" y1="30" x2="300" y2="30" stroke="#1e293b" stroke-width="0.7" stroke-dasharray="3,3"/><line x1="0" y1="60" x2="300" y2="60" stroke="#475569" stroke-width="1" stroke-dasharray="4,2"/><line x1="0" y1="90" x2="300" y2="90" stroke="#1e293b" stroke-width="0.7" stroke-dasharray="3,3"/><line x1="60" y1="0" x2="60" y2="120" stroke="#1e293b" stroke-width="0.7"/><line x1="120" y1="0" x2="120" y2="120" stroke="#1e293b" stroke-width="0.7"/><line x1="180" y1="0" x2="180" y2="120" stroke="#1e293b" stroke-width="0.7"/><line x1="240" y1="0" x2="240" y2="120" stroke="#1e293b" stroke-width="0.7"/>
           <line x1="100" y1="0" x2="100" y2="120" stroke="#1e293b" stroke-width="0.5"/>
           <line x1="200" y1="0" x2="200" y2="120" stroke="#1e293b" stroke-width="0.5"/>
-          <path id="eqCurvePath" d="M 0 60 L 300 60" fill="rgba(56, 189, 248, 0.15)" stroke="#38bdf8" stroke-width="2"/>
+          <path id="eqCurvePath" d="M 0 60 L 300 60" fill="url(#eqAreaGrad)" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <div style="display:flex; justify-content:space-between; font-size:9px; color:#64748b; font-family:monospace;">
           <span>20 Hz</span><span>1 kHz</span><span>20 kHz</span>
@@ -1263,6 +1525,32 @@ function renderPanelSide() {
 
     drawEqCurve(eq.curve);
     attachEqEvents();
+    return;
+  }
+  if (b.id === 'mod') {
+    const mod = state.live?.mod || {};
+    const mid = Number(mod.model_id ?? 12);
+    const models = [
+      [12, '12 · Ana-Chorus (Analog Warm)'],
+      [13, '13 · Tri-Chorus (Lush 3-Phase)'],
+      [4, '04 · Classic Flanger'],
+      [5, '05 · Jet-Flanger (Sweep)'],
+      [6, '06 · Optical Tremolo'],
+      [7, '07 · Stutter Chopper'],
+      [11, '11 · Rotary Speaker'],
+      [19, '19 · Lo-Fi Bitcrusher & Decimator'],
+    ];
+    side.innerHTML = `
+      <div class="ps-title">MOOER GE150 · 19-MODEL MODULATION</div>
+      <label class="cab-select-label">Modulation Algorithm
+        <select id="modModelSelect" class="cab-select-input">
+          ${models.map(([id, name]) => `<option value="${id}" ${mid === id ? 'selected' : ''}>${name}</option>`).join('')}
+        </select>
+      </label>
+      <div class="ps-note" style="margin-top:8px;">คัดสำเนาอัลกอริทึม Modulation จาก MOOER GE150 ครบทั้ง Chorus, Flanger, Tremolo และ Lo-Fi Bitcrusher</div>`;
+    $('modModelSelect')?.addEventListener('change', (e) => {
+      sendParamNow('mod', 'model_id', parseInt(e.target.value, 10)).then(() => renderChain());
+    });
     return;
   }
   if (b.id === 'delay') {
@@ -1304,6 +1592,70 @@ function renderPanelSide() {
     return;
   }
   if (b.id === 'output') {
+    const hd = state.lastServer?.hd_audio || { enabled: false, auto_level: false, output_trim_db: 0, pure_cab: 0.65, stereo_width: 0.60, anti_squash: 0.70, telemetry: { rms_dbfs: -15.0, crest_db: 12.5, stereo_width_pct: 55, makeup_db: 0.0 } };
+    const tel = hd.telemetry || {};
+    side.innerHTML = `
+      <div class="ps-title">WORLD-CLASS MASTERING & ANTI-SQUASH</div>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; background:#141a24; padding:5px 8px; border-radius:5px; border:1px solid #232d3d;" title="ใช้ CPU ประมาณ 2 เท่า — แนะนำ buffer 256 ขึ้นไป">
+        <span style="font-size:11px; font-weight:600; color:#cbd5e1;">HD Stereo Engine (CPU ~2x · buffer 256+)</span>
+        <input type="checkbox" id="chkHdEnabled" ${hd.enabled ? 'checked' : ''} style="width:16px; height:16px; cursor:pointer;">
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-bottom:6px; font-family:var(--mono); font-size:10.5px;">
+        <div style="background:#11161f; padding:4px 6px; border-radius:4px; border:1px solid #222a38;">RMS: <strong style="color:var(--gold-2)">${tel.rms_dbfs ?? -15.0} dBFS</strong></div>
+        <div style="background:#11161f; padding:4px 6px; border-radius:4px; border:1px solid #222a38;">CREST: <strong style="color:#10b981">${tel.crest_db ?? 12.0} dB</strong></div>
+        <div style="background:#11161f; padding:4px 6px; border-radius:4px; border:1px solid #222a38;">3D WIDTH: <strong style="color:#38bdf8">${tel.stereo_width_pct ?? 50}%</strong></div>
+        <div style="background:#11161f; padding:4px 6px; border-radius:4px; border:1px solid #222a38;">AUTO-GAIN: <strong style="color:#c084fc">${(tel.makeup_db >= 0 ? '+' : '') + (tel.makeup_db ?? 0.0)} dB</strong></div>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; background:#141a24; padding:5px 8px; border-radius:5px; border:1px solid #232d3d;">
+        <span style="font-size:11px; font-weight:600; color:#cbd5e1;">Auto-Leveler (คุมความดังคงที่)</span>
+        <input type="checkbox" id="chkHdAutoLevel" ${hd.auto_level === true ? 'checked' : ''} style="width:16px; height:16px; cursor:pointer;">
+      </div>
+      <label class="cab-select-label" style="font-size:10.5px;">HD Output Trim (${(hd.output_trim_db ?? 0) >= 0 ? '+' : ''}${Number(hd.output_trim_db ?? 0).toFixed(1)} dB)
+        <input type="range" id="rngHdTrim" min="-24" max="12" step="0.5" value="${Number(hd.output_trim_db ?? 0)}" style="width:100%; accent-color:#cbd5e1;">
+      </label>
+      <label class="cab-select-label" style="font-size:10.5px;">Anti-Squash & Dynamic Sag (${Math.round((hd.anti_squash ?? 0.7) * 100)}%)
+        <input type="range" id="rngHdAntiSquash" min="0" max="100" value="${Math.round((hd.anti_squash ?? 0.7) * 100)}" style="width:100%; accent-color:var(--gold);">
+      </label>
+      <label class="cab-select-label" style="font-size:10.5px; margin-top:4px;">Pure Cabinet & Speaker Thump (${Math.round((hd.pure_cab ?? 0.65) * 100)}%)
+        <input type="range" id="rngHdPureCab" min="0" max="100" value="${Math.round((hd.pure_cab ?? 0.65) * 100)}" style="width:100%; accent-color:#38bdf8;">
+      </label>
+      <label class="cab-select-label" style="font-size:10.5px; margin-top:4px;">3D Stereo Space & Doubler (${Math.round((hd.stereo_width ?? 0.6) * 100)}%)
+        <input type="range" id="rngHdStereo" min="0" max="100" value="${Math.round((hd.stereo_width ?? 0.6) * 100)}" style="width:100%; accent-color:#10b981;">
+      </label>
+      <label class="cab-select-label" style="font-size:10.5px; margin-top:4px;">Natural Touch Dynamics · ตอบสนองน้ำหนักมือ (${Math.round((hd.touch_sensitivity ?? 0.85) * 100)}%)
+        <input type="range" id="rngHdTouch" min="0" max="100" value="${Math.round((hd.touch_sensitivity ?? 0.85) * 100)}" style="width:100%; accent-color:#f97316;">
+      </label>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:6px; background:#141a24; padding:5px 8px; border-radius:5px; border:1px solid #232d3d;">
+        <span style="font-size:11px; font-weight:600; color:#f97316;">Ozzy × Neural Stereo Doubler (±9ct)</span>
+        <input type="checkbox" id="chkHdOzzyDoubler" ${hd.ozzy_doubler ? 'checked' : ''} style="width:16px; height:16px; cursor:pointer;">
+      </div>`;
+    $('rngHdTouch')?.addEventListener('change', (e) => {
+      api('/api/hd-audio/update', { method: 'POST', body: { touch_sensitivity: Number(e.target.value) / 100 } }).then(() => renderPanelSide());
+    });
+    $('chkHdOzzyDoubler')?.addEventListener('change', (e) => {
+      api('/api/hd-audio/update', { method: 'POST', body: { ozzy_doubler: e.target.checked } }).then(() => renderPanelSide());
+    });
+    $('chkHdEnabled')?.addEventListener('change', (e) => {
+      api('/api/hd-audio/update', { method: 'POST', body: { enabled: e.target.checked } }).then(() => renderPanelSide());
+    });
+    $('rngHdTrim')?.addEventListener('change', (e) => {
+      api('/api/hd-audio/update', { method: 'POST', body: { output_trim_db: Number(e.target.value) } }).then(() => renderPanelSide());
+    });
+    $('chkHdAutoLevel')?.addEventListener('change', (e) => {
+      api('/api/hd-audio/update', { method: 'POST', body: { auto_level: e.target.checked } }).then(() => renderPanelSide());
+    });
+    $('rngHdAntiSquash')?.addEventListener('change', (e) => {
+      api('/api/hd-audio/update', { method: 'POST', body: { anti_squash: Number(e.target.value) / 100 } }).then(() => renderPanelSide());
+    });
+    $('rngHdPureCab')?.addEventListener('change', (e) => {
+      api('/api/hd-audio/update', { method: 'POST', body: { pure_cab: Number(e.target.value) / 100 } }).then(() => renderPanelSide());
+    });
+    $('rngHdStereo')?.addEventListener('change', (e) => {
+      api('/api/hd-audio/update', { method: 'POST', body: { stereo_width: Number(e.target.value) / 100 } }).then(() => renderPanelSide());
+    });
+    return;
+  }
+  if (false) {
     side.innerHTML = `
       <div class="ps-title">OUTPUT · MASTER</div>
       <div class="ps-note">Master volume อยู่ท้ายเชนหลัง CAB และ REVERB ใช้คุมระดับออกโดยไม่เปลี่ยนเกนของแอมป์</div>
@@ -1384,6 +1736,7 @@ function audioPathWarning(path) {
   if (path.warning === 'high_latency') {
     return `ความหน่วงสูง ${Number(path.reported_io_ms ?? 0).toFixed(0)} ms — ตรวจอุปกรณ์/buffer ใน Settings`;
   }
+
   return '';
 }
 
@@ -1468,7 +1821,12 @@ function updateStatus(server) {
   updateGigTuner(server);
 
   const badge = $('engine-badge');
-  if (badge) badge.textContent = state.nam ? ('NAM A' + (state.namArch || '2')) : 'DSP AMP';
+  if (badge) {
+    const bitDepth = server.hd_audio?.bit_depth || 24;
+    const srKhz = (sr / 1000).toFixed(1);
+    const modeLabel = state.nam ? ('NAM A' + (state.namArch || '2') + '+IR') : (server.chain?.amp?.topology === 'Ozzy_Neural' ? 'OZZY×NEURAL' : 'DSP AMP');
+    badge.textContent = `${bitDepth}-BIT · ${srKhz}kHz · ${modeLabel}`;
+  }
 }
 
 function applyServerState(server, opts = {}) {
@@ -1496,6 +1854,17 @@ function applyServerState(server, opts = {}) {
     updateGigView(state.cortex, server);
   }
 
+  const orderCandidate = server.chain_order || server.chain?.device?.order;
+  if (orderCandidate && Array.isArray(orderCandidate)) {
+    const newOrder = orderCandidate;
+    const oldOrderStr = (state.chainOrder || []).join(',');
+    const newOrderStr = newOrder.join(',');
+    if (oldOrderStr !== newOrderStr) {
+      state.chainOrder = newOrder;
+      opts.forceRender = true;
+    }
+  }
+
   if (prevNamKey !== state.namKey || opts.forceRender) {
     renderChain();
     renderPanel();
@@ -1519,6 +1888,9 @@ function applyServerState(server, opts = {}) {
   if (state.block === 'eq' && server.chain?.eq?.curve) {
     drawEqCurve(server.chain.eq.curve);
   }
+  updateDynamicVoicingAccent();
+  syncSliderProgressCss($('morphSlider'));
+  syncSliderProgressCss($('parallelBlendSlider'));
   updateStatus(server);
 }
 
@@ -1599,6 +1971,10 @@ function updateSettingsAudioNote() {
     rows.push('สตรีมยังไม่เปิด — เลือกอุปกรณ์แล้วกด Apply');
   }
   if (path.buffer_ms != null) rows.push(`block ${esc(String(state.lastServer?.block_size ?? ''))} smp = ${Number(path.buffer_ms).toFixed(2)} ms`);
+  if (state.asioDrivers && state.asioDrivers.length > 0) {
+    const asioList = state.asioDrivers.map(d => `<span style="color:${d.is_ux1 ? '#38bdf8' : '#94a3b8'}">${esc(d.name)}</span>`).join(', ');
+    rows.push(`<div style="margin-top:6px; font-size:11px; opacity:0.9;"><b>ASIO Windows Drivers:</b> ${asioList}</div>`);
+  }
   el.innerHTML = rows.join('<br>');
 }
 
@@ -1610,6 +1986,7 @@ async function loadDevices() {
     state.devices.outputs = devices.filter((d) => Number(d.outputs) > 0);
     state.selectedIn = data.selected_in ?? null;
     state.selectedOut = data.selected_out ?? null;
+    state.asioDrivers = data.asio_drivers || [];
     fillSettingsDevices();
   } catch (err) {
     showToast('โหลดรายการอุปกรณ์ไม่สำเร็จ: ' + err.message, true);
@@ -1652,8 +2029,8 @@ function closeSettings() {
 async function applySettings() {
   const inId = $('modal-select-in')?.value;
   const outId = $('modal-select-out')?.value;
-  const sr = Number($('modal-select-sr')?.value || 48000);
-  const buf = Number($('modal-select-buf')?.value || 128);
+  const sr = Number($('modal-select-sr')?.value || state.sampleRate || 48000);
+  const buf = Number($('modal-select-buf')?.value || state.bufferSize || 256);
 
   try {
     const data = await api('/api/settings', {
@@ -1733,7 +2110,7 @@ function pickFile(blockId, mode) {
   state.pickerMode = mode;
   const input = mode === 'folder' ? $('folder-picker') : $('file-picker');
   if (!input) return;
-  if (blockId === 'amp') input.accept = '.nam,.json';
+  if (blockId === 'amp') input.accept = '.nam,.namb,.t3kpreset,.json';
   else if (blockId === 'cab') input.accept = '.wav';
   else input.accept = '.nam,.wav';
   input.value = '';
@@ -1745,9 +2122,9 @@ async function handlePickedFiles(fileList) {
   const target = state.pickerTarget || 'amp';
   if (!files.length) return;
   let file = null;
-  if (target === 'amp') file = files.find((f) => /\.(nam|json)$/i.test(f.name));
+  if (target === 'amp') file = files.find((f) => /\.(nam|namb|t3kpreset|json)$/i.test(f.name));
   else if (target === 'cab') file = files.find((f) => /\.wav$/i.test(f.name));
-  else file = files.find((f) => /\.(nam|json)$/i.test(f.name)) || files.find((f) => /\.wav$/i.test(f.name));
+  else file = files.find((f) => /\.(nam|namb|t3kpreset|json)$/i.test(f.name)) || files.find((f) => /\.wav$/i.test(f.name));
 
   if (!file) {
     showToast(target === 'cab' ? 'ไม่พบไฟล์ .wav ในโฟลเดอร์ที่เลือก' : 'ไม่พบไฟล์ .nam ในโฟลเดอร์ที่เลือก', true);
@@ -1819,6 +2196,18 @@ async function clearBlockFile(blockId) {
   }
 }
 
+async function loadIrPreview() {
+  try {
+    const preview = await api('/api/cab/ir-preview');
+    if (preview) {
+      state.irPreview = preview;
+      if (state.block === 'cab') renderPanel();
+    }
+  } catch (err) {
+    /* ignore preview failures */
+  }
+}
+
 // ── boot / events ────────────────────────────────────────────────────
 async function pollOnce() {
   if (state.pollBusy) return;
@@ -1826,7 +2215,6 @@ async function pollOnce() {
   try {
     const data = await api('/api/status');
     applyServerState(data);
-    await loadIrPreview();
   } catch (err) {
     /* transient */
   } finally {
@@ -1836,8 +2224,194 @@ async function pollOnce() {
 
 function startPolling() {
   if (state.pollTimer) return;
-  state.pollTimer = setInterval(pollOnce, 180);
+  state.pollTimer = setInterval(pollOnce, 250);
   pollOnce();
+}
+
+async function reorderBlock(blockId, delta) {
+  try {
+    const res = await api('/api/chain/reorder', {
+      method: 'POST',
+      body: { block: blockId, direction: delta > 0 ? 'right' : 'left' }
+    });
+    if (res?.order) {
+      state.chainOrder = res.order;
+      if (res.state) applyServerState(res.state, { forceRender: true });
+      renderChain();
+      selectBlock(blockId);
+      showToast(`ย้ายบล็อก ${blockEn(blockId)} สำเร็จ`);
+    }
+  } catch (err) {
+    showToast('ย้ายบล็อกไม่สำเร็จ: ' + err.message, true);
+  }
+}
+
+async function applyQuickScene(name) {
+  try {
+    const res = await api('/api/scenes/quick', { method: 'POST', body: { scene: name } });
+    if (res?.state) {
+      applyServerState(res.state, { forceRender: true });
+      renderChain();
+      renderPanel();
+    }
+    updateSceneUi(name);
+    showToast(`เปิดซีน: ${name.toUpperCase()} สำเร็จ`);
+  } catch (err) {
+    showToast('เปลี่ยนซีนไม่สำเร็จ: ' + err.message, true);
+  }
+}
+
+function updateSceneUi(activeName) {
+  ['clean', 'rhythm', 'lead'].forEach((s) => {
+    const btn = $(`btn-scene-${s}`);
+    if (btn) btn.classList.toggle('active', s === activeName);
+  });
+}
+
+async function handleAbClick(e) {
+  if (e.shiftKey) {
+    try {
+      const res = await api('/api/ab/store', { method: 'POST', body: { slot: 'A' } });
+      updateAbUi(res);
+      showToast('บันทึกค่า Rig ปัจจุบันลงใน Snapshot A แล้ว');
+    } catch (err) {
+      showToast(err.message, true);
+    }
+    return;
+  }
+  try {
+    const res = await api('/api/ab/toggle', { method: 'POST' });
+    if (res?.state) {
+      applyServerState(res.state, { forceRender: true });
+      renderChain();
+      renderPanel();
+    }
+    updateAbUi(res);
+    showToast(`สลับ Rig เป็น: ${res?.active_slot === 'A' ? 'Snapshot [A]' : 'Live Rig [B]'}`);
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
+function updateAbUi(abState) {
+  const btn = $('btn-ab-toggle');
+  if (!btn) return;
+  if (!abState || !abState.has_a) {
+    btn.textContent = 'A/B: LIVE';
+    btn.classList.remove('active-a', 'active-b');
+  } else {
+    btn.textContent = `A/B: ${abState.active_slot}`;
+    btn.classList.toggle('active-a', abState.active_slot === 'A');
+    btn.classList.toggle('active-b', abState.active_slot === 'B');
+  }
+}
+
+let midiPollTimer = null;
+
+async function openMidiModal() {
+  const modal = $('modal-midi');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  await refreshMidiModal();
+  if (!midiPollTimer) {
+    midiPollTimer = setInterval(refreshMidiModal, 1500);
+  }
+}
+
+function closeMidiModal() {
+  const modal = $('modal-midi');
+  if (modal) modal.classList.add('hidden');
+  if (midiPollTimer) {
+    clearInterval(midiPollTimer);
+    midiPollTimer = null;
+  }
+  api('/api/midi/learn', { method: 'POST', body: { action: null } }).catch(() => {});
+}
+
+const ACTION_LABELS = {
+  scene_clean: 'Quick Scene: Clean',
+  scene_rhythm: 'Quick Scene: Rhythm',
+  scene_lead: 'Quick Scene: Lead',
+  ab_toggle: 'Rig A/B Toggle',
+  ab_store: 'Rig A/B Store Snapshot A',
+  bypass_gate: 'Bypass: Noise Gate',
+  bypass_comp: 'Bypass: Compressor',
+  bypass_drive: 'Bypass: Overdrive',
+  bypass_amp: 'Bypass: NAM Amp',
+  bypass_cab: 'Bypass: Cabinet IR',
+  bypass_chorus: 'Bypass: Chorus',
+  bypass_delay: 'Bypass: Delay',
+  bypass_reverb: 'Bypass: Reverb',
+  preset_prev: 'Preset: Previous',
+  preset_next: 'Preset: Next',
+  tuner_toggle: 'Tuner: Toggle',
+};
+
+async function refreshMidiModal() {
+  try {
+    const data = await api('/api/midi/status');
+    const banner = $('midiDeviceCount');
+    if (banner) {
+      if (data.available_ports && data.available_ports.length > 0) {
+        banner.textContent = `MIDI พร้อมใช้งาน: ${data.active_port || data.available_ports.join(', ')}`;
+      } else {
+        banner.textContent = 'ยังไม่พบอุปกรณ์ MIDI Controller เชื่อมต่ออยู่';
+      }
+    }
+    const tbody = $('midiMappingsBody');
+    if (!tbody) return;
+    const mappings = data.mappings || {};
+    const learning = data.learning_target;
+
+    const actionToTrigger = {};
+    for (const [k, v] of Object.entries(mappings)) {
+      actionToTrigger[v] = k;
+    }
+
+    const rows = Object.entries(ACTION_LABELS).map(([action, label]) => {
+      const trig = actionToTrigger[action];
+      const isLearning = learning === action;
+      return `<tr>
+        <td><strong>${esc(label)}</strong></td>
+        <td><span class="midi-binding-badge ${trig ? 'bound' : ''}">${trig ? esc(trig.toUpperCase()) : '— ไม่ได้ผูก —'}</span></td>
+        <td>
+          <button class="btn btn-sm ${isLearning ? 'btn-learning' : 'btn-ghost'}" data-learn-action="${action}">
+            ${isLearning ? '● กำลังจับคู่...' : 'LEARN'}
+          </button>
+          ${trig ? `<button class="btn btn-sm btn-ghost btn-clear" data-clear-action="${action}" title="ล้างการจับคู่">✕</button>` : ''}
+        </td>
+      </tr>`;
+    });
+    tbody.innerHTML = rows.join('');
+  } catch (err) {
+    console.warn('refreshMidiModal error:', err);
+  }
+}
+
+async function handleMidiBodyClick(e) {
+  const learnBtn = e.target.closest('[data-learn-action]');
+  if (learnBtn) {
+    const act = learnBtn.dataset.learnAction;
+    try {
+      await api('/api/midi/learn', { method: 'POST', body: { action: act } });
+      await refreshMidiModal();
+      showToast(`โหมด MIDI Learn: กดปุ่มหรือเหยียบฟุตสวิตช์สำหรับ ${ACTION_LABELS[act] || act}`);
+    } catch (err) {
+      showToast(err.message, true);
+    }
+    return;
+  }
+  const clearBtn = e.target.closest('[data-clear-action]');
+  if (clearBtn) {
+    const act = clearBtn.dataset.clearAction;
+    try {
+      await api('/api/midi/clear', { method: 'POST', body: { action: act } });
+      await refreshMidiModal();
+      showToast(`ล้างการผูก MIDI ของ ${ACTION_LABELS[act] || act} แล้ว`);
+    } catch (err) {
+      showToast(err.message, true);
+    }
+  }
 }
 
 function bindEvents() {
@@ -1847,7 +2421,7 @@ function bindEvents() {
         await api('/api/stop', { method: 'POST' });
       } else {
         const savedSr = state.sampleRate || Number(localStorage.getItem('tone.sampleRate')) || 48000;
-        const savedBuf = state.bufferSize || Number(localStorage.getItem('tone.bufferSize')) || 128;
+        const savedBuf = state.bufferSize || Number(localStorage.getItem('tone.bufferSize')) || 256;
         const d = await api('/api/start', {
           method: 'POST',
           body: {
@@ -1867,6 +2441,16 @@ function bindEvents() {
   $('btn-tuner-close')?.addEventListener('click', () => { if (state.tunerActive) toggleTuner(); });
 
   $('btn-settings-open')?.addEventListener('click', openSettings);
+  $('engine-badge')?.addEventListener('click', () => {
+    const currentSr = state.sampleRate || Number(state.lastServer?.sample_rate) || 48000;
+    api('/api/audio/24bit-44k', { method: 'POST', body: { sample_rate: currentSr, bit_depth: 24, touch_sensitivity: 0.88 } })
+      .then((res) => {
+        localStorage.setItem('tone.sampleRate', String(currentSr));
+        if (res?.state) applyServerState(res.state, { forceRender: true });
+        showToast(`เปิดใช้งาน 24-Bit / ${currentSr.toLocaleString()} Hz Studio Natural Dynamics แล้ว`);
+      })
+      .catch((err) => showToast(err.message, true));
+  });
   $('btn-refresh-devices')?.addEventListener('click', async () => {
     await loadDevices();
     showToast('รีเฟรชรายการอุปกรณ์เสียงแล้ว');
@@ -1914,15 +2498,27 @@ function bindEvents() {
   });
   $('prevPreset')?.addEventListener('click', stepPreset);
   $('nextPreset')?.addEventListener('click', stepPresetNext);
-  $('btn-refresh-lib')?.addEventListener('click', async () => { await loadPresetLibrary(); showToast('รีเฟรชคลังแล้ว'); });
-
-  let searchTimer = null;
-  $('rig-search-input')?.addEventListener('input', (e) => {
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => {
-      state.query = e.target.value || '';
+  $('btn-refresh-lib')?.addEventListener('click', async () => {
+    await loadPresetLibrary();
+    if (t3kMain.liveMode) {
+      await searchT3KLive(t3kMain.query);
+    } else {
       renderTable();
-    }, 160);
+    }
+    showToast('รีเฟรชคลังเสียง TONE3000 แล้ว');
+  });
+
+  $('rig-search-input')?.addEventListener('input', (e) => {
+    clearTimeout(t3kMain.timer);
+    const val = (e.target.value || '').trim();
+    state.query = val;
+    t3kMain.timer = setTimeout(() => {
+      if (t3kMain.liveMode) {
+        searchT3KLive(val);
+      } else {
+        renderTable();
+      }
+    }, 220);
   });
 
   $('btn-t3k-cta')?.addEventListener('click', openT3K);
@@ -1930,9 +2526,61 @@ function bindEvents() {
 
   $('bypassToggle')?.addEventListener('click', () => toggleBlock(state.block));
 
+  $('btn-scene-clean')?.addEventListener('click', () => applyQuickScene('clean'));
+  $('btn-scene-rhythm')?.addEventListener('click', () => applyQuickScene('rhythm'));
+  $('btn-scene-lead')?.addEventListener('click', () => applyQuickScene('lead'));
+
+  $('btn-ab-toggle')?.addEventListener('click', handleAbClick);
+
+  $('btn-midi-modal')?.addEventListener('click', openMidiModal);
+  $('btn-midi-open')?.addEventListener('click', openMidiModal);
+  $('btn-close-midi')?.addEventListener('click', closeMidiModal);
+  $('btn-close-midi-btn')?.addEventListener('click', closeMidiModal);
+  $('modal-midi')?.addEventListener('click', (e) => {
+    if (e.target.id === 'modal-midi') closeMidiModal();
+  });
+  $('midiMappingsBody')?.addEventListener('click', handleMidiBodyClick);
+
+  const toggleExplorer = () => {
+    const main = document.querySelector('.app > .main');
+    const btn = $('btn-toggle-explorer');
+    if (!main) return;
+    const isVis = main.classList.toggle('explorer-visible');
+    if (btn) btn.classList.toggle('active', isVis);
+    if (isVis && t3kMain.liveMode) {
+      searchT3KLive(t3kMain.query);
+    }
+  };
+  $('btn-toggle-explorer')?.addEventListener('click', toggleExplorer);
+  $('btn-close-explorer')?.addEventListener('click', toggleExplorer);
+  $('curPresetBox')?.addEventListener('click', toggleExplorer);
+  $('btn-import-preset-banner')?.addEventListener('click', () => {
+    $('universal-file-input')?.click();
+  });
+  $('btn-toggle-routing')?.addEventListener('click', () => {
+    const r = $('routingContainer');
+    const b = $('btn-toggle-routing');
+    if (!r) return;
+    const exp = r.classList.toggle('expanded');
+    r.classList.toggle('collapsed', !exp);
+    if (b) b.textContent = exp ? '🎛️ Routing & Morph ▴' : '🎛️ Routing & Morph ▾';
+  });
+
   const chain = $('chain');
   if (chain) {
     chain.addEventListener('click', (e) => {
+      const nudgeLeft = e.target.closest('.cb-nudge-left');
+      if (nudgeLeft) {
+        e.stopPropagation();
+        reorderBlock(nudgeLeft.dataset.nudgeLeft, -1);
+        return;
+      }
+      const nudgeRight = e.target.closest('.cb-nudge-right');
+      if (nudgeRight) {
+        e.stopPropagation();
+        reorderBlock(nudgeRight.dataset.nudgeRight, 1);
+        return;
+      }
       const power = e.target.closest('.cb-power');
       if (power) {
         e.stopPropagation();
@@ -1969,6 +2617,27 @@ function bindEvents() {
     else if (btn.dataset.action === 'load-ir') $('ir-file-input')?.click();
     else if (btn.dataset.action === 'open-t3k') openT3K();
     else if (btn.dataset.action === 'open-settings') openSettings();
+    else if (btn.dataset.action === 'activate-24bit-44k') {
+      api('/api/audio/24bit-44k', { method: 'POST', body: { sample_rate: 44100, bit_depth: 24, touch_sensitivity: 0.88 } })
+        .then((res) => {
+          localStorage.setItem('tone.sampleRate', '44100');
+          if (res?.state) applyServerState(res.state, { forceRender: true });
+          showToast('เปิดใช้งาน 24-Bit / 44.1 kHz Studio Natural Dynamics แล้ว');
+        })
+        .catch((err) => showToast(err.message, true));
+    }
+    else if (btn.dataset.action === 'load-ozzy-neural') {
+      Promise.all([
+        api('/api/ai-tone/match', { method: 'POST', body: { query: 'ozzy_neural_24bit' } }),
+        api('/api/audio/24bit-44k', { method: 'POST', body: { sample_rate: 44100, bit_depth: 24, touch_sensitivity: 0.92, ozzy_doubler: true } }),
+      ]).then(([matchRes, srRes]) => {
+        localStorage.setItem('tone.sampleRate', '44100');
+        const st = srRes?.state || matchRes?.state;
+        if (st) applyServerState(st, { forceRender: true });
+        renderChain(); renderPanel();
+        showToast('โหลดโทน โอไซด์ × นูลอ 24-Bit / 44.1 kHz + NAM A2 + Studio IR แล้ว!');
+      }).catch((err) => showToast(err.message, true));
+    }
   });
 
   $('ctx-load-file')?.addEventListener('click', () => { const b = state.ctxBlock; closeCtx(); if (b) pickFile(b, 'file'); });
@@ -1996,6 +2665,12 @@ function bindEvents() {
     if (e.key === 'Escape') {
       closeCtx();
       closeSettings();
+      closeMidiModal();
+      const main = document.querySelector('.app > .main');
+      if (main && main.classList.contains('explorer-visible')) {
+        main.classList.remove('explorer-visible');
+        $('btn-toggle-explorer')?.classList.remove('active');
+      }
     }
   });
 }
@@ -2040,6 +2715,10 @@ async function boot() {
       state.tunerActive = true;
       $('tuner-display')?.classList.remove('hidden');
     }
+    try {
+      const ab = await api('/api/ab/state');
+      updateAbUi(ab);
+    } catch (_) {}
   } catch (err) {
     showToast('เชื่อมต่อ backend ไม่ได้: ' + err.message, true);
   }
@@ -2051,6 +2730,9 @@ async function boot() {
     if (first) await loadPreset(first, { silent: true });
     else renderDetails(null);
   }
+
+  // Real-time TONE3000 main catalog initialization
+  searchT3KLive('');
 
   startPolling();
 }
@@ -2136,6 +2818,140 @@ async function t3kApi(path, { method = 'GET', body = null } = {}) {
     throw error;
   }
   return data;
+}
+
+// =========================================================================
+// Real-time TONE3000 Main Search & Live Preset Controller
+// =========================================================================
+const t3kMain = {
+  liveMode: true,
+  kind: 'trending',
+  gear: '',
+  query: '',
+  timer: null,
+  tones: [],
+};
+
+async function searchT3KLive(query = '') {
+  t3kMain.query = (query || '').trim();
+  const grid = $('t3kMainGrid');
+  const localTable = $('localPresetsTable');
+  const count = $('rowCount');
+
+  if (!t3kMain.liveMode) {
+    if (grid) grid.style.display = 'none';
+    if (localTable) localTable.classList.remove('hidden');
+    renderTable();
+    return;
+  }
+
+  if (localTable) localTable.classList.add('hidden');
+  if (grid) {
+    grid.style.display = 'grid';
+    grid.innerHTML = '<div class="t3k-empty" style="grid-column: 1 / -1; padding: 22px; text-align: center; color: var(--muted);"><span class="t3k-spinner"></span> กำลังค้นหาคลังเสียง TONE3000 แบบเรียลไทม์…</div>';
+  }
+
+  const params = new URLSearchParams();
+  if (t3kMain.query) {
+    params.set('kind', 'search');
+    params.set('query', t3kMain.query);
+  } else {
+    params.set('kind', t3kMain.kind || 'trending');
+  }
+  if (t3kMain.gear) params.set('gear', t3kMain.gear);
+  params.set('page', '1');
+
+  try {
+    const data = await t3kApi('/api/t3k/tones?' + params.toString());
+    t3kMain.tones = data.data || [];
+    renderT3KMainGrid(t3kMain.tones);
+    if (count) {
+      count.innerHTML = `<span class="t3k-live-search-status"><span class="t3k-live-dot"></span> TONE3000 (${data.total || t3kMain.tones.length} เสียง)</span>`;
+    }
+  } catch (err) {
+    if (grid) {
+      grid.innerHTML = `<div class="t3k-empty" style="grid-column: 1 / -1; padding: 20px; text-align: center; color: var(--hot-ink);">ค้นหา TONE3000 ไม่สำเร็จ: ${esc(err.message)}</div>`;
+    }
+  }
+}
+
+function renderT3KMainGrid(tones) {
+  const grid = $('t3kMainGrid');
+  if (!grid) return;
+
+  if (!tones || !tones.length) {
+    grid.innerHTML = '<div class="t3k-empty" style="grid-column: 1 / -1; padding: 28px; text-align: center; color: var(--muted);">ไม่พบเสียงที่ตรงกับคำค้นหาใน TONE3000<br><small style="color:var(--faint);">ลองเปลี่ยนคำค้น เช่น Marshall, Clean, Mesa, Overdrive</small></div>';
+    return;
+  }
+
+  grid.innerHTML = tones.map((tone) => {
+    const image = t3kSafeUrl((tone.images || [])[0]);
+    const creator = (tone.user && (tone.user.display_name || tone.user.username)) || 'TONE3000';
+    const gear = tone.gear || 'amp';
+    const isA2 = String(tone.architecture || tone.architecture_version || '').includes('2') || true;
+    return `
+      <div class="t3k-grid-item" data-tone-id="${esc(tone.id)}">
+        <div class="t3k-gi-thumb">
+          ${image
+            ? `<img src="${esc(image)}" alt="" loading="lazy" onerror="this.remove()">`
+            : '<span class="t3k-gi-thumb-fallback">T3K</span>'}
+        </div>
+        <div class="t3k-gi-info">
+          <div class="t3k-gi-title" title="${esc(tone.title)}">${esc(tone.title)}</div>
+          <div class="t3k-gi-author">by @${esc(creator)}</div>
+          <div class="t3k-gi-badges">
+            <span class="t3k-gi-badge t3k-a2">${isA2 ? 'NAM A2' : 'NAM A1'}</span>
+            <span class="t3k-gi-badge t3k-gear">${esc(t3kGearLabel(gear))}</span>
+            ${tone.downloads_count ? `<span class="t3k-gi-badge">↓ ${t3kNumber(tone.downloads_count)}</span>` : ''}
+          </div>
+        </div>
+        <div class="t3k-gi-action">
+          <button type="button" class="t3k-gi-load-btn" data-load-tone="${esc(tone.id)}" title="ดาวน์โหลดและโหลดเข้า NAM AMP ทันที">
+            ⚡ โหลด
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  grid.querySelectorAll('[data-load-tone]').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const toneId = Number(btn.dataset.loadTone);
+      const tone = tones.find((t) => t.id === toneId);
+      btn.classList.add('loading');
+      btn.textContent = 'กำลังโหลด…';
+      try {
+        const data = await t3kApi('/api/t3k/load', {
+          method: 'POST',
+          body: { tone_id: toneId },
+        });
+        btn.classList.remove('loading');
+        btn.classList.add('loaded');
+        btn.textContent = '✓ โหลดแล้ว';
+        if (data.load) applyT3KLoad(data.load, true);
+        if (data.state) applyServerState(data.state, { forceRender: true });
+        showToast(`⚡ โหลด "${tone ? tone.title : 'TONE3000'}" เข้า NAM AMP สำเร็จ!`);
+        setTimeout(() => {
+          btn.classList.remove('loaded');
+          btn.textContent = '⚡ โหลด';
+        }, 2500);
+      } catch (err) {
+        btn.classList.remove('loading');
+        btn.textContent = '⚡ โหลด';
+        showToast(`โหลดเสียงไม่สำเร็จ: ${err.message}`, true);
+      }
+    });
+  });
+
+  grid.querySelectorAll('.t3k-grid-item').forEach((item) => {
+    item.addEventListener('click', () => {
+      grid.querySelectorAll('.t3k-grid-item').forEach((i) => i.classList.remove('active'));
+      item.classList.add('active');
+      const toneId = item.dataset.toneId;
+      openT3KDetail(toneId);
+    });
+  });
 }
 
 // ── modal lifecycle ──────────────────────────────────────────────────
@@ -3067,6 +3883,23 @@ function drawEqCurve(curve) {
   });
   d += `L ${w} ${midY} Z`;
   path.setAttribute('d', d);
+  const svg = $('eqCurveSvg');
+  if (svg) {
+    svg.querySelectorAll('.eq-node-g').forEach((n) => n.remove());
+    const bands = state.live?.eq?.bands || [20, 0, 0, 0, 0, 20000];
+    const nodeColors = ['#f59e0b', '#38bdf8', '#10b981', '#a855f7'];
+    const nodeXs = [65, 130, 195, 255];
+    nodeXs.forEach((nx, idx) => {
+      const bandIdx = idx + 1;
+      const dbVal = clamp(Number(bands[bandIdx] || 0), -16, 16);
+      const ny = clamp(midY - (dbVal / maxDb) * (midY - 10), 8, h - 8);
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('class', 'eq-node-g');
+      g.style.cursor = 'ns-resize';
+      g.innerHTML = `<circle cx="${nx}" cy="${ny.toFixed(1)}" r="8" fill="${nodeColors[idx]}" fill-opacity="0.25"/><circle cx="${nx}" cy="${ny.toFixed(1)}" r="4.5" fill="${nodeColors[idx]}" stroke="#ffffff" stroke-width="1.2"/>`;
+      svg.appendChild(g);
+    });
+  }
 }
 
 function attachEqEvents() {
@@ -3204,3 +4037,470 @@ function initMorphAndParallel() {
 
 
 window.addEventListener('DOMContentLoaded', boot);
+
+
+// ===================================================================
+// PREMIUM DARK UI VOICING, SLIDER SYNC & HYBRID C++ WEBSOCKET BRIDGE
+// ===================================================================
+
+function syncSliderProgressCss(slider) {
+  if (!slider) return;
+  slider.style.setProperty('--attr-min', slider.min || '0');
+  slider.style.setProperty('--attr-max', slider.max || '100');
+  slider.style.setProperty('--control-value', slider.value || '0');
+}
+
+function updateDynamicVoicingAccent() {
+  const ampGain = Number(state.live?.amp?.gain ?? 0.65);
+  const ampModel = String(state.live?.amp?.model || '').toLowerCase();
+  const driveOn = !!state.live?.screamer?.enabled;
+  let voicing = 'vintage';
+  if (ampGain < 0.35 && !driveOn) {
+    voicing = 'clean';
+  } else if (ampGain >= 0.72 || /5150|rect|metal|uberschall/i.test(ampModel)) {
+    voicing = 'highgain';
+  }
+  if (document.body && document.body.dataset.voicing !== voicing) {
+    document.body.dataset.voicing = voicing;
+  }
+}
+
+const cppBridge = {
+  ws: null,
+  connected: false,
+  reqSeq: 1,
+  connect() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tokenFromUrl = urlParams.get('cpp_token');
+    const portFromUrl = urlParams.get('cpp_port');
+    if (tokenFromUrl) localStorage.setItem('tone.cppToken', tokenFromUrl);
+    if (portFromUrl) localStorage.setItem('tone.cppPort', portFromUrl);
+    const token = tokenFromUrl || localStorage.getItem('tone.cppToken') || '';
+    const port = portFromUrl || localStorage.getItem('tone.cppPort') || '8765';
+    if (!token) return;
+    try {
+      const ws = new WebSocket(`ws://127.0.0.1:${port}/ws?token=${encodeURIComponent(token)}`);
+      ws.addEventListener('open', () => {
+        cppBridge.ws = ws;
+        cppBridge.connected = true;
+        showToast('⚡ Native C++ ASIO Engine เชื่อมต่อสำเร็จ (17.5 ms UX1)', false);
+        ws.send(JSON.stringify({ type: 'get_state', req_id: String(cppBridge.reqSeq++) }));
+      });
+      ws.addEventListener('close', () => {
+        cppBridge.ws = null;
+        cppBridge.connected = false;
+      });
+      ws.addEventListener('error', () => {
+        cppBridge.ws = null;
+        cppBridge.connected = false;
+      });
+    } catch (e) {
+      cppBridge.connected = false;
+    }
+  },
+  sendParamNormalized(block, param, normalized) {
+    if (!cppBridge.connected || !cppBridge.ws) return;
+    try {
+      cppBridge.ws.send(JSON.stringify({
+        type: 'set_param',
+        req_id: String(cppBridge.reqSeq++),
+        block,
+        param,
+        normalized: Math.max(0, Math.min(1, Number(normalized)))
+      }));
+    } catch (e) { /* ignore */ }
+  },
+  sendParamValue(block, param, value) {
+    if (!cppBridge.connected || !cppBridge.ws) return;
+    try {
+      cppBridge.ws.send(JSON.stringify({
+        type: 'set_param',
+        req_id: String(cppBridge.reqSeq++),
+        block,
+        param,
+        value: Number(value)
+      }));
+    } catch (e) { /* ignore */ }
+  }
+};
+
+window.addEventListener('DOMContentLoaded', () => {
+  ['morphSlider', 'parallelBlendSlider'].forEach((id) => {
+    const el = $(id);
+    if (el) {
+      syncSliderProgressCss(el);
+      el.addEventListener('input', () => syncSliderProgressCss(el));
+    }
+  });
+  updateDynamicVoicingAccent();
+  cppBridge.connect();
+
+  // MOOER GE150 / Quad Cortex Tap Tempo BPM Sync
+  const tapTimes = [];
+  const tapBtn = $('btn-tap-tempo');
+  if (tapBtn) {
+    tapBtn.addEventListener('click', async () => {
+      const now = performance.now();
+      if (tapTimes.length && now - tapTimes[tapTimes.length - 1] > 2200) tapTimes.length = 0;
+      tapTimes.push(now);
+      if (tapTimes.length > 5) tapTimes.shift();
+      if (tapTimes.length >= 2) {
+        let sum = 0;
+        for (let i = 1; i < tapTimes.length; i++) sum += (tapTimes[i] - tapTimes[i - 1]);
+        const avgMs = sum / (tapTimes.length - 1);
+        const bpm = Math.max(40, Math.min(260, Math.round(60000 / avgMs)));
+        tapBtn.textContent = `TAP ${bpm} BPM`;
+        try {
+          const res = await api('/api/tempo/sync', { method: 'POST', body: { bpm, subdivision: '1/4' } });
+          if (res.state) applyServerState(res.state);
+          showToast(`⏱ Tap Tempo: ${bpm} BPM (Delay = ${Math.round(res.delay_time_sec * 1000)} ms)`);
+        } catch (err) { /* ignore */ }
+      } else {
+        showToast('เคาะปุ่ม TAP อีกครั้งเพื่อคำนวณจังหวะ BPM');
+      }
+    });
+  }
+
+  // Kemper Auto-Morph A<->B Generator
+  const autoMorphBtn = $('btn-auto-morph');
+  if (autoMorphBtn) {
+    autoMorphBtn.addEventListener('click', async () => {
+      try {
+        const res = await api('/api/morph/auto', { method: 'POST', body: {} });
+        if (res.morph) {
+          const slider = $('morphSlider');
+          if (slider) { slider.value = '0'; syncSliderProgressCss(slider); }
+          if ($('morphReadout')) $('morphReadout').textContent = '0% (A)';
+          if ($('morphSlotABtn')) { $('morphSlotABtn').classList.add('captured'); $('morphSlotABtn').textContent = 'SAVED A'; }
+          if ($('morphSlotBBtn')) { $('morphSlotBBtn').classList.add('captured'); $('morphSlotBBtn').textContent = 'SAVED B'; }
+        }
+        showToast('⚡ สร้างคู่ Kemper Morph A (Rhythm) ↔ B (Solo Lead) อัตโนมัติแล้ว!');
+      } catch (err) {
+        showToast('Auto-Morph ไม่สำเร็จ: ' + err.message, true);
+      }
+    });
+  }
+
+  // Artist preset search (keyword lookup, see engine/ai_tone_matcher.py)
+  let liveBpm = 120;
+  async function runAiToneMatch(queryText) {
+    if (!queryText) return;
+    try {
+      const res = await api('/api/ai-tone/match', { method: 'POST', body: { query: queryText } });
+      if (res.state) applyServerState(res.state, { forceRender: true });
+      const prof = res.matched_profile;
+      if (prof) {
+        liveBpm = prof.bpm || 120;
+        if ($('btn-tap-tempo')) $('btn-tap-tempo').textContent = `TAP ${liveBpm} BPM`;
+        if ($('curName')) $('curName').textContent = prof.title;
+        if ($('curSub')) $('curSub').textContent = prof.brand_dna;
+        showToast(`🎸 Artist Preset: ${prof.title} (${prof.summary})`);
+      }
+    } catch (err) {
+      showToast('โหลด Artist Preset ไม่สำเร็จ: ' + err.message, true);
+    }
+  }
+  $('aiToneMatchBtn')?.addEventListener('click', () => runAiToneMatch($('aiToneInput')?.value || 'polyphia'));
+  $('aiToneInput')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') runAiToneMatch(e.target.value); });
+  document.querySelectorAll('#aiQuickPills [data-ai]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if ($('aiToneInput')) $('aiToneInput').value = btn.textContent;
+      runAiToneMatch(btn.dataset.ai);
+    });
+  });
+
+  // Web Audio API Smart Drum Groove & Metronome Synthesizer
+  let audioCtx = null;
+  let drumTimer = null;
+  let drumStep = 0;
+  function triggerDrumStep(style, step) {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const now = audioCtx.currentTime;
+    const isKick = style === 'metal' ? (step % 2 === 0 || step === 3 || step === 7) : (step === 0 || step === 4);
+    const isSnare = (step === 2 || step === 6);
+    if (style === 'metro') {
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.frequency.value = step % 4 === 0 ? 1200 : 800;
+      g.gain.setValueAtTime(0.15, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+      osc.connect(g); g.connect(audioCtx.destination);
+      osc.start(now); osc.stop(now + 0.045);
+      return;
+    }
+    if (isKick) {
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.frequency.setValueAtTime(135, now);
+      osc.frequency.exponentialRampToValueAtTime(38, now + 0.11);
+      g.gain.setValueAtTime(0.35, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+      osc.connect(g); g.connect(audioCtx.destination);
+      osc.start(now); osc.stop(now + 0.15);
+    }
+    if (isSnare) {
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(210, now);
+      osc.frequency.exponentialRampToValueAtTime(95, now + 0.09);
+      g.gain.setValueAtTime(0.22, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+      osc.connect(g); g.connect(audioCtx.destination);
+      osc.start(now); osc.stop(now + 0.12);
+    }
+    // Hi-Hat
+    const hatOsc = audioCtx.createOscillator();
+    const hatG = audioCtx.createGain();
+    hatOsc.type = 'square';
+    hatOsc.frequency.setValueAtTime(6400, now);
+    hatG.gain.setValueAtTime(0.04, now);
+    hatG.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+    hatOsc.connect(hatG); hatG.connect(audioCtx.destination);
+    hatOsc.start(now); hatOsc.stop(now + 0.035);
+  }
+
+  const drumBtn = $('drumToggleBtn');
+  if (drumBtn) {
+    drumBtn.addEventListener('click', () => {
+      if (drumTimer) {
+        clearInterval(drumTimer);
+        drumTimer = null;
+        drumBtn.classList.remove('active');
+        drumBtn.innerHTML = '<span class="p-led"></span>DRUMS OFF';
+      } else {
+        drumStep = 0;
+        drumBtn.classList.add('active');
+        drumBtn.innerHTML = '<span class="p-led"></span>DRUMS ON';
+        const stepMs = () => Math.max(80, Math.round((60000 / (liveBpm || 120)) / 2));
+        const loop = () => {
+          const style = $('drumStyleSelect')?.value || 'rock';
+          triggerDrumStep(style, drumStep % 8);
+          drumStep++;
+          drumTimer = setTimeout(loop, stepMs());
+        };
+        loop();
+      }
+    });
+  }
+
+  // Output spectrum (server FFT of the last 2048 output samples, 24 log bands, -72..0 dBFS)
+  // and VU needles driven by the real input/output RMS meters.
+  const rta = $('rtaCanvas');
+  if (rta) {
+    const ctx = rta.getContext('2d');
+    const shown = new Array(24).fill(-72);
+    let needleIn = -60, needleOut = -60;
+    const meterDb = (m) => 20 * Math.log10(Math.max(1e-3, Number(m || 0) / 100));
+    const swingFor = (db) => Math.max(-14, Math.min(14, (db + 30) * (14 / 30)));
+    function drawRta() {
+      const w = rta.width, h = rta.height;
+      ctx.clearRect(0, 0, w, h);
+      const srv = state.lastServer || {};
+      const spec = Array.isArray(srv.spectrum) ? srv.spectrum : null;
+      const bw = w / shown.length;
+      for (let i = 0; i < shown.length; i++) {
+        const target = spec ? Math.max(-72, Number(spec[i] ?? -72)) : -72;
+        shown[i] += (target - shown[i]) * (target > shown[i] ? 0.6 : 0.15);  // fast attack, slow fall
+        const barH = Math.max(2, ((shown[i] + 72) / 72) * (h - 2));
+        ctx.fillStyle = shown[i] > -6 ? '#f43f5e' : (shown[i] > -24 ? '#f59e0b' : '#38bdf8');
+        ctx.fillRect(i * bw + 1, h - barH, bw - 1.5, barH);
+      }
+      needleIn += (meterDb(srv.input_meter) - needleIn) * 0.3;
+      needleOut += (meterDb(srv.output_meter) - needleOut) * 0.3;
+      const sIn = swingFor(needleIn), sOut = swingFor(needleOut);
+      const nIn = $('vuNeedleIn'), nOut = $('vuNeedleOut');
+      if (nIn) { nIn.setAttribute('x2', (745 + sIn * 0.9).toFixed(1)); nIn.setAttribute('y2', (20 - Math.abs(sIn) * 0.12).toFixed(1)); }
+      if (nOut) { nOut.setAttribute('x2', (857 + sOut * 1.15).toFixed(1)); nOut.setAttribute('y2', (18 - Math.abs(sOut) * 0.12).toFixed(1)); }
+      requestAnimationFrame(drawRta);
+    }
+    requestAnimationFrame(drawRta);
+  }
+
+  // PLAY MODE + Tone Filter Chips + Studio Macros + Undo/Redo
+  const appRoot = document.querySelector('.app');
+  if ($('btn-lib-drawer') && appRoot) {
+    $('btn-lib-drawer').addEventListener('click', () => {
+      const isPlay = appRoot.classList.toggle('play-mode');
+      $('btn-lib-drawer').classList.toggle('active-drawer-btn', isPlay);
+    });
+  }
+  document.querySelectorAll('#presetFilterChips button').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#presetFilterChips button').forEach((c) => c.classList.remove('active'));
+      chip.classList.add('active');
+      const kind = chip.dataset.t3kKind;
+      const gear = chip.dataset.t3kGear;
+      if (kind === 'local') {
+        t3kMain.liveMode = false;
+        searchT3KLive();
+      } else {
+        t3kMain.liveMode = true;
+        if (kind) {
+          t3kMain.kind = kind;
+          t3kMain.gear = '';
+        } else if (gear) {
+          t3kMain.gear = gear;
+        }
+        searchT3KLive(t3kMain.query);
+      }
+    });
+  });
+  document.querySelectorAll('#macroStrip [data-macro]').forEach((mbtn) => {
+    mbtn.addEventListener('click', async () => {
+      const m = mbtn.dataset.macro;
+      mbtn.classList.toggle('active');
+      if (m === 'tight') {
+        await sendParamNow('gate', 'enabled', true);
+        await sendParamNow('gate', 'threshold', -48);
+        await sendParamNow('screamer', 'enabled', true);
+        await sendParamNow('screamer', 'drive', 0.22);
+        await sendParamNow('screamer', 'level', 0.78);
+        await sendParamNow('amp', 'bass', 0.38);
+        showToast('Macro: Tight — เปิด Gate + Boost Screamer + ลด Bass');
+      } else if (m === 'bright') {
+        await sendParamNow('amp', 'treble', 0.74);
+        await sendParamNow('amp', 'presence', 0.76);
+        showToast('Macro: Bright — เพิ่ม Treble & Presence');
+      } else if (m === 'space') {
+        await sendParamNow('delay', 'enabled', true);
+        await sendParamNow('delay', 'mix', 0.32);
+        await sendParamNow('reverb', 'enabled', true);
+        await sendParamNow('reverb', 'mix', 0.34);
+        await sendParamNow('reverb', 'decay', 0.68);
+        showToast('Macro: Space — เปิด Stereo Delay + Plate Reverb');
+      } else if (m === 'lead') {
+        const curGain = Number(state.live?.amp?.gain ?? 0.6);
+        await sendParamNow('amp', 'gain', Math.min(1.0, curGain + 0.16));
+        await sendParamNow('screamer', 'enabled', true);
+        await sendParamNow('delay', 'enabled', true);
+        showToast('Macro: Lead Boost — เพิ่ม Gain + เปิด Drive & Delay');
+      }
+      renderChain();
+      renderPanel();
+    });
+  });
+  async function performUndo() {
+    const stack = window._undoStack || [];
+    if (!stack.length) return;
+    const item = stack.pop();
+    window._redoStack = window._redoStack || [];
+    window._redoStack.push(item);
+    if ($('btn-undo')) $('btn-undo').disabled = stack.length === 0;
+    if ($('btn-redo')) $('btn-redo').disabled = false;
+    await sendParamNow(item.section, item.param, item.prev);
+    renderChain();
+    renderPanel();
+    showToast('Undo: ' + item.section + '.' + item.param);
+  }
+  async function performRedo() {
+    const rstack = window._redoStack || [];
+    if (!rstack.length) return;
+    const item = rstack.pop();
+    window._undoStack = window._undoStack || [];
+    window._undoStack.push(item);
+    if ($('btn-undo')) $('btn-undo').disabled = false;
+    if ($('btn-redo')) $('btn-redo').disabled = rstack.length === 0;
+    await sendParamNow(item.section, item.param, item.next);
+    renderChain();
+    renderPanel();
+    showToast('Redo: ' + item.section + '.' + item.param);
+  }
+  $('btn-undo')?.addEventListener('click', performUndo);
+  $('btn-redo')?.addEventListener('click', performRedo);
+  window.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') {
+      if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+      e.preventDefault();
+      performUndo();
+    } else if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) {
+      if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+      e.preventDefault();
+      performRedo();
+    }
+  });
+  const libDrawerBtn = $('btn-lib-drawer');
+  const mainLib = document.querySelector('.app > .main');
+  if (false && libDrawerBtn && mainLib) {
+    libDrawerBtn.addEventListener('click', () => {
+      const hidden = mainLib.classList.toggle('collapsed-drawer');
+      libDrawerBtn.classList.toggle('active-drawer-btn', !hidden);
+      if (!hidden) {
+        mainLib.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  }
+  const riffBtn = $('riffToggleBtn');
+  let riffTimer = null, riffIdx = 0;
+  const riffNotes = [82.41, 82.41, 98.0, 110.0, 82.41, 123.47, 110.0, 98.0];
+  if (riffBtn) {
+    riffBtn.addEventListener('click', () => {
+      if (riffTimer) {
+        clearTimeout(riffTimer);
+        riffTimer = null;
+        riffBtn.classList.remove('active');
+        riffBtn.innerHTML = '<span class="p-led"></span>🎸 RIFF OFF';
+      } else {
+        if (!drumCtx) drumCtx = new (window.AudioContext || window.webkitAudioContext)();
+        riffBtn.classList.add('active');
+        riffBtn.innerHTML = '<span class="p-led"></span>🎸 RIFF ON';
+        const playNote = () => {
+          const now = drumCtx.currentTime;
+          const freq = riffNotes[riffIdx % riffNotes.length];
+          riffIdx++;
+          const osc = drumCtx.createOscillator(), flt = drumCtx.createBiquadFilter(), g = drumCtx.createGain();
+          osc.type = 'sawtooth'; osc.frequency.setValueAtTime(freq, now);
+          flt.type = 'bandpass'; flt.frequency.setValueAtTime(950 + Number(state.live?.amp?.gain ?? 0.6) * 1400, now); flt.Q.setValueAtTime(2.4, now);
+          g.gain.setValueAtTime(0.14, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.19);
+          osc.connect(flt); flt.connect(g); g.connect(drumCtx.destination);
+          osc.start(now); osc.stop(now + 0.21);
+          riffTimer = setTimeout(playNote, Math.max(110, Math.round((60000 / (liveBpm || 120)) / 2)));
+        };
+        playNote();
+      }
+    });
+  }
+  if (false) {
+    [].forEach(() => {
+      if (false) {
+      }
+    });
+  }
+
+  if (false && riffBtn) {
+    riffBtn.addEventListener('click', () => {
+      if (riffTimer) {
+        clearTimeout(riffTimer);
+        riffTimer = null;
+        riffBtn.classList.remove('active');
+        riffBtn.innerHTML = '<span class="p-led"></span>🎸 RIFF OFF';
+      } else {
+        if (!drumCtx) drumCtx = new (window.AudioContext || window.webkitAudioContext)();
+        riffBtn.classList.add('active');
+        riffBtn.innerHTML = '<span class="p-led"></span>🎸 RIFF ON';
+        const playNote = () => {
+          const now = drumCtx.currentTime;
+          const freq = riffNotes[riffIdx % riffNotes.length];
+          riffIdx++;
+          const osc = drumCtx.createOscillator();
+          const flt = drumCtx.createBiquadFilter();
+          const g = drumCtx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(freq, now);
+          flt.type = 'bandpass';
+          flt.frequency.setValueAtTime(950 + Number(state.live?.amp?.gain ?? 0.6) * 1400, now);
+          flt.Q.setValueAtTime(2.4, now);
+          g.gain.setValueAtTime(0.14, now);
+          g.gain.exponentialRampToValueAtTime(0.001, now + 0.19);
+          osc.connect(flt);
+          flt.connect(g);
+          g.connect(drumCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.21);
+          riffTimer = setTimeout(playNote, Math.max(110, Math.round((60000 / (liveBpm || 120)) / 2)));
+        };
+        playNote();
+      }
+    });
+  }
+});

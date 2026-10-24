@@ -296,3 +296,38 @@ SignalChain (runtime only)
 ### 10.4 ที่ยังไม่ต่อ registry (ตั้งใจ)
 
 `engine/audio.py get_state()` (schema ที่ UI/preset ใช้), `server.py load_preset` (มี default ต่อ block + NAM/T3K), `cortex_scenes.py`, `morph.py`, `web/app.js` — ทั้งหมดยังประกาศซ้ำ แต่ `tests/test_param_registry.py` ผูกไว้กับ registry แล้ว (state shape, BLOCK_ATTRS, PARAM_ALIASES, morph flat keys, mooer producer keys, UI knobs)
+
+---
+
+## 11. Device-mode plan — เหลือเฉพาะ generic และ TONE3000/NAM
+
+**สถานะ:** generic และ NAM/TONE3000 ใช้งานได้; GE150, Quad Cortex และ Kemper modes ถูกถอดออกเพราะเสียงไม่ผ่านการใช้งาน · **วันที่:** 2026-10-24
+
+### 11.1 สิ่งที่เปลี่ยน
+
+| ไฟล์ | เดิม | ใหม่ |
+|---|---|---|
+| `engine/device_mode.py` | — | ตาราง mode เหลือ `generic` และ `nam`; `mode_for_source()` เลือก NAM เฉพาะ TONE3000/NAM |
+| `engine/dsp.py` `GuitarSignalChain` | `process()` เรียกบล็อกตามลำดับตายตัว | เรียกตาม `self._stage_order` ของ `device_mode`; `generic` คือลำดับเดิมทั้งหมด |
+| `tests/test_device_mode.py` | — | 12 tests: ความครบของตาราง, mapping source, setter, และ generic ต้องตรง golden |
+
+`device_mode` เป็น property: generic เป็นค่าเริ่มต้นและพรีเซ็ต MOOER ไม่ auto-switch; โหลด TONE3000/NAM แล้วเลือก `nam` ส่วนชื่อโหมดอื่น raise `ValueError` (พรีเซ็ตเก่าที่มีโหมดที่ถอดออกจะ fallback เป็น generic)
+
+### 11.2 หลักฐานว่า generic ไม่เปลี่ยนเสียง
+
+| หลักฐาน | ผล |
+|---|---|
+| `dsp_chain_baseline.json` (3 เคส), `dsp_chain_sweep.json` (12 เคส), `hd_chain_sweep.json` (13 เคส) | ผ่านโดยไม่ re-record หลังแก้ `process()` |
+| `test_generic_mode_reproduces_the_recorded_sweep` | เทียบ golden ที่ `atol=1e-9` (golden ปัด 9 ตำแหน่งแล้ว) |
+| `test_explicit_generic_matches_the_default_constructor_bit_for_bit` | `assert_array_equal` ระหว่าง chain ที่ตั้ง `generic` กับ constructor ปกติ |
+| `test_stage_calls_follow_the_declared_engine_order` (มีอยู่แล้วใน `test_rigdoc.py`) | ยังผ่าน: ชื่อบล็อกและลำดับใน `process()` ตรง `params.PROCESS_ORDER` |
+
+### 11.3 ลำดับที่ยังรองรับ
+
+| โหมด | ลำดับ | ที่มา |
+|---|---|---|
+| `generic` | gate → pitch → tap → screamer → amp → eq → cab → parallel → mod → delay → reverb | ลำดับเดิมของ engine; พรีเซ็ต MOOER และเสียงในตัวใช้เส้นทางนี้ |
+| `nam` | เท่า `generic` | TONE3000/NAM แทน amp block |
+
+การเลือก `nam` ไม่อ้างว่า emulation ของ GE150/Cortex/Kemper ใช้ได้; โหมดและ auto-switch ของสามแหล่งนั้นปิดไว้จนกว่าจะมี implementation และ listening verification จริง
+- per-mode defaults และ voicing ภายในแต่ละบล็อก (GE150 amp 55 แบบ, Kemper profile, Cortex scenes, NAM หลาย stage) ยังไม่ทำในระยะนี้

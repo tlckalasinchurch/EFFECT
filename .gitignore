@@ -89,3 +89,14 @@ screenshots/
 *.exp
 *.lib
 *.obj
+*.pdb
+*.tlog
+*.idb
+*.recipe
+*.ilk
+*.zip
+*.exe
+ASIO driver/
+GE150_V1.3.8_Win/
+.superpowers/
+cpp_engine/build/
