@@ -1,8 +1,28 @@
-import sounddevice as sd
 import numpy as np
 import sys
 import threading
 import time
+
+try:
+    import sounddevice as sd
+except OSError:
+    # libportaudio is not present (Linux CI / containers). Keep the module
+    # importable so DSP, FastAPI, and unit tests can run; stream open fails later.
+    class _SounddeviceUnavailable:
+        default = type("default", (), {"device": (None, None), "samplerate": 48000})()
+        WasapiSettings = None
+
+        def query_devices(self, *args, **kwargs):
+            raise OSError("PortAudio library not found")
+
+        def query_hostapis(self, *args, **kwargs):
+            raise OSError("PortAudio library not found")
+
+        class Stream:
+            def __init__(self, *args, **kwargs):
+                raise OSError("PortAudio library not found")
+
+    sd = _SounddeviceUnavailable()
 from . import param_access, params
 from .dsp import GuitarSignalChain
 from .world_class_dsp import WorldClassAudioProcessor
@@ -143,6 +163,9 @@ class AudioEngine:
         self.hd_dsp = WorldClassAudioProcessor(sample_rate=sample_rate)
         self.stream = None
         self.is_running = False
+        self.native_cpp_active = False
+        self.native_cpp_asio = False
+        self.cpp_host_info = None
         self.using_fallback = False
         self.stream_error = ""
         self.stream_device_pair = (None, None)
@@ -838,21 +861,46 @@ class AudioEngine:
     def audio_path_info(self):
         """Everything the GUI needs to describe (and warn about) the audio path."""
         if getattr(self, "native_cpp_active", False):
+            info = getattr(self, "cpp_host_info", None) or {}
+            backend = str(info.get("backend") or "native_cpp")
+            asio = bool(info.get("asio_running")) or backend.lower().startswith("asio")
+            driver = info.get("asio_driver") or None
+            sr = int(info.get("sample_rate") or self.sample_rate or 0)
+            bs = int(info.get("buffer_size") or self.block_size or 0)
+            buffer_ms = round(bs / sr * 1000.0, 2) if sr and bs else None
+            metrics = info.get("metrics") or {}
+            warning = None
+            if not asio:
+                warning = "native_cpp_not_asio"
+            reported = info.get("roundtrip_latency_ms")
+            if reported is not None:
+                try:
+                    reported = round(float(reported), 2)
+                except (TypeError, ValueError):
+                    reported = None
             return {
-                "using_fallback": False,
-                "native_cpp_asio": True,
-                "backend": "ASIO",
-                "driver": "ASIO UX1",
-                "input": {"id": 0, "name": "ASIO UX1 Send 1/2", "hostapi": "ASIO"},
-                "output": {"id": 0, "name": "ASIO UX1 Output 1/2", "hostapi": "ASIO"},
-                "buffer_ms": 2.67,
-                "dsp_avg_ms": 0.003,
-                "dsp_window_blocks": 500,
-                "reported_io_ms": 17.5,
-                "input_ms": 5.83,
-                "output_ms": 11.67,
-                "warning": None,
-                "error": None
+                "using_fallback": not asio,
+                "native_cpp_asio": asio,
+                "backend": backend,
+                "driver": driver,
+                "input": {
+                    "id": 0,
+                    "name": driver or backend,
+                    "hostapi": "ASIO" if asio else backend,
+                },
+                "output": {
+                    "id": 0,
+                    "name": driver or backend,
+                    "hostapi": "ASIO" if asio else backend,
+                },
+                "buffer_ms": buffer_ms,
+                "dsp_avg_ms": metrics.get("avg_ms"),
+                "dsp_window_blocks": None,
+                "reported_io_ms": reported,
+                "input_ms": info.get("input_ms"),
+                "output_ms": info.get("output_ms"),
+                "warning": warning,
+                "error": None if asio else "C++ host is not running an ASIO driver; live hardware I/O is unverified",
             }
 
         latency = self._stream_latency()
